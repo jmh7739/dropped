@@ -1,16 +1,15 @@
 import { FlightDeal } from "@/lib/types";
 import { formatWon, safeUrl } from "@/lib/format";
 
+const WEEK = ["일", "월", "화", "수", "목", "금", "토"];
 function fmtDate(iso: string | null): string {
   if (!iso) return "";
   const d = new Date(iso);
-  return `${d.getMonth() + 1}.${d.getDate()}`;
+  return `${d.getMonth() + 1}.${d.getDate()}(${WEEK[d.getDay()]})`;
 }
 
 export default function FlightCard({ flight }: { flight: FlightDeal }) {
-  const dates = flight.returnDate
-    ? `${fmtDate(flight.departDate)}~${fmtDate(flight.returnDate)}`
-    : `${fmtDate(flight.departDate)} 편도`;
+  const roundTrip = Boolean(flight.returnDate);
 
   return (
     <a
@@ -29,6 +28,13 @@ export default function FlightCard({ flight }: { flight: FlightDeal }) {
         >
           {flight.isDomestic ? "국내선" : "국제선"}
         </span>
+        <span
+          className={`rounded px-1.5 py-0.5 font-bold ${
+            roundTrip ? "bg-gray-100 text-gray-600" : "bg-amber-100 text-amber-700"
+          }`}
+        >
+          {roundTrip ? "왕복" : "편도"}
+        </span>
         {flight.airline && (
           <span className="text-gray-500">{flight.airline}</span>
         )}
@@ -40,12 +46,26 @@ export default function FlightCard({ flight }: { flight: FlightDeal }) {
         <span>{flight.destination}</span>
       </div>
 
-      <div className="text-xs text-gray-500">{dates}</div>
+      <div className="text-xs text-gray-600">
+        {roundTrip ? (
+          <>
+            가는날 {fmtDate(flight.departDate)} · 오는날{" "}
+            {fmtDate(flight.returnDate)}
+          </>
+        ) : (
+          <>출발 {fmtDate(flight.departDate)}</>
+        )}
+      </div>
 
       <div className="mt-1 flex items-end justify-between">
-        <span className="text-xl font-extrabold text-brand">
-          {flight.price ? formatWon(flight.price) : "가격 문의"}
-        </span>
+        <div>
+          <span className="text-xl font-extrabold text-brand">
+            {flight.price ? formatWon(flight.price) : "가격 문의"}
+          </span>
+          <span className="ml-1 text-[11px] text-gray-400">
+            {roundTrip ? "왕복 최저가" : "편도"}
+          </span>
+        </div>
         <span className="text-xs text-gray-400">{flight.source}</span>
       </div>
     </a>

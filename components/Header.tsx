@@ -1,16 +1,30 @@
 import Link from "next/link";
 
+const NAV = [
+  { href: "/", label: "핫딜" },
+  { href: "/?category=flight", label: "✈️ 항공권" },
+  { href: "/?category=auction", label: "⚖️ 경매" },
+];
+
 export default function Header() {
   return (
-    <header className="sticky top-0 z-20 bg-white border-b border-gray-200">
-      <div className="max-w-6xl mx-auto px-4 h-14 flex items-center gap-2">
+    <header className="sticky top-0 z-20 border-b border-gray-200 bg-white">
+      <div className="mx-auto flex h-14 max-w-6xl items-center gap-3 px-4">
         <Link href="/" className="flex items-center gap-1.5">
-          <span className="text-brand text-2xl leading-none">🔻</span>
+          <span className="text-2xl leading-none text-brand">🔻</span>
           <span className="text-lg font-extrabold tracking-tight">떨어졌다</span>
         </Link>
-        <span className="text-xs text-gray-400 hidden sm:inline">
-          평소보다 싸진 것만 모아서
-        </span>
+        <nav className="flex items-center gap-1 text-sm">
+          {NAV.map((n) => (
+            <Link
+              key={n.href}
+              href={n.href}
+              className="rounded-md px-2.5 py-1.5 font-medium text-gray-600 hover:bg-gray-100"
+            >
+              {n.label}
+            </Link>
+          ))}
+        </nav>
       </div>
     </header>
   );

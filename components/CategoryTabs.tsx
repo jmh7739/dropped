@@ -3,8 +3,6 @@ import { CATEGORIES } from "@/lib/types";
 import { homeHref } from "@/lib/nav";
 
 const SHOPPING = CATEGORIES.filter((c) => c.dealType === "shopping");
-const FLIGHT = CATEGORIES.find((c) => c.dealType === "flight");
-const AUCTION = CATEGORIES.find((c) => c.dealType === "auction");
 
 export default function CategoryTabs({
   active,
@@ -39,22 +37,6 @@ export default function CategoryTabs({
           {c.name}
         </Link>
       ))}
-      {FLIGHT && (
-        <Link
-          href={`/?category=${FLIGHT.slug}`}
-          className={`${base} ${active === FLIGHT.slug ? on : off}`}
-        >
-          {FLIGHT.name}
-        </Link>
-      )}
-      {AUCTION && (
-        <Link
-          href={`/?category=${AUCTION.slug}`}
-          className={`${base} ${active === AUCTION.slug ? on : off}`}
-        >
-          {AUCTION.name}
-        </Link>
-      )}
     </nav>
   );
 }

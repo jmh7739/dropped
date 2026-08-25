@@ -56,13 +56,15 @@ def _ko(iata: str) -> str:
     return CITY_KO.get(iata, iata)
 
 
+def _ddmm(d: Optional[str]) -> str:
+    """'YYYY-MM-DD' → 'DDMM' (아비아세일즈 검색 경로 형식)."""
+    return (d[8:10] + d[5:7]) if d and len(d) >= 10 else ""
+
+
 def _booking_url(origin: str, dest: str, depart: str, ret: Optional[str]) -> str:
-    # 아비아세일즈 검색 URL + 어필리에이트 마커
-    dd = (depart or "")[5:7] + (depart or "")[8:10] if depart else ""
-    rr = (ret or "")[5:7] + (ret or "")[8:10] if ret else ""
-    path = f"{origin}{dd}{dest}{rr}1"
-    marker = config.TRAVELPAYOUTS_MARKER
-    return f"https://www.aviasales.com/search/{path}?marker={marker}"
+    # 아비아세일즈 검색 URL + 어필리에이트 마커. 경로: 출발+DDMM+도착+DDMM+인원
+    path = f"{origin}{_ddmm(depart)}{dest}{_ddmm(ret)}1"
+    return f"https://www.aviasales.com/search/{path}?marker={config.TRAVELPAYOUTS_MARKER}"
 
 
 def _fetch_origin(origin: str) -> list[FlightItem]:
