@@ -16,8 +16,12 @@ import config
 
 # 도메인 → (표시용 쇼핑몰명, 링크프라이스 merchant 코드)
 # merchant 코드는 링크프라이스 계정에서 확인한 실제 값으로 교체할 것.
+# ✅ = 링크프라이스에서 승인 확인됨(merchant 코드 검증). 나머지는 승인 후 코드 확인 필요.
 MERCHANTS = {
-    "gmarket.co.kr":     ("G마켓", "gmarket"),
+    "gmarket.co.kr":     ("G마켓", "gmarket"),    # ✅ 승인됨
+    "agoda.com":         ("아고다", "agoda"),      # ✅ 승인됨(숙박)
+    "yanolja.com":       ("야놀자", "yanolja"),    # ✅ 승인됨(숙박)
+    "nol.yanolja.com":   ("야놀자", "yanolja"),    # ✅
     "auction.co.kr":     ("옥션", "auction"),
     "11st.co.kr":        ("11번가", "11st"),
     "wemakeprice.com":   ("위메프", "wemakeprice"),
