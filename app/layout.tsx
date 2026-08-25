@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import "./globals.css";
 import Header from "@/components/Header";
 import AffiliateDisclosure from "@/components/AffiliateDisclosure";
@@ -22,6 +23,14 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ko">
+      <head>
+        {/* Travelpayouts Drive (여행 링크 자동 제휴 전환) */}
+        <Script
+          src="https://tp-em.com/NTY2NTY1.js?t=566565"
+          strategy="afterInteractive"
+          data-cmp-ab="2"
+        />
+      </head>
       <body className="min-h-screen flex flex-col">
         <Header />
         <main className="flex-1 w-full max-w-6xl mx-auto px-4 py-6">
