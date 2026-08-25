@@ -1,0 +1,40 @@
+name: 특가 수집 (crawler)
+
+on:
+  schedule:
+    # 10분마다. GitHub Actions cron은 정시 보장 안 됨(수분 지연 가능).
+    # ⚠️ 각 파트너스 API 일일 호출 쿼터를 넘지 않는지 확인하세요.
+    - cron: "*/10 * * * *"
+  workflow_dispatch: {} # 수동 실행 버튼
+
+# 이전 수집이 안 끝났는데 또 시작되는 중복 실행 방지
+concurrency:
+  group: crawl
+  cancel-in-progress: false
+
+jobs:
+  crawl:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install deps
+        working-directory: crawler
+        run: pip install -r requirements.txt
+
+      - name: Run crawler
+        working-directory: crawler
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          COUPANG_ACCESS_KEY: ${{ secrets.COUPANG_ACCESS_KEY }}
+          COUPANG_SECRET_KEY: ${{ secrets.COUPANG_SECRET_KEY }}
+          ALIEXPRESS_APP_KEY: ${{ secrets.ALIEXPRESS_APP_KEY }}
+          ALIEXPRESS_APP_SECRET: ${{ secrets.ALIEXPRESS_APP_SECRET }}
+          ALIEXPRESS_TRACKING_ID: ${{ secrets.ALIEXPRESS_TRACKING_ID }}
+        run: python run.py
