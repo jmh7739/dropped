@@ -1,7 +1,14 @@
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 
-const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+// anon 키/URL은 공개돼도 안전한 값(브라우저에 노출되는 게 정상, RLS가 데이터 보호).
+// 환경변수가 있으면 그걸 쓰고, 없으면 아래 공개 기본값으로 폴백한다.
+// ⚠️ service_role(secret) 키는 절대 여기 넣지 말 것 — 크롤러 .env 전용.
+const url =
+  process.env.NEXT_PUBLIC_SUPABASE_URL ||
+  "https://xirpfadorbmeutuijpbm.supabase.co";
+const anonKey =
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhpcnBmYWRvcmJtZXV0dWlqcGJtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc1NzAyODEsImV4cCI6MjEwMzE0NjI4MX0.6A-AZx92uuWmFQ5C_6AyAWc5sPlY_D7EESdWbaGQjXI";
 
 /**
  * 환경변수가 설정돼 있으면 Supabase 클라이언트를, 없으면 null을 반환.
