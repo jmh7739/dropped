@@ -18,7 +18,7 @@ export async function getFlightDeals(
 
   const { data, error } = await query;
   if (error || !data) return [];
-  return data.map((r: any) => ({
+  const all: FlightDeal[] = data.map((r: any) => ({
     id: r.id,
     source: r.source,
     origin: r.origin,
@@ -31,4 +31,13 @@ export async function getFlightDeals(
     dealUrl: r.deal_url,
     postedAt: r.posted_at,
   }));
+
+  // 같은 노선(출발-도착)은 최저가 1개만 남김 → 목록 깔끔하게
+  const byRoute = new Map<string, FlightDeal>();
+  for (const f of all) {
+    const key = `${f.origin}-${f.destination}`;
+    const cur = byRoute.get(key);
+    if (!cur || (f.price ?? 1e12) < (cur.price ?? 1e12)) byRoute.set(key, f);
+  }
+  return [...byRoute.values()].sort((a, b) => (a.price ?? 0) - (b.price ?? 0));
 }
