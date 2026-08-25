@@ -18,3 +18,4 @@ class RawDeal:
     category_slug: str            # 우리 카테고리 slug로 매핑된 값
     mall_name: Optional[str] = None  # 표시용 쇼핑몰명 (G마켓/쿠팡 등)
     shipping_fee: Optional[int] = None  # 배송비 (0=무료, None=정보없음)
+    unit_price: Optional[str] = None  # 단위가격 (예: "100g당 1,094원")

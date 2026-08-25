@@ -46,6 +46,7 @@ def upsert_product(raw) -> Optional[int]:
         "list_price": raw.list_price,
         "mall_name": raw.mall_name,
         "shipping_fee": raw.shipping_fee,
+        "unit_price": raw.unit_price,
     }
     res = (
         client()

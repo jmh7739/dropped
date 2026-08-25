@@ -90,7 +90,8 @@ select
   c.name          as category_name,
   c.deal_type,
   coalesce(s.like_count, 0)  as like_count,
-  coalesce(s.click_count, 0) as click_count
+  coalesce(s.click_count, 0) as click_count,
+  p.unit_price
 from hot_deals d
 join products p    on p.id = d.product_id
 left join categories c on c.id = p.category_id

@@ -10,6 +10,7 @@ function rowToDeal(row: any, history: PricePoint[]): Deal {
     platform: row.platform,
     mallName: row.mall_name ?? null,
     shippingFee: row.shipping_fee ?? null,
+    unitPrice: row.unit_price ?? null,
     title: row.title,
     imageUrl: row.image_url ?? "",
     affiliateUrl: row.affiliate_url ?? row.product_url ?? "#",

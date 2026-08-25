@@ -28,6 +28,7 @@ create table if not exists products (
   list_price           bigint,           -- 정가(원가)
   mall_name            text,             -- 표시용 쇼핑몰명 (G마켓/쿠팡 등)
   shipping_fee         bigint,           -- 배송비 (0=무료, null=정보없음)
+  unit_price           text,             -- 단위가격 (예: "100g당 1,094원")
   created_at           timestamptz not null default now(),
   -- 같은 플랫폼 내 동일 상품 중복 방지
   unique (platform, external_product_id)
@@ -98,7 +99,8 @@ select
   p.product_url,
   c.slug          as category_slug,
   c.name          as category_name,
-  c.deal_type
+  c.deal_type,
+  p.unit_price
 from hot_deals d
 join products p   on p.id = d.product_id
 left join categories c on c.id = p.category_id

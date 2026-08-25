@@ -21,6 +21,7 @@ export interface Deal {
   platform: Platform;
   mallName: string | null; // 표시용 쇼핑몰명 (G마켓 등). 없으면 platform 라벨 사용
   shippingFee: number | null; // 배송비 (0=무료, null=정보없음)
+  unitPrice: string | null; // 단위가격 (예: "100g당 1,094원")
   title: string;
   imageUrl: string;
   affiliateUrl: string;

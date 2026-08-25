@@ -117,6 +117,11 @@ export default async function DealDetail({
             <div className="mt-1 text-3xl font-extrabold text-brand">
               {formatWon(deal.currentPrice)}
             </div>
+            {deal.unitPrice && (
+              <div className="mt-0.5 text-sm text-gray-400">
+                {deal.unitPrice}
+              </div>
+            )}
           </div>
 
           <div className="mt-4 flex items-center gap-2">
