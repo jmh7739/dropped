@@ -17,16 +17,20 @@ import time
 import requests
 import config
 
-# 한국 공항(IATA) — 도착지가 여기면 국내선
-KR_AIRPORTS = {"ICN", "GMP", "PUS", "CJU", "TAE", "KWJ", "USN", "RSU", "HIN", "WJU", "YNY", "MWX", "KUV"}
-# 출발지(우리가 훑을 한국 출발 공항)
-ORIGINS = ["ICN", "GMP", "PUS", "CJU"]
-# IATA → 한글 도시명(표시용, 주요 노선 위주. 없으면 코드 그대로)
+# 한국 도시/공항 코드 — 도착지가 여기면 국내선
+KR_AIRPORTS = {"SEL", "ICN", "GMP", "PUS", "CJU", "TAE", "KWJ", "USN",
+               "RSU", "HIN", "WJU", "YNY", "MWX", "KUV"}
+# 출발지(우리가 훑을 한국 출발). API가 SEL(서울권)로 묶어줌
+ORIGINS = ["SEL", "PUS", "CJU"]
+# 코드 → 한글 도시명(표시용, 없으면 코드 그대로)
 CITY_KO = {
-    "ICN": "인천", "GMP": "김포", "PUS": "부산", "CJU": "제주", "TAE": "대구",
-    "FUK": "후쿠오카", "NRT": "도쿄", "HND": "도쿄", "KIX": "오사카", "CTS": "삿포로",
+    "SEL": "서울", "ICN": "인천", "GMP": "김포", "PUS": "부산", "CJU": "제주",
+    "TAE": "대구",
+    "TYO": "도쿄", "NRT": "도쿄", "HND": "도쿄", "OSA": "오사카", "KIX": "오사카",
+    "FUK": "후쿠오카", "SPK": "삿포로", "CTS": "삿포로", "OKA": "오키나와",
     "BKK": "방콕", "DAD": "다낭", "SGN": "호치민", "HAN": "하노이", "CEB": "세부",
     "TPE": "타이베이", "HKG": "홍콩", "SIN": "싱가포르", "MNL": "마닐라",
+    "BJS": "베이징", "SHA": "상하이", "KUL": "쿠알라룸푸르", "DPS": "발리",
     "LAX": "로스앤젤레스", "JFK": "뉴욕", "CDG": "파리", "LHR": "런던",
 }
 
@@ -77,8 +81,8 @@ def _fetch_origin(origin: str) -> list[FlightItem]:
     items: list[FlightItem] = []
     for d in data:
         dest = d.get("destination", "")
-        depart = d.get("depart_date")
-        ret = d.get("return_date")
+        depart = (d.get("depart_date") or "")[:10] or None   # 날짜만(YYYY-MM-DD)
+        ret = (d.get("return_date") or "")[:10] or None
         items.append(FlightItem(
             source="아비아세일즈",
             external_id=f"{origin}-{dest}-{depart}",
