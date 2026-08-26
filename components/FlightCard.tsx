@@ -63,7 +63,7 @@ export default function FlightCard({ flight }: { flight: FlightDeal }) {
             {flight.price ? formatWon(flight.price) : "가격 문의"}
           </span>
           <span className="ml-1 text-[11px] text-gray-400">
-            {roundTrip ? "왕복 최저가" : "편도"}
+            {roundTrip ? "왕복 예상가~" : "편도 예상가~"}
           </span>
         </div>
         <span className="text-xs text-gray-400">{flight.source}</span>
