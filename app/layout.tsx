@@ -34,6 +34,12 @@ export const metadata: Metadata = {
     title: "떨어졌다 — 가격 급락 핫딜 모음",
     description: "평소 대비 급락한 특가만 골라서.",
   },
+  verification: {
+    google: "_M4_jKpnBbDWBSw5xH5hqFFVcH8Eh8BuvWV8EPk-X3I",
+    other: {
+      "naver-site-verification": "19dea3a500e9d725247ef654d68aad7cceb258d4",
+    },
+  },
 };
 
 export default function RootLayout({
