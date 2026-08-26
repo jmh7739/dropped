@@ -75,7 +75,7 @@ export default function FlightCard({ flight }: { flight: FlightDeal }) {
           </span>
         </div>
         <span className="text-[11px] text-gray-400">
-          {flight.postedAt ? `${timeAgo(flight.postedAt)} 업데이트` : flight.source}
+          {flight.postedAt ? `${timeAgo(flight.postedAt)} 시세` : flight.source}
         </span>
       </div>
     </a>

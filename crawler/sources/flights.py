@@ -170,7 +170,10 @@ def _fetch(origin_code: str, origin_ko: str, month: str) -> list[FlightItem]:
             price=price,
             is_domestic=(region == "국내"),
             deal_url=_booking_url(origin_code, dcode, depart, ret),
-            posted_at=time.strftime("%Y-%m-%dT%H:%M:%S"),
+            # 요금이 '실제 발견된 시각'(found_at). 캐시라 며칠 전일 수 있음.
+            #   → 카드에 '재확인 시각'이 아니라 '실제 시세 기준 시각'을 정직하게 표시.
+            posted_at=(d.get("found_at") or "")[:19]
+            or time.strftime("%Y-%m-%dT%H:%M:%S"),
         ))
     return items
 
