@@ -60,6 +60,12 @@ TRAVELPAYOUTS_TOKEN = os.getenv("TRAVELPAYOUTS_TOKEN", "")
 TRAVELPAYOUTS_MARKER = os.getenv("TRAVELPAYOUTS_MARKER", "")
 FLIGHT_MONTHS = 4            # 다음 N개월 조회(날짜 다양성)
 FLIGHT_DATES_PER_ROUTE = 8   # 노선별 최저가 상위 N개 날짜만 유지
+# 해외는 당일치기/1박2일이 비현실적 → 최소 숙박수 필터(지역별). 국내는 제한 없음(당일치기 OK).
+FLIGHT_MIN_NIGHTS = {        # 근거리 아시아 2박+, 장거리 4박+
+    "일본": 2, "중화권": 2, "동남아": 2,
+    "유럽": 4, "미주": 4, "오세아니아": 4, "중동": 4,
+}
+FLIGHT_MAX_NIGHTS = 30       # 한 달 초과는 특가 왕복으로 비현실적 → 제외
 
 # ── 경매: 공공데이터포털(data.go.kr) 서비스키 ─────────────────
 #   차세대 온비드 물건목록(부동산/자동차) 조회서비스. 키는 URL-decode된 원본.

@@ -88,6 +88,27 @@ def _ddmm(d: Optional[str]) -> str:
     return (d[8:10] + d[5:7]) if d and len(d) >= 10 else ""
 
 
+def _nights(depart: Optional[str], ret: Optional[str]) -> Optional[int]:
+    """왕복 숙박수(오는날-가는날). 편도/파싱실패면 None."""
+    if not depart or not ret:
+        return None
+    try:
+        return (date.fromisoformat(ret) - date.fromisoformat(depart)).days
+    except ValueError:
+        return None
+
+
+def _realistic(region: str, depart: Optional[str], ret: Optional[str]) -> bool:
+    """해외는 당일치기/1박2일 비현실적 → 지역별 최소 숙박수·최대 한달 필터. 국내는 통과."""
+    if region == "국내":
+        return True
+    nights = _nights(depart, ret)
+    if nights is None:
+        return False  # 해외인데 왕복일정 불명 → 제외
+    lo = config.FLIGHT_MIN_NIGHTS.get(region, 3)
+    return lo <= nights <= config.FLIGHT_MAX_NIGHTS
+
+
 def _booking_url(o_code: str, d_code: str, depart: str, ret: Optional[str]) -> str:
     path = f"{o_code}{_ddmm(depart)}{d_code}{_ddmm(ret)}1"
     return f"https://www.aviasales.com/search/{path}?marker={config.TRAVELPAYOUTS_MARKER}"
@@ -133,6 +154,8 @@ def _fetch(origin_code: str, origin_ko: str, month: str) -> list[FlightItem]:
             continue
         depart = (d.get("depart_date") or "")[:10] or None
         ret = (d.get("return_date") or "")[:10] or None
+        if not _realistic(region, depart, ret):
+            continue  # 해외 당일치기/1박2일/한달초과 제외
         items.append(FlightItem(
             source="아비아세일즈",
             external_id=f"{origin_code}-{dcode}-{depart}-{ret}",
