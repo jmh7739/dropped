@@ -52,9 +52,9 @@ export default function RootLayout({
   return (
     <html lang="ko">
       <head>
-        {/* Travelpayouts Drive (여행 링크 자동 제휴 전환) */}
+        {/* Travelpayouts Drive (여행 링크 자동 제휴 전환) — dropped.kr 마커 */}
         <Script
-          src="https://tp-em.com/NTY2NTY1.js?t=566565"
+          src="https://tp-em.com/NTY2OTg2.js?t=566986"
           strategy="afterInteractive"
           data-cmp-ab="2"
         />
