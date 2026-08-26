@@ -12,7 +12,7 @@ export default function GoldboxBanner() {
       href={GOLDBOX_URL}
       target="_blank"
       rel="nofollow sponsored noopener noreferrer"
-      className="mt-6 flex items-center justify-between gap-3 rounded-xl border border-amber-200 bg-gradient-to-r from-amber-50 to-white px-4 py-3.5 transition hover:shadow-md"
+      className="mb-5 flex items-center justify-between gap-3 rounded-xl border border-amber-200 bg-gradient-to-r from-amber-50 to-white px-4 py-3.5 transition hover:shadow-md"
     >
       <div className="flex min-w-0 items-center gap-3">
         <span className="text-2xl">🎁</span>

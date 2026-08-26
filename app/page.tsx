@@ -145,6 +145,9 @@ export default async function Home({
 
       {topDrops.length > 0 && <TopDrops deals={topDrops} />}
 
+      {/* 쿠팡 골드박스 배너: 상단 TOP 바로 아래(잘 보이는 자리) */}
+      {isDefaultHome && <GoldboxBanner />}
+
       <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <h1 className="flex items-baseline text-xl font-extrabold">
           <span>{heading}</span>
@@ -174,13 +177,8 @@ export default async function Home({
         </>
       )}
 
-      {/* 쿠팡 골드박스: 필터 없는 전체 화면에서만 하단 노출 */}
-      {!category && !hot && !q && (
-        <>
-          <GoldboxSection />
-          <GoldboxBanner />
-        </>
-      )}
+      {/* 쿠팡 골드박스(수동 등록분) 섹션은 하단 유지 */}
+      {isDefaultHome && <GoldboxSection />}
     </div>
   );
 }
