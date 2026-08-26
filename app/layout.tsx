@@ -5,7 +5,7 @@ import Header from "@/components/Header";
 import AffiliateDisclosure from "@/components/AffiliateDisclosure";
 
 const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL || "https://ped-alpha.vercel.app";
+  process.env.NEXT_PUBLIC_SITE_URL || "https://dropped.kr";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
