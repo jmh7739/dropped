@@ -5,6 +5,7 @@ import CategoryTabs from "@/components/CategoryTabs";
 import SortTabs from "@/components/SortTabs";
 import FlightsView from "@/components/FlightsView";
 import AuctionView from "@/components/AuctionView";
+import GoldboxSection from "@/components/GoldboxSection";
 import SearchBar from "@/components/SearchBar";
 import Pagination from "@/components/Pagination";
 import { FlightScope } from "@/lib/flights";
@@ -139,6 +140,9 @@ export default async function Home({
           />
         </>
       )}
+
+      {/* 골드박스는 필터 없는 전체 화면에서만, 급락 특가와 분리해 하단 노출 */}
+      {!category && !hot && !q && <GoldboxSection />}
     </div>
   );
 }

@@ -75,6 +75,19 @@ export function mallLabel(d: {
   return d.mallName || PLATFORM_LABEL[d.platform];
 }
 
+/** 골드박스 (쿠팡 데일리 특가) — 별도 섹션, 매일 교체 */
+export interface GoldboxDeal {
+  id: number;
+  title: string;
+  imageUrl: string;
+  affiliateUrl: string;
+  listPrice: number | null;
+  currentPrice: number;
+  discountRate: number | null;
+  unitPrice: string | null;
+  shippingFee: number | null;
+}
+
 /** 항공권 특가 (노선·날짜 구조, 국내선/국제선 구분) */
 export interface FlightDeal {
   id: number;

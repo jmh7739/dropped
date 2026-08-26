@@ -13,16 +13,18 @@ export default function BuyButton({
   children,
   className,
   compact = false,
+  track = true,
 }: {
   productId: number;
   href: string;
   children: React.ReactNode;
   className?: string;
   compact?: boolean;
+  track?: boolean; // 골드박스 등 products에 없는 항목은 false
 }) {
   function onClick(e: React.MouseEvent) {
     e.stopPropagation(); // 카드 클릭(상세 이동)과 분리
-    void trackClick(productId); // 집계는 fire-and-forget
+    if (track) void trackClick(productId); // 집계는 fire-and-forget
   }
 
   return (
