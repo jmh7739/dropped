@@ -60,10 +60,7 @@ export default async function Home({
     return (
       <div>
         {demoBanner}
-        <h1 className="mb-1 text-xl font-extrabold">✈️ 항공권 특가</h1>
-        <div className="mb-4">
-          <CategoryTabs active={category} sort={sort} hot={hot} />
-        </div>
+        <h1 className="mb-4 text-xl font-extrabold">✈️ 항공권 특가</h1>
         <FlightsView region={region} origin={o} destination={d} />
       </div>
     );
@@ -93,10 +90,7 @@ export default async function Home({
     return (
       <div>
         {demoBanner}
-        <h1 className="mb-1 text-xl font-extrabold">⚖️ 경매 특가</h1>
-        <div className="mb-4">
-          <CategoryTabs active={category} sort={sort} hot={hot} />
-        </div>
+        <h1 className="mb-4 text-xl font-extrabold">⚖️ 경매 특가</h1>
         <AuctionView scope={ascope} sort={asort} />
       </div>
     );
