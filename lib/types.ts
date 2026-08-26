@@ -117,4 +117,5 @@ export interface AuctionDeal {
   failCount: number; // 유찰 횟수
   bidDate: string | null; // 입찰기일
   detailUrl: string;
+  collectedAt: string | null; // 우리 사이트 등록일시
 }

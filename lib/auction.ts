@@ -66,6 +66,7 @@ export async function getAuctionDeals(
     failCount: r.fail_count ?? 0,
     bidDate: r.bid_date,
     detailUrl: r.detail_url,
+    collectedAt: r.collected_at ?? null,
   }));
   return sortItems(items, sort);
 }

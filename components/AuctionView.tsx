@@ -5,7 +5,7 @@ import {
   AuctionSort,
   AUCTION_SORTS,
 } from "@/lib/auction";
-import { formatWon, safeUrl } from "@/lib/format";
+import { formatWon, safeUrl, timeAgo } from "@/lib/format";
 import SortDropdown from "./SortDropdown";
 
 const TABS: { key: AuctionScope; label: string }[] = [
@@ -115,9 +115,14 @@ export default async function AuctionView({
                   </div>
                 </div>
 
-                <div className="mt-auto flex justify-between text-[11px] text-gray-400">
+                <div className="mt-auto flex flex-wrap items-center gap-x-2 text-[11px] text-gray-400">
                   <span>{a.caseNo}</span>
-                  {a.bidDate && <span>입찰 {a.bidDate}</span>}
+                  {a.collectedAt && (
+                    <span>· 등록 {timeAgo(a.collectedAt)}</span>
+                  )}
+                  {a.bidDate && (
+                    <span className="ml-auto">입찰 {a.bidDate}</span>
+                  )}
                 </div>
               </a>
             );

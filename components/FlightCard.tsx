@@ -1,5 +1,5 @@
 import { FlightDeal } from "@/lib/types";
-import { formatWon, safeUrl } from "@/lib/format";
+import { formatWon, safeUrl, timeAgo } from "@/lib/format";
 import ShareButton from "./ShareButton";
 
 const WEEK = ["일", "월", "화", "수", "목", "금", "토"];
@@ -74,7 +74,9 @@ export default function FlightCard({ flight }: { flight: FlightDeal }) {
             {roundTrip ? "왕복 예상가~" : "편도 예상가~"}
           </span>
         </div>
-        <span className="text-xs text-gray-400">{flight.source}</span>
+        <span className="text-[11px] text-gray-400">
+          {flight.postedAt ? `${timeAgo(flight.postedAt)} 업데이트` : flight.source}
+        </span>
       </div>
     </a>
   );
