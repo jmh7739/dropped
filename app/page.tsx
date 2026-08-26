@@ -3,7 +3,7 @@ import { isSupabaseConfigured } from "@/lib/supabase";
 import DealGrid from "@/components/DealGrid";
 import CategoryTabs from "@/components/CategoryTabs";
 import SortTabs from "@/components/SortTabs";
-import FlightsView from "@/components/FlightsView";
+import TravelView, { TravelTab } from "@/components/TravelView";
 import AuctionView from "@/components/AuctionView";
 import GoldboxSection from "@/components/GoldboxSection";
 import GoldboxBanner from "@/components/GoldboxBanner";
@@ -27,6 +27,7 @@ export default async function Home({
     region?: string;
     o?: string;
     d?: string;
+    tt?: string;
     ac?: string;
     as?: string;
     q?: string;
@@ -62,16 +63,18 @@ export default async function Home({
     </div>
   );
 
-  // ── 항공권 탭: 지역 → 노선 → 날짜 드릴다운 ──
+  // ── 여행 탭: 항공권 / 숙소 / 여행딜 (항공권은 지역→노선→날짜 드릴다운) ──
   if (isFlight) {
     const region = (searchParams.region ?? "").slice(0, 20) || undefined;
     const o = (searchParams.o ?? "").slice(0, 30) || undefined;
     const d = (searchParams.d ?? "").slice(0, 30) || undefined;
+    const travelTab: TravelTab =
+      searchParams.tt === "stay" ? "stay" : searchParams.tt === "deal" ? "deal" : "flight";
     return (
       <div>
         {demoBanner}
-        <h1 className="mb-4 text-xl font-extrabold">✈️ 항공권 특가</h1>
-        <FlightsView region={region} origin={o} destination={d} />
+        <h1 className="mb-4 text-xl font-extrabold">🧳 여행 특가</h1>
+        <TravelView tab={travelTab} region={region} origin={o} destination={d} />
       </div>
     );
   }
