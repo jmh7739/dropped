@@ -58,8 +58,8 @@ NAVER_KEYWORDS = [
 # ── 항공권: Travelpayouts(아비아세일즈) 실 요금 API + 어필리에이트 ──
 TRAVELPAYOUTS_TOKEN = os.getenv("TRAVELPAYOUTS_TOKEN", "")
 TRAVELPAYOUTS_MARKER = os.getenv("TRAVELPAYOUTS_MARKER", "")
-FLIGHT_MONTHS = 4            # 다음 N개월 조회(날짜 다양성)
-FLIGHT_DATES_PER_ROUTE = 8   # 노선별 최저가 상위 N개 날짜만 유지
+FLIGHT_MONTHS = 6            # 다음 N개월 조회(날짜 다양성) — 넓게
+FLIGHT_DATES_PER_ROUTE = 10  # 노선별 최저가 상위 N개 날짜 유지
 # 해외는 당일치기/1박2일이 비현실적 → 최소 숙박수 필터(지역별). 국내는 제한 없음(당일치기 OK).
 FLIGHT_MIN_NIGHTS = {        # 근거리 아시아 2박+, 장거리 4박+
     "일본": 2, "중화권": 2, "동남아": 2,
