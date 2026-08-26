@@ -26,7 +26,13 @@ COUPANG_BEST_LIMIT = 50   # 카테고리당 상위 N개 (콜/쿼터 고려해 �
 ALIEXPRESS_APP_KEY = os.getenv("ALIEXPRESS_APP_KEY", "")
 ALIEXPRESS_APP_SECRET = os.getenv("ALIEXPRESS_APP_SECRET", "")
 ALIEXPRESS_TRACKING_ID = os.getenv("ALIEXPRESS_TRACKING_ID", "")
-ALIEXPRESS_PAGES = 3      # hotproduct 여러 페이지 수집(페이지당 50) → 후보 확대
+ALIEXPRESS_PAGES = 2      # 키워드당 페이지 수(페이지당 50)
+# 한국인 관심 키워드로 검색 → 관련성 있는 상품만 (글로벌 인기상품은 랜덤함)
+ALIEXPRESS_KEYWORDS = [
+    "무선이어폰", "블루투스 스피커", "보조배터리", "스마트워치", "usb 허브",
+    "기계식 키보드", "무선 마우스", "차량용 충전기", "led 조명", "캠핑 랜턴",
+    "주방 용품", "수납 정리함", "공구 세트", "휴대폰 거치대", "게이밍 마우스패드",
+]
 
 # ── 링크프라이스(CPS: G마켓·11번가·위메프 등 국내몰 통합 제휴) ──
 LINKPRICE_AFFILIATE_ID = os.getenv("LINKPRICE_AFFILIATE_ID", "")
@@ -60,7 +66,9 @@ BASELINE_METHOD = "median"      # "median" | "mean"  (중앙값이 오탐에 강
 MIN_HISTORY_POINTS = 6          # 최소 수집 횟수
 MIN_HISTORY_DAYS = 3            # 최소 관찰 기간(일). 둘 다 충족해야 확정
 
-MIN_DISCOUNT = 0.20             # 이 이상 하락해야 딜로 인정 (20%)
+MIN_DISCOUNT = 0.20             # 평소가 대비: 이 이상 하락해야 딜 (20%)
+# 이력 부족 신상품의 '잠정' 노출 기준(정가 대비). 뻥튀기 정가 거르려 높게.
+PROVISIONAL_MIN_DISCOUNT = 0.40 # 정가 대비 40%+ 급할인만 잠정 노출
 MIN_PRICE = 1000               # 이 미만은 수집오류로 간주하고 컷
 ERROR_SUSPECT_DISCOUNT = 0.70   # 70~90% → 가격오류 "의심" 뱃지
 ERROR_HARD_CUT_DISCOUNT = 0.90  # 90% 초과 → 자동 노출 보류 (버그 확률↑)

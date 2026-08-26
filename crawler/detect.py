@@ -58,37 +58,35 @@ def classify(
     is_lowest = bool(history_prices) and current_price <= min(history_prices)
     n = len(history_prices)
 
-    # ── 신뢰 우선: 이력 충분한지 먼저 검사 ────────────────────
-    if n < config.MIN_HISTORY_POINTS or history_days < config.MIN_HISTORY_DAYS \
-            or baseline is None:
-        return DealVerdict(
-            False, baseline, discount_vs_avg, discount_vs_list, is_lowest, False,
-            f"관찰중(이력 부족: {n}회/{history_days:.1f}일) — 정가 대비로는 확정 안 함")
-
-    # 이 지점부터는 '평소 실제가 대비'만 사용
-    rate = (discount_vs_avg or 0) / 100
-
-    # ── 가드레일 ──────────────────────────────────────────────
     if current_price < config.MIN_PRICE:
         return DealVerdict(False, baseline, discount_vs_avg, discount_vs_list,
                            is_lowest, False, f"현재가 {current_price} < 최소가 컷")
 
-    # 평소가 대비 90% 초과 급락 → 수집버그 확률↑, 보류
-    if rate > config.ERROR_HARD_CUT_DISCOUNT:
-        return DealVerdict(False, baseline, discount_vs_avg, discount_vs_list,
-                           is_lowest, True,
-                           f"평균대비 {rate*100:.0f}% > 하드컷 → 보류(오류 의심)")
+    has_history = (n >= config.MIN_HISTORY_POINTS
+                   and history_days >= config.MIN_HISTORY_DAYS
+                   and baseline is not None)
 
-    is_error = rate >= config.ERROR_SUSPECT_DISCOUNT
-
-    if rate < config.MIN_DISCOUNT:
-        return DealVerdict(False, baseline, discount_vs_avg, discount_vs_list,
+    if has_history:
+        # ── 1순위: 평소 실제가 대비 (신뢰 지표) ──────────────
+        rate = (discount_vs_avg or 0) / 100
+        if rate > config.ERROR_HARD_CUT_DISCOUNT:
+            return DealVerdict(False, baseline, discount_vs_avg, discount_vs_list,
+                               is_lowest, True,
+                               f"평균대비 {rate*100:.0f}% > 하드컷 → 보류")
+        is_error = rate >= config.ERROR_SUSPECT_DISCOUNT
+        if rate < config.MIN_DISCOUNT:
+            return DealVerdict(False, baseline, discount_vs_avg, discount_vs_list,
+                               is_lowest, is_error,
+                               f"평균대비 {rate*100:.0f}% < 임계값 → 딜 아님")
+        return DealVerdict(True, baseline, discount_vs_avg, discount_vs_list,
                            is_lowest, is_error,
-                           f"평균대비 {rate*100:.0f}% < 임계값 → 딜 아님")
+                           f"딜 확정 (평균대비 {rate*100:.0f}%)")
 
-    return DealVerdict(True, baseline, discount_vs_avg, discount_vs_list,
-                       is_lowest, is_error,
-                       f"딜 확정 (평균대비 {rate*100:.0f}%)")
+    # ── 이력 부족: 노출 안 함(관찰중). 정가는 뻥튀기라 못 믿음 ──────
+    #   가격만 계속 수집 → 이력 충분해지면 위에서 '평소 대비'로 판정.
+    return DealVerdict(
+        False, baseline, discount_vs_avg, discount_vs_list, is_lowest, False,
+        f"관찰중(이력 {n}회/{history_days:.1f}일 — 평소가 쌓는 중)")
 
 
 def should_end_deal(current_price: int, baseline_price: Optional[int]) -> bool:

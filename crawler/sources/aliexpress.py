@@ -67,15 +67,27 @@ def _to_int_won(price_str) -> int:
         return 0
 
 
-def _query_page(page_no: int) -> list[dict]:
+# 검색 키워드 → 우리 카테고리 slug (대략)
+_KW_SLUG = {
+    "무선이어폰": "mobile", "블루투스 스피커": "digital", "보조배터리": "mobile",
+    "스마트워치": "mobile", "usb 허브": "digital", "기계식 키보드": "digital",
+    "무선 마우스": "digital", "차량용 충전기": "mobile", "led 조명": "living",
+    "캠핑 랜턴": "sports", "주방 용품": "living", "수납 정리함": "living",
+    "공구 세트": "living", "휴대폰 거치대": "mobile", "게이밍 마우스패드": "digital",
+}
+
+
+def _query(keyword: str, page_no: int) -> list[dict]:
     data = _call(
         "aliexpress.affiliate.hotproduct.query",
         {
+            "keywords": keyword,
             "target_currency": "KRW",
             "target_language": "ko",
             "ship_to_country": "KR",
             "page_size": 50,
             "page_no": page_no,
+            "sort": "SALE_PRICE_ASC",
             "tracking_id": config.ALIEXPRESS_TRACKING_ID,
         },
     )
@@ -85,7 +97,6 @@ def _query_page(page_no: int) -> list[dict]:
         ]["result"]
         return result["products"]["product"]
     except (KeyError, TypeError):
-        print(f"[aliexpress] 응답 파싱 실패(page {page_no}) — 응답 구조 확인")
         return []
 
 
@@ -94,25 +105,29 @@ def fetch() -> list[RawDeal]:
         print("[aliexpress] 키 없음 → 건너뜀")
         return []
 
-    # 여러 페이지 수집 → 후보 확대. 상품ID로 중복 제거.
+    # 한국인 관심 키워드로 검색 → 관련성 있는 상품. 상품ID로 중복 제거.
     seen: dict[str, RawDeal] = {}
-    for page in range(1, config.ALIEXPRESS_PAGES + 1):
-        for p in _query_page(page):
-            pid = str(p.get("product_id"))
-            seen.setdefault(pid, RawDeal(
-                platform="aliexpress",
-                external_product_id=pid,
-                title=p.get("product_title", ""),
-                image_url=p.get("product_main_image_url", ""),
-                product_url=p.get("product_detail_url", ""),
-                affiliate_url=p.get("promotion_link")
-                or p.get("product_detail_url", ""),
-                current_price=_to_int_won(p.get("target_sale_price")),
-                list_price=_to_int_won(p.get("target_original_price")) or None,
-                category_slug="overseas",
-            ))
-        time.sleep(0.5)
+    for kw in config.ALIEXPRESS_KEYWORDS:
+        slug = _KW_SLUG.get(kw, "overseas")
+        for page in range(1, config.ALIEXPRESS_PAGES + 1):
+            for p in _query(kw, page):
+                pid = str(p.get("product_id"))
+                if pid in seen:
+                    continue
+                seen[pid] = RawDeal(
+                    platform="aliexpress",
+                    external_product_id=pid,
+                    title=p.get("product_title", ""),
+                    image_url=p.get("product_main_image_url", ""),
+                    product_url=p.get("product_detail_url", ""),
+                    affiliate_url=p.get("promotion_link")
+                    or p.get("product_detail_url", ""),
+                    current_price=_to_int_won(p.get("target_sale_price")),
+                    list_price=_to_int_won(p.get("target_original_price")) or None,
+                    category_slug=slug,
+                )
+            time.sleep(0.4)
 
     deals = list(seen.values())
-    print(f"[aliexpress] 후보 총 {len(deals)}건 ({config.ALIEXPRESS_PAGES}페이지)")
+    print(f"[aliexpress] 후보 총 {len(deals)}건 ({len(config.ALIEXPRESS_KEYWORDS)}개 키워드)")
     return deals
