@@ -9,7 +9,7 @@ import GoldboxSection from "@/components/GoldboxSection";
 import GoldboxBanner from "@/components/GoldboxBanner";
 import SearchBar from "@/components/SearchBar";
 import Pagination from "@/components/Pagination";
-import { AuctionScope } from "@/lib/auction";
+import { AuctionScope, AuctionSort } from "@/lib/auction";
 import { PAGE_SIZE } from "@/lib/nav";
 import { CATEGORIES } from "@/lib/types";
 
@@ -27,6 +27,7 @@ export default async function Home({
     o?: string;
     d?: string;
     ac?: string;
+    as?: string;
     q?: string;
     page?: string;
   };
@@ -76,6 +77,19 @@ export default async function Home({
         : searchParams.ac === "자동차"
           ? "자동차"
           : "all";
+    const validSorts: AuctionSort[] = [
+      "discount_desc",
+      "discount_asc",
+      "price_desc",
+      "price_asc",
+      "recent",
+      "oldest",
+    ];
+    const asort: AuctionSort = validSorts.includes(
+      searchParams.as as AuctionSort
+    )
+      ? (searchParams.as as AuctionSort)
+      : "discount_desc";
     return (
       <div>
         {demoBanner}
@@ -83,7 +97,7 @@ export default async function Home({
         <div className="mb-4">
           <CategoryTabs active={category} sort={sort} hot={hot} />
         </div>
-        <AuctionView scope={ascope} />
+        <AuctionView scope={ascope} sort={asort} />
       </div>
     );
   }

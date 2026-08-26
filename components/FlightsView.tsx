@@ -7,6 +7,33 @@ import {
 } from "@/lib/flights";
 import { formatWon } from "@/lib/format";
 import FlightCard from "./FlightCard";
+import KoreaFlag from "./KoreaFlag";
+
+/** 국내는 태극기 SVG, 나머지는 이모지 (국기 이모지가 Windows서 깨지는 문제 회피) */
+function RegionIcon({
+  region,
+  variant,
+}: {
+  region: string;
+  variant: "card" | "crumb";
+}) {
+  if (region === "국내") {
+    return (
+      <KoreaFlag
+        className={
+          variant === "card"
+            ? "inline-block h-6 w-9 rounded-sm"
+            : "inline-block h-4 w-6 rounded-sm align-[-0.15em]"
+        }
+      />
+    );
+  }
+  return (
+    <span className={variant === "card" ? "text-2xl" : ""}>
+      {regionEmoji(region)}
+    </span>
+  );
+}
 
 const EMPTY = (
   <div className="rounded-xl border border-dashed border-gray-300 bg-white p-12 text-center text-gray-400">
@@ -34,7 +61,7 @@ function Crumb({ region, route }: { region?: string; route?: string }) {
             href={`/?category=flight&region=${encodeURIComponent(region)}`}
             className={route ? "hover:text-brand" : "font-bold text-gray-900"}
           >
-            {regionEmoji(region)} {region}
+            <RegionIcon region={region} variant="crumb" /> {region}
           </Link>
         </>
       )}
@@ -140,7 +167,7 @@ export default async function FlightsView({
             href={`/?category=flight&region=${encodeURIComponent(r.region)}`}
             className="flex flex-col gap-1 rounded-xl border border-gray-200 bg-white p-4 transition hover:border-brand/40 hover:shadow-md"
           >
-            <span className="text-2xl">{regionEmoji(r.region)}</span>
+            <RegionIcon region={r.region} variant="card" />
             <span className="text-base font-extrabold text-gray-900">
               {r.region}
             </span>

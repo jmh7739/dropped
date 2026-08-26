@@ -1,5 +1,10 @@
 import Link from "next/link";
-import { getAuctionDeals, AuctionScope } from "@/lib/auction";
+import {
+  getAuctionDeals,
+  AuctionScope,
+  AuctionSort,
+  AUCTION_SORTS,
+} from "@/lib/auction";
 import { formatWon, safeUrl } from "@/lib/format";
 
 const TABS: { key: AuctionScope; label: string }[] = [
@@ -8,22 +13,29 @@ const TABS: { key: AuctionScope; label: string }[] = [
   { key: "자동차", label: "자동차" },
 ];
 
-function href(scope: AuctionScope) {
-  return scope === "all"
-    ? "/?category=auction"
-    : `/?category=auction&ac=${encodeURIComponent(scope)}`;
+function href(scope: AuctionScope, sort: AuctionSort) {
+  const p = new URLSearchParams({ category: "auction" });
+  if (scope !== "all") p.set("ac", scope);
+  if (sort !== "discount_desc") p.set("as", sort);
+  return `/?${p.toString()}`;
 }
 
-export default async function AuctionView({ scope }: { scope: AuctionScope }) {
-  const items = await getAuctionDeals(scope);
+export default async function AuctionView({
+  scope,
+  sort,
+}: {
+  scope: AuctionScope;
+  sort: AuctionSort;
+}) {
+  const items = await getAuctionDeals(scope, sort);
 
   return (
     <div>
-      <div className="mb-4 flex gap-2">
+      <div className="mb-3 flex gap-2">
         {TABS.map((t) => (
           <Link
             key={t.key}
-            href={href(t.key)}
+            href={href(t.key, sort)}
             className={`rounded-full px-3 py-1.5 text-sm font-medium transition ${
               scope === t.key
                 ? "bg-brand text-white"
@@ -31,6 +43,22 @@ export default async function AuctionView({ scope }: { scope: AuctionScope }) {
             }`}
           >
             {t.label}
+          </Link>
+        ))}
+      </div>
+
+      <div className="-mx-1 mb-4 flex gap-1.5 overflow-x-auto px-1 pb-1">
+        {AUCTION_SORTS.map((s) => (
+          <Link
+            key={s.key}
+            href={href(scope, s.key)}
+            className={`flex-shrink-0 rounded-full px-2.5 py-1 text-xs font-medium transition ${
+              sort === s.key
+                ? "bg-gray-900 text-white"
+                : "border border-gray-200 bg-white text-gray-500 hover:bg-gray-50"
+            }`}
+          >
+            {s.label}
           </Link>
         ))}
       </div>
