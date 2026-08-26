@@ -90,6 +90,46 @@ def _query(keyword: str, page_no: int) -> list[dict]:
         return []
 
 
+# ── 상품의 '실제 Ali 카테고리'로 우리 slug 판정 (키워드 오분류 방지) ──
+# 보충제는 Ali가 '뷰티 & 헬스'로 묶어서, 제목으로 식품/건강 vs 뷰티 구분.
+_SUPPLEMENT = (
+    "비타민", "보충제", "영양제", "콜라겐", "홍삼", "인삼", "유산균", "오메가",
+    "프로틴", "단백질", "글루코사민", "마그네슘", "아연", "프로폴리스", "루테인",
+    "밀크씨슬", "코엔자임", "엽산", "칼슘", "히알루론",
+)
+# (Ali 1차 카테고리명 부분일치, 위에서부터 우선) → 우리 slug. 'bh'=뷰티/헬스 특수처리
+_ALI_CAT_MAP = [
+    ("음식", "food"), ("식품", "food"),
+    ("아기", "baby"), ("엄마", "baby"), ("완구", "baby"), ("장난감", "baby"),
+    ("유아", "baby"), ("취미", "baby"),
+    ("뷰티", "bh"), ("헬스", "bh"), ("미용", "bh"), ("화장", "bh"), ("헤어", "bh"),
+    ("컴퓨터", "digital"), ("오피스", "digital"), ("사무", "digital"),
+    ("소비자 가전", "appliance"), ("가전", "appliance"),
+    ("휴대폰", "mobile"), ("통신", "mobile"), ("셀폰", "mobile"),
+    ("의류", "fashion"), ("신발", "fashion"), ("가방", "fashion"), ("캐리어", "fashion"),
+    ("주얼리", "fashion"), ("액세서리", "fashion"), ("시계", "fashion"), ("패션", "fashion"),
+    ("스포츠", "sports"), ("아웃도어", "sports"), ("피트니스", "sports"),
+    ("홈", "living"), ("가든", "living"), ("생활", "living"), ("주방", "living"),
+    ("가구", "living"), ("자동차", "living"), ("오토바이", "living"), ("공구", "living"),
+    ("조명", "living"), ("반려", "living"), ("애완", "living"), ("보안", "living"),
+    ("안전", "living"), ("전자", "digital"),
+]
+
+
+def _our_slug(p: dict) -> str | None:
+    """상품의 실제 Ali 카테고리 → 우리 slug. 못 맞추면 None(잡템 제외)."""
+    cat = p.get("first_level_category_name") or ""
+    slug = None
+    for sub, s in _ALI_CAT_MAP:
+        if sub in cat:
+            slug = s
+            break
+    if slug == "bh":  # 뷰티 & 헬스 → 제목에 보충제 힌트 있으면 식품/건강, 아니면 뷰티
+        title = p.get("product_title", "")
+        return "food" if any(h in title for h in _SUPPLEMENT) else "beauty"
+    return slug
+
+
 def _volume(p: dict) -> int:
     """판매량(인기 신호). Ali 응답 필드명이 버전따라 lastest/latest 혼용."""
     for k in ("lastest_volume", "latest_volume", "volume"):
@@ -107,47 +147,50 @@ def fetch() -> list[RawDeal]:
         print("[aliexpress] 키 없음 → 건너뜀")
         return []
 
-    # 카테고리별로 후보 수집 → 카테고리마다 상위 N개만 → 편중 방지(골고루)
+    # 모든 키워드로 상품을 찾되, 분류는 '상품의 실제 Ali 카테고리'로 → 오분류 방지.
+    #   못 맞추는 잡템은 아예 제외. 카테고리별 상위 N개만 유지.
     seen_pid: set[str] = set()
     by_cat: dict[str, list[tuple[float, int, RawDeal]]] = {}
-    for slug, keywords in config.ALIEXPRESS_KEYWORDS_BY_CAT.items():
-        bucket: list[tuple[float, int, RawDeal]] = []
-        for kw in keywords:
-            for page in range(1, config.ALIEXPRESS_PAGES + 1):
-                for p in _query(kw, page):
-                    pid = str(p.get("product_id"))
-                    if pid in seen_pid:
-                        continue
-                    cur = _to_int_won(p.get("target_sale_price"))
-                    lst = _to_int_won(p.get("target_original_price")) or None
-                    vol = _volume(p)
-                    # 인기 상품만 추적(안 팔리는 잡템 제외). 할인 없어도 추적함.
-                    if vol < config.ALIEXPRESS_MIN_VOLUME or cur <= 0:
-                        continue
-                    # 정가는 '멀쩡한 할인'일 때만 유지 → 잠정 노출용. 아니면 None.
-                    #   (없음/현재가 이하/85% 초과 뻥튀기 → None, 추적은 계속)
-                    if lst and lst > cur:
-                        discount = (lst - cur) / lst
-                        if discount > config.PROVISIONAL_MAX_DISCOUNT:
-                            lst = None
-                    else:
+    all_keywords = [
+        kw for kws in config.ALIEXPRESS_KEYWORDS_BY_CAT.values() for kw in kws
+    ]
+    for kw in all_keywords:
+        for page in range(1, config.ALIEXPRESS_PAGES + 1):
+            for p in _query(kw, page):
+                pid = str(p.get("product_id"))
+                if pid in seen_pid:
+                    continue
+                slug = _our_slug(p)      # 실제 카테고리로 판정
+                if not slug:             # 분류 불가(잡템) → 제외
+                    continue
+                cur = _to_int_won(p.get("target_sale_price"))
+                lst = _to_int_won(p.get("target_original_price")) or None
+                vol = _volume(p)
+                # 인기 상품만 추적(안 팔리는 잡템 제외). 할인 없어도 추적함.
+                if vol < config.ALIEXPRESS_MIN_VOLUME or cur <= 0:
+                    continue
+                # 정가는 '멀쩡한 할인'일 때만 유지 → 잠정 노출용. 아니면 None.
+                if lst and lst > cur:
+                    discount = (lst - cur) / lst
+                    if discount > config.PROVISIONAL_MAX_DISCOUNT:
                         lst = None
-                    disc = (lst - cur) / lst if lst else 0.0
-                    seen_pid.add(pid)
-                    bucket.append((disc, vol, RawDeal(
-                        platform="aliexpress",
-                        external_product_id=pid,
-                        title=p.get("product_title", ""),
-                        image_url=p.get("product_main_image_url", ""),
-                        product_url=p.get("product_detail_url", ""),
-                        affiliate_url=p.get("promotion_link")
-                        or p.get("product_detail_url", ""),
-                        current_price=cur,
-                        list_price=lst,
-                        category_slug=slug,
-                    )))
-                time.sleep(0.4)
-        by_cat[slug] = bucket
+                else:
+                    lst = None
+                disc = (lst - cur) / lst if lst else 0.0
+                seen_pid.add(pid)
+                by_cat.setdefault(slug, []).append((disc, vol, RawDeal(
+                    platform="aliexpress",
+                    external_product_id=pid,
+                    title=p.get("product_title", ""),
+                    image_url=p.get("product_main_image_url", ""),
+                    product_url=p.get("product_detail_url", ""),
+                    affiliate_url=p.get("promotion_link")
+                    or p.get("product_detail_url", ""),
+                    current_price=cur,
+                    list_price=lst,
+                    category_slug=slug,
+                )))
+            time.sleep(0.4)
 
     # 카테고리별 '판매량 상위' N개씩을 추적 풀로 반환(가격이력 수집).
     #   → 이 중 detect가 '진짜 급락'만 화면에 띄움. 나머진 추적만.
