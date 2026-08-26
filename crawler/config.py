@@ -26,10 +26,10 @@ COUPANG_BEST_LIMIT = 50   # 카테고리당 상위 N개 (콜/쿼터 고려해 �
 ALIEXPRESS_APP_KEY = os.getenv("ALIEXPRESS_APP_KEY", "")
 ALIEXPRESS_APP_SECRET = os.getenv("ALIEXPRESS_APP_SECRET", "")
 ALIEXPRESS_TRACKING_ID = os.getenv("ALIEXPRESS_TRACKING_ID", "")
-ALIEXPRESS_PAGES = 3       # 키워드당 페이지 수(페이지당 50) — 후보풀 확대
+ALIEXPRESS_PAGES = 4       # 키워드당 페이지 수(페이지당 50) — 후보풀 확대
 # 전략: '인기 상품'을 넓게 추적(가격이력 수집)하고, 노출은 '진짜 급락'만.
-ALIEXPRESS_MIN_VOLUME = 100    # 인기 상품만 추적 — 안 팔리는 잡템 제외
-ALIEXPRESS_TRACK_PER_CATEGORY = 40  # 카테고리별 추적 풀(판매량 상위 N개, 화면엔 안 떠도 가격 수집)
+ALIEXPRESS_MIN_VOLUME = 50     # 최소 판매량(잡템만 제외) — 추적 풀 넓힘
+ALIEXPRESS_TRACK_PER_CATEGORY = 80  # 카테고리별 추적 풀(판매량 상위 N개, 화면엔 안 떠도 가격 수집)
 # 카테고리(slug)별 키워드. 카테고리마다 조금씩이라도 딜이 뜨도록 분산.
 #   slug은 lib/types.ts CATEGORIES와 일치. (상품권/소프트웨어는 알리에 없어 제외)
 ALIEXPRESS_KEYWORDS_BY_CAT = {
