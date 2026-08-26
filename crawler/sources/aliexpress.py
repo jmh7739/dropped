@@ -100,13 +100,25 @@ def _query(keyword: str, page_no: int) -> list[dict]:
         return []
 
 
+def _volume(p: dict) -> int:
+    """판매량(인기 신호). Ali 응답 필드명이 버전따라 lastest/latest 혼용."""
+    for k in ("lastest_volume", "latest_volume", "volume"):
+        v = p.get(k)
+        if v is not None:
+            try:
+                return int(v)
+            except (TypeError, ValueError):
+                pass
+    return 0
+
+
 def fetch() -> list[RawDeal]:
     if not config.ALIEXPRESS_APP_KEY:
         print("[aliexpress] 키 없음 → 건너뜀")
         return []
 
     # 한국인 관심 키워드로 검색 → 관련성 있는 상품. 상품ID로 중복 제거.
-    seen: dict[str, RawDeal] = {}
+    seen: dict[str, tuple[float, int, RawDeal]] = {}
     for kw in config.ALIEXPRESS_KEYWORDS:
         slug = _KW_SLUG.get(kw, "overseas")
         for page in range(1, config.ALIEXPRESS_PAGES + 1):
@@ -114,7 +126,17 @@ def fetch() -> list[RawDeal]:
                 pid = str(p.get("product_id"))
                 if pid in seen:
                     continue
-                seen[pid] = RawDeal(
+                cur = _to_int_won(p.get("target_sale_price"))
+                lst = _to_int_won(p.get("target_original_price")) or None
+                vol = _volume(p)
+                # 정가 없거나(할인율 판단 불가) 판매량 적은 잡템은 제외
+                if not lst or lst <= cur or vol < config.ALIEXPRESS_MIN_VOLUME:
+                    continue
+                discount = (lst - cur) / lst
+                # 오류/미끼(밴드 상한 초과)는 아예 수집 안 함
+                if discount > config.PROVISIONAL_MAX_DISCOUNT:
+                    continue
+                seen[pid] = (discount, vol, RawDeal(
                     platform="aliexpress",
                     external_product_id=pid,
                     title=p.get("product_title", ""),
@@ -122,12 +144,15 @@ def fetch() -> list[RawDeal]:
                     product_url=p.get("product_detail_url", ""),
                     affiliate_url=p.get("promotion_link")
                     or p.get("product_detail_url", ""),
-                    current_price=_to_int_won(p.get("target_sale_price")),
-                    list_price=_to_int_won(p.get("target_original_price")) or None,
+                    current_price=cur,
+                    list_price=lst,
                     category_slug=slug,
-                )
+                ))
             time.sleep(0.4)
 
-    deals = list(seen.values())
-    print(f"[aliexpress] 후보 총 {len(deals)}건 ({len(config.ALIEXPRESS_KEYWORDS)}개 키워드)")
+    # 할인 깊은 순으로 정렬 후 상한 컷 → 도배 방지, '많이 싼' 것 위주
+    ranked = sorted(seen.values(), key=lambda t: (t[0], t[1]), reverse=True)
+    deals = [rd for _, _, rd in ranked[: config.ALIEXPRESS_MAX_DEALS]]
+    print(f"[aliexpress] 후보 {len(seen)}건 → 상위 {len(deals)}건 "
+          f"(판매량 {config.ALIEXPRESS_MIN_VOLUME}+ · 할인 깊은 순)")
     return deals

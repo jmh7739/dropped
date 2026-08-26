@@ -15,6 +15,18 @@ export function DiscountBadge({
   );
 }
 
+/** 정가 기준으로만 노출된 잠정딜(아직 실판매가 이력 미검증) 표시. */
+export function ProvisionalBadge() {
+  return (
+    <span
+      className="inline-flex items-center gap-0.5 rounded border border-gray-200 bg-gray-50 px-1.5 py-0.5 text-[10px] font-semibold text-gray-500"
+      title="아직 평소 판매가 이력이 없어 정가 기준으로만 표시한 잠정 특가입니다. 며칠 뒤 실판매가 기준으로 자동 검증됩니다."
+    >
+      🕒 정가기준·검증중
+    </span>
+  );
+}
+
 export function LowestEverBadge() {
   return (
     <span className="inline-flex items-center gap-0.5 rounded-md bg-amber-400 px-1.5 py-0.5 text-xs font-bold text-amber-950">

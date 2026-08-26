@@ -5,6 +5,7 @@ import {
   DiscountBadge,
   LowestEverBadge,
   PriceErrorBadge,
+  ProvisionalBadge,
   ShippingBadge,
 } from "./DiscountBadge";
 import LikeButton from "./LikeButton";
@@ -19,6 +20,7 @@ export default function DealCard({
   variant?: "gallery" | "list";
 }) {
   const { rate, basis } = headlineDiscount(deal);
+  const provisional = basis === "정가";
   const saving = (deal.baselinePrice || deal.listPrice) - deal.currentPrice;
   const ended = deal.status === "ended";
 
@@ -47,6 +49,7 @@ export default function DealCard({
               <span className="rounded bg-gray-100 px-1.5 py-0.5 text-gray-600">
                 {mallLabel(deal)}
               </span>
+              {provisional && <ProvisionalBadge />}
               {deal.isLowestEver && <LowestEverBadge />}
               <ShippingBadge fee={deal.shippingFee} />
             </div>
@@ -114,6 +117,7 @@ export default function DealCard({
           )}
           <div className="absolute left-2 top-2 flex flex-col items-start gap-1">
             <DiscountBadge rate={rate} basis={basis} />
+            {provisional && <ProvisionalBadge />}
             {deal.isLowestEver && <LowestEverBadge />}
             {deal.isPriceError && <PriceErrorBadge />}
           </div>

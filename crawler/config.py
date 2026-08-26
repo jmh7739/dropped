@@ -27,6 +27,8 @@ ALIEXPRESS_APP_KEY = os.getenv("ALIEXPRESS_APP_KEY", "")
 ALIEXPRESS_APP_SECRET = os.getenv("ALIEXPRESS_APP_SECRET", "")
 ALIEXPRESS_TRACKING_ID = os.getenv("ALIEXPRESS_TRACKING_ID", "")
 ALIEXPRESS_PAGES = 2      # 키워드당 페이지 수(페이지당 50)
+ALIEXPRESS_MIN_VOLUME = 50   # 최소 판매량(인기 신호) — 잡템/사기성 제외
+ALIEXPRESS_MAX_DEALS = 60    # 잠정 노출 상한(도배 방지, 할인 깊은 순)
 # 한국인 관심 키워드로 검색 → 관련성 있는 상품만 (글로벌 인기상품은 랜덤함)
 ALIEXPRESS_KEYWORDS = [
     "무선이어폰", "블루투스 스피커", "보조배터리", "스마트워치", "usb 허브",
@@ -55,7 +57,15 @@ TRAVELPAYOUTS_TOKEN = os.getenv("TRAVELPAYOUTS_TOKEN", "")
 TRAVELPAYOUTS_MARKER = os.getenv("TRAVELPAYOUTS_MARKER", "")
 
 # ── 경매: 공공데이터포털(data.go.kr) 서비스키 ─────────────────
+#   차세대 온비드 물건목록(부동산/자동차) 조회서비스. 키는 URL-decode된 원본.
 DATA_GO_KR_KEY = os.getenv("DATA_GO_KR_KEY", "")
+# 재산유형코드(복수, 쉼표): 0007압류 0005기타일반 0006유입 0008수탁 0010국유 0011공공개발
+AUCTION_PROPERTY_DIVS = "0007,0005,0006,0008,0010,0011"
+AUCTION_ROWS = 100         # 페이지당 결과 수
+AUCTION_PAGES = 3          # 자산유형별 페이지 수
+AUCTION_MIN_FAILS = 1      # 최소 유찰횟수(회차마다 가격 하락) — API usbdNftStart
+AUCTION_MIN_DROP = 0.30    # 감정가 대비 이 이상 떨어진 물건만 노출
+AUCTION_LIMIT = 80         # 최종 노출 상한(하락률 높은 순)
 
 # ── 탐지 임계값 (detect.py에서 사용) ──────────────────────────
 BASELINE_WINDOW_DAYS = 30       # 평소 기준가 계산 기간
