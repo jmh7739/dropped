@@ -3,7 +3,7 @@ import { getDeals } from "@/lib/deals";
 import { CATEGORIES } from "@/lib/types";
 
 const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL || "https://example.com";
+  process.env.NEXT_PUBLIC_SITE_URL || "https://ped-alpha.vercel.app";
 
 export const revalidate = 600;
 
