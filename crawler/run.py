@@ -144,6 +144,10 @@ def ping_indexnow() -> None:
 
 
 def collect_flights() -> int:
+    # 항공은 캐시 요금이라 매 실행마다 안 돎 — 최근 수집이 N시간 내면 건너뜀
+    if not config.DRY_RUN and db.flight_fresh_within(config.FLIGHT_SCAN_INTERVAL_HOURS):
+        print(f"[flights] 최근 {config.FLIGHT_SCAN_INTERVAL_HOURS}h 내 수집됨 → 건너뜀")
+        return 0
     items = flights.fetch()
     for it in items:
         db.upsert_flight_deal(it)

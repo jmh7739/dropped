@@ -194,6 +194,26 @@ def prune_old_flights() -> None:
     client().rpc("prune_old_flight_deals").execute()
 
 
+def flight_fresh_within(hours: float) -> bool:
+    """가장 최근 항공권 수집이 hours 시간 내면 True (재수집 스킵용)."""
+    if config.DRY_RUN:
+        return False
+    from datetime import datetime, timedelta, timezone
+    rows = (
+        client()
+        .table("flight_deals")
+        .select("collected_at")
+        .order("collected_at", desc=True)
+        .limit(1)
+        .execute()
+        .data
+    )
+    if not rows:
+        return False
+    last = datetime.fromisoformat(rows[0]["collected_at"].replace("Z", "+00:00"))
+    return datetime.now(timezone.utc) - last < timedelta(hours=hours)
+
+
 # ── 경매 특가 ─────────────────────────────────────────────────
 def upsert_auction_deal(item) -> None:
     if config.DRY_RUN:
