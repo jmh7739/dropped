@@ -7,6 +7,7 @@ import { mallLabel } from "@/lib/types";
 import PriceChart from "@/components/PriceChart";
 import LikeButton from "@/components/LikeButton";
 import BuyButton from "@/components/BuyButton";
+import ShareButton from "@/components/ShareButton";
 import SafeImage from "@/components/SafeImage";
 import {
   DiscountBadge,
@@ -126,6 +127,7 @@ export default async function DealDetail({
 
           <div className="mt-4 flex items-center gap-2">
             <LikeButton productId={deal.id} initialCount={deal.likeCount} />
+            <ShareButton path={`/deal/${deal.id}`} title={deal.title} compact />
             <div className="flex-1">
               <BuyButton productId={deal.id} href={deal.affiliateUrl}>
                 최저가로 사러 가기 →

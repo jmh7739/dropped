@@ -10,6 +10,7 @@ import {
 } from "./DiscountBadge";
 import LikeButton from "./LikeButton";
 import BuyButton from "./BuyButton";
+import ShareButton from "./ShareButton";
 import SafeImage from "./SafeImage";
 
 export default function DealCard({
@@ -77,7 +78,10 @@ export default function DealCard({
           </div>
         </Link>
         <div className="flex flex-shrink-0 flex-col items-stretch gap-1.5">
-          <LikeButton productId={deal.id} initialCount={deal.likeCount} size="sm" />
+          <div className="flex gap-1.5">
+            <LikeButton productId={deal.id} initialCount={deal.likeCount} size="sm" />
+            <ShareButton path={`/deal/${deal.id}`} title={deal.title} compact />
+          </div>
           {ended ? (
             <span className="block rounded-lg bg-gray-200 px-3 py-1 text-center text-xs font-bold text-gray-500">
               종료됨
@@ -164,6 +168,7 @@ export default function DealCard({
           initialCount={deal.likeCount}
           size="sm"
         />
+        <ShareButton path={`/deal/${deal.id}`} title={deal.title} compact />
         <div className="flex-1">
           {ended ? (
             <span className="block rounded-lg bg-gray-200 py-1.5 text-center text-xs font-bold text-gray-500">

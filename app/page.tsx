@@ -141,6 +141,13 @@ export default async function Home({
     <div>
       {demoBanner}
 
+      {isDefaultHome && (
+        <p className="mb-3 text-sm text-gray-500">
+          🔻 <span className="font-bold text-gray-700">평소 판매가보다 진짜 싸진 것만</span>{" "}
+          자동으로 모아드려요 — 정가 뻥튀기 없는 진짜 특가.
+        </p>
+      )}
+
       <div className="mb-3">
         <SearchBar initial={q} />
       </div>

@@ -1,5 +1,6 @@
 import { FlightDeal } from "@/lib/types";
 import { formatWon, safeUrl } from "@/lib/format";
+import ShareButton from "./ShareButton";
 
 const WEEK = ["일", "월", "화", "수", "목", "금", "토"];
 function fmtDate(iso: string | null): string {
@@ -16,9 +17,16 @@ export default function FlightCard({ flight }: { flight: FlightDeal }) {
       href={safeUrl(flight.dealUrl)}
       target="_blank"
       rel="nofollow noopener noreferrer"
-      className="flex flex-col gap-2 rounded-xl border border-gray-200 bg-white p-4 transition hover:shadow-md"
+      className="relative flex flex-col gap-2 rounded-xl border border-gray-200 bg-white p-4 transition hover:shadow-md"
     >
-      <div className="flex items-center gap-1.5 text-[11px]">
+      <div className="absolute right-2 top-2">
+        <ShareButton
+          path="/?category=flight"
+          title={`${flight.origin}→${flight.destination} 항공권 특가`}
+          compact
+        />
+      </div>
+      <div className="flex items-center gap-1.5 pr-9 text-[11px]">
         <span
           className={`rounded px-1.5 py-0.5 font-bold ${
             flight.isDomestic
