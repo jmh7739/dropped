@@ -9,11 +9,11 @@ from __future__ import annotations
 import config
 import db
 
-# 매일 갱신: (상품명, 정가, 할인가, 제휴링크, 카테고리, 단위가격, 배송비)
-#   정가/단위가격/배송비는 없으면 None (배송비 0=무료)
+# 매일 갱신: (상품명, 정가, 할인가, 제휴링크, 카테고리, 단위가격, 배송비, 라벨)
+#   정가/단위가격/배송비/라벨 없으면 None (배송비 0=무료, 라벨 없으면 '골드박스'로 표시)
 GOLDBOX = [
     # ("행복미트 찜갈비 1kg 2개", 60000, 21880,
-    #  "https://link.coupang.com/a/xxxx", "식품/건강", "100g당 1,094원", 0),
+    #  "https://link.coupang.com/a/xxxx", "식품/건강", "100g당 1,094원", 0, "골드박스"),
 ]
 
 
@@ -26,13 +26,15 @@ def main() -> None:
     c.table("goldbox_deals").delete().neq("id", 0).execute()
     # 2) 새로 등록
     rows = []
-    for i, (title, lst, cur, url, cat, unit, ship) in enumerate(GOLDBOX):
+    for i, item in enumerate(GOLDBOX):
+        title, lst, cur, url, cat, unit, ship = item[:7]
+        label = item[7] if len(item) > 7 else None
         rate = round((lst - cur) / lst * 100) if lst and lst > 0 else None
         rows.append({
             "title": title, "affiliate_url": url,
             "list_price": lst, "current_price": cur, "discount_rate": rate,
             "category": cat, "unit_price": unit, "shipping_fee": ship,
-            "sort_order": i,
+            "label": label, "sort_order": i,
         })
     if rows:
         c.table("goldbox_deals").insert(rows).execute()

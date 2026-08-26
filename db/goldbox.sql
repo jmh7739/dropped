@@ -16,6 +16,7 @@ create table if not exists goldbox_deals (
   unit_price    text,                   -- 100g당 등
   shipping_fee  bigint,                 -- 0=무료
   category      text,
+  label         text,                   -- 뱃지(골드박스/로켓특가 등). 없으면 '쿠팡'
   sort_order    int not null default 0,
   created_at    timestamptz not null default now()
 );

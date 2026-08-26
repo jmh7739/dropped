@@ -20,5 +20,6 @@ export async function getGoldboxDeals(): Promise<GoldboxDeal[]> {
     unitPrice: r.unit_price ?? null,
     shippingFee: r.shipping_fee ?? null,
     category: r.category ?? null,
+    label: r.label ?? null,
   }));
 }

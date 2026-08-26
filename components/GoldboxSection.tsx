@@ -11,8 +11,8 @@ export default async function GoldboxSection() {
   return (
     <section className="mt-10">
       <div className="mb-2 flex items-end justify-between">
-        <h2 className="text-lg font-extrabold">🎁 오늘의 골드박스</h2>
-        <span className="text-xs text-gray-400">쿠팡 데일리 특가 · 매일 갱신</span>
+        <h2 className="text-lg font-extrabold">🛒 쿠팡 핫딜</h2>
+        <span className="text-xs text-gray-400">골드박스·특가 모음 · 매일 갱신</span>
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
@@ -30,7 +30,7 @@ export default async function GoldboxSection() {
                   className="h-full w-full object-cover transition group-hover:scale-105"
                 />
                 <span className="absolute left-2 top-2 rounded-md bg-amber-400 px-1.5 py-0.5 text-xs font-bold text-amber-950">
-                  🎁 골드박스
+                  {d.label || "🎁 골드박스"}
                 </span>
                 {d.discountRate ? (
                   <span className="absolute right-2 top-2 rounded-md bg-brand px-1.5 py-0.5 text-xs font-bold text-white">
