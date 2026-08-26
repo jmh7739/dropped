@@ -37,4 +37,8 @@ jobs:
           ALIEXPRESS_APP_KEY: ${{ secrets.ALIEXPRESS_APP_KEY }}
           ALIEXPRESS_APP_SECRET: ${{ secrets.ALIEXPRESS_APP_SECRET }}
           ALIEXPRESS_TRACKING_ID: ${{ secrets.ALIEXPRESS_TRACKING_ID }}
+          LINKPRICE_AFFILIATE_ID: ${{ secrets.LINKPRICE_AFFILIATE_ID }}
+          TRAVELPAYOUTS_TOKEN: ${{ secrets.TRAVELPAYOUTS_TOKEN }}
+          TRAVELPAYOUTS_MARKER: ${{ secrets.TRAVELPAYOUTS_MARKER }}
+          DATA_GO_KR_KEY: ${{ secrets.DATA_GO_KR_KEY }}
         run: python run.py

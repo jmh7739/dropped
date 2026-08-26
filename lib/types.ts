@@ -96,6 +96,7 @@ export interface FlightDeal {
   source: string;
   origin: string;
   destination: string;
+  region: string | null;
   departDate: string | null;
   returnDate: string | null; // null이면 편도
   airline: string | null;

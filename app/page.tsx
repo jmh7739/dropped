@@ -6,9 +6,9 @@ import SortTabs from "@/components/SortTabs";
 import FlightsView from "@/components/FlightsView";
 import AuctionView from "@/components/AuctionView";
 import GoldboxSection from "@/components/GoldboxSection";
+import GoldboxBanner from "@/components/GoldboxBanner";
 import SearchBar from "@/components/SearchBar";
 import Pagination from "@/components/Pagination";
-import { FlightScope } from "@/lib/flights";
 import { AuctionScope } from "@/lib/auction";
 import { PAGE_SIZE } from "@/lib/nav";
 import { CATEGORIES } from "@/lib/types";
@@ -23,7 +23,9 @@ export default async function Home({
     category?: string;
     sort?: string;
     hot?: string;
-    fc?: string;
+    region?: string;
+    o?: string;
+    d?: string;
     ac?: string;
     q?: string;
     page?: string;
@@ -49,14 +51,11 @@ export default async function Home({
     </div>
   );
 
-  // ── 항공권 탭: 별도 뷰(국내선/국제선 필터) ──
+  // ── 항공권 탭: 지역 → 노선 → 날짜 드릴다운 ──
   if (isFlight) {
-    const scope: FlightScope =
-      searchParams.fc === "domestic"
-        ? "domestic"
-        : searchParams.fc === "intl"
-          ? "intl"
-          : "all";
+    const region = (searchParams.region ?? "").slice(0, 20) || undefined;
+    const o = (searchParams.o ?? "").slice(0, 30) || undefined;
+    const d = (searchParams.d ?? "").slice(0, 30) || undefined;
     return (
       <div>
         {demoBanner}
@@ -64,7 +63,7 @@ export default async function Home({
         <div className="mb-4">
           <CategoryTabs active={category} sort={sort} hot={hot} />
         </div>
-        <FlightsView scope={scope} />
+        <FlightsView region={region} origin={o} destination={d} />
       </div>
     );
   }
@@ -143,8 +142,13 @@ export default async function Home({
         </>
       )}
 
-      {/* 골드박스는 필터 없는 전체 화면에서만, 급락 특가와 분리해 하단 노출 */}
-      {!category && !hot && !q && <GoldboxSection />}
+      {/* 쿠팡 골드박스: 필터 없는 전체 화면에서만 하단 노출 */}
+      {!category && !hot && !q && (
+        <>
+          <GoldboxSection />
+          <GoldboxBanner />
+        </>
+      )}
     </div>
   );
 }

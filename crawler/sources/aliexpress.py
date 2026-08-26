@@ -150,7 +150,7 @@ def fetch() -> list[RawDeal]:
                 ))
             time.sleep(0.4)
 
-    # 할인 깊은 순으로 정렬 후 상한 컷 → 도배 방지, '많이 싼' 것 위주
+    # 할인 깊은 순 → 진짜 '떨어진' 것 우선. 동률이면 판매량 많은 순(인기).
     ranked = sorted(seen.values(), key=lambda t: (t[0], t[1]), reverse=True)
     deals = [rd for _, _, rd in ranked[: config.ALIEXPRESS_MAX_DEALS]]
     print(f"[aliexpress] 후보 {len(seen)}건 → 상위 {len(deals)}건 "
