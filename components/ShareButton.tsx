@@ -2,6 +2,25 @@
 
 import { useState } from "react";
 
+// 사슬(링크) 아이콘 — 공유/링크복사에 흔히 쓰는 모양
+function LinkIcon({ className = "h-4 w-4" }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      <path d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757" />
+      <path d="M10.81 15.312a4.5 4.5 0 0 1-1.242-7.244l4.5-4.5a4.5 4.5 0 0 1 6.364 6.364l-1.757 1.757" />
+    </svg>
+  );
+}
+
 /**
  * 공유 버튼. dropped.kr 내부 경로를 공유해 → 받은 사람이 우리 사이트로 유입되고,
  * 우리 제휴 링크로 구매 → 수수료 연결 + 방문자 증가.
@@ -51,7 +70,7 @@ export default function ShareButton({
         title="공유"
         className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 transition hover:bg-gray-50"
       >
-        {copied ? "✓" : "↗"}
+        {copied ? <span className="text-green-600">✓</span> : <LinkIcon />}
       </button>
     );
   }
@@ -59,9 +78,15 @@ export default function ShareButton({
   return (
     <button
       onClick={onShare}
-      className="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-600 transition hover:bg-gray-50"
+      className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-600 transition hover:bg-gray-50"
     >
-      {copied ? "✓ 복사됨" : "↗ 공유"}
+      {copied ? (
+        <span className="text-green-600">✓ 복사됨</span>
+      ) : (
+        <>
+          <LinkIcon className="h-4 w-4" /> 공유
+        </>
+      )}
     </button>
   );
 }
