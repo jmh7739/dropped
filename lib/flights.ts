@@ -93,9 +93,12 @@ function rowToDeal(r: any): FlightDeal {
 
 async function allDeals(): Promise<FlightDeal[]> {
   if (!supabase) return [];
+  // 출발일이 지난(과거) 항공권은 제외 — 오늘 이후만
+  const today = new Date().toISOString().slice(0, 10);
   const { data, error } = await supabase
     .from("flight_deals")
     .select("*")
+    .gte("depart_date", today)
     .order("price", { ascending: true });
   if (error || !data) return [];
   return data.map(rowToDeal);
