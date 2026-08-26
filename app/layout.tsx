@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Script from "next/script";
+import { Analytics } from "@vercel/analytics/react";
 import "./globals.css";
 import Header from "@/components/Header";
 import AffiliateDisclosure from "@/components/AffiliateDisclosure";
@@ -64,6 +65,7 @@ export default function RootLayout({
           {children}
         </main>
         <AffiliateDisclosure />
+        <Analytics />
       </body>
     </html>
   );
