@@ -103,8 +103,8 @@ AUCTION_TYPES = {
 }
 
 # ── 탐지 임계값 (detect.py에서 사용) ──────────────────────────
-BASELINE_WINDOW_DAYS = 30       # 평소 기준가 계산 기간
-BASELINE_METHOD = "median"      # "median" | "mean"  (중앙값이 오탐에 강함)
+BASELINE_WINDOW_DAYS = 90       # 평소 기준가 계산 기간(3개월). 데이터 쌓이면 이 창으로.
+BASELINE_METHOD = "median"      # "median" | "mean"  (중앙값이 스파이크·오탐에 강함)
 
 # 신뢰 우선: 확정 딜로 노출하려면 최소 이력이 있어야 함.
 # 이력이 부족하면 '관찰중'으로 두고 가격만 계속 수집(정가 대비로는 확정 안 함).

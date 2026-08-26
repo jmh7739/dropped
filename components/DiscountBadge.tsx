@@ -30,7 +30,7 @@ export function ProvisionalBadge() {
 export function LowestEverBadge() {
   return (
     <span className="inline-flex items-center gap-0.5 rounded-md bg-amber-400 px-1.5 py-0.5 text-xs font-bold text-amber-950">
-      🏆 역대최저가
+      🏆 최근 최저가
     </span>
   );
 }
