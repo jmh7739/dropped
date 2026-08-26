@@ -55,8 +55,7 @@ export const CATEGORIES: Category[] = [
   { name: "육아/유아", slug: "baby", dealType: "shopping" },
   { name: "스포츠/레저", slug: "sports", dealType: "shopping" },
   { name: "상품권/쿠폰", slug: "voucher", dealType: "shopping" },
-  { name: "해외직구", slug: "overseas", dealType: "shopping" },
-  { name: "항공권 특가", slug: "flight", dealType: "flight" },
+  { name: "여행", slug: "flight", dealType: "flight" },
   { name: "경매 특가", slug: "auction", dealType: "auction" },
 ];
 
