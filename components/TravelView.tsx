@@ -35,33 +35,47 @@ const DEAL_PARTNERS: Partner[] = [
   { icon: "🍊", name: "제주·국내", desc: "국내 액티비티·입장권", href: klook("제주") },
 ];
 
-function PartnerGrid({ partners, note }: { partners: Partner[]; note: string }) {
+// 더 많은 여행 준비 서비스 (전부 승인·리워드됨)
+const SERVICE_PARTNERS: Partner[] = [
+  { icon: "🎟️", name: "KKday", desc: "현지 투어·입장권", href: lp("kkday", "https://www.kkday.com/ko") },
+  { icon: "🧭", name: "마이리얼트립", desc: "한국인 가이드 투어", href: lp("myrealtrip", "https://www.myrealtrip.com/") },
+  { icon: "🎫", name: "Go City", desc: "도시 관광패스(입장권 묶음)", href: lp("gocity", "https://gocity.com/ko") },
+  { icon: "🚄", name: "레일유럽", desc: "유럽 기차 패스·티켓", href: lp("re4akor", "http://www.raileurope.co.kr") },
+  { icon: "📶", name: "에어알로 eSIM", desc: "해외 데이터 eSIM", href: lp("airalo", "https://www.airalo.com/ko") },
+  { icon: "🏷️", name: "땡처리닷컴", desc: "여행 막판 땡처리 특가", href: lp("072com", "http://www.ttang.com") },
+];
+
+function PartnerGrid({ partners }: { partners: Partner[] }) {
   return (
-    <div>
-      <p className="mb-3 text-sm text-gray-500">{note}</p>
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-        {partners.map((p) => (
-          <a
-            key={p.name}
-            href={p.href}
-            target="_blank"
-            rel="nofollow sponsored noopener noreferrer"
-            className="flex flex-col gap-1 rounded-xl border border-gray-200 bg-white p-4 transition hover:border-brand/40 hover:shadow-md"
-          >
-            <span className="text-2xl">{p.icon}</span>
-            <span className="text-sm font-extrabold text-gray-900">{p.name}</span>
-            <span className="text-[11px] text-gray-400">{p.desc}</span>
-            <span className="mt-1 text-xs font-bold text-brand">보러가기 →</span>
-          </a>
-        ))}
-      </div>
-      <p className="mt-4 text-[11px] text-gray-400">
-        제휴 링크입니다. 예약 시 판매 페이지에서 최종 가격을 확인하세요. 곧
-        개별 특가도 카드로 모아 보여드릴게요.
-      </p>
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+      {partners.map((p) => (
+        <a
+          key={p.name}
+          href={p.href}
+          target="_blank"
+          rel="nofollow sponsored noopener noreferrer"
+          className="flex flex-col gap-1 rounded-xl border border-gray-200 bg-white p-4 transition hover:border-brand/40 hover:shadow-md"
+        >
+          <span className="text-2xl">{p.icon}</span>
+          <span className="text-sm font-extrabold text-gray-900">{p.name}</span>
+          <span className="text-[11px] text-gray-400">{p.desc}</span>
+          <span className="mt-1 text-xs font-bold text-brand">보러가기 →</span>
+        </a>
+      ))}
     </div>
   );
 }
+
+function SectionTitle({ children }: { children: React.ReactNode }) {
+  return <p className="mb-2 mt-6 text-sm font-bold text-gray-700 first:mt-0">{children}</p>;
+}
+
+const PARTNER_NOTE = (
+  <p className="mt-4 text-[11px] text-gray-400">
+    제휴 링크입니다. 예약 시 판매 페이지에서 최종 가격을 확인하세요. 트래픽이
+    쌓이면 개별 특가도 카드로 자동 노출됩니다.
+  </p>
+);
 
 const TABS: { key: TravelTab; label: string }[] = [
   { key: "flight", label: "✈️ 항공권" },
@@ -102,16 +116,20 @@ export default function TravelView({
         <FlightsView region={region} origin={origin} destination={destination} />
       )}
       {tab === "stay" && (
-        <PartnerGrid
-          partners={STAY_PARTNERS}
-          note="🏨 국내외 숙소 예약 — 아래에서 바로 최저가 검색하세요."
-        />
+        <div>
+          <SectionTitle>🏨 국내외 숙소 예약</SectionTitle>
+          <PartnerGrid partners={STAY_PARTNERS} />
+          {PARTNER_NOTE}
+        </div>
       )}
       {tab === "deal" && (
-        <PartnerGrid
-          partners={DEAL_PARTNERS}
-          note="🎢 여행지별 투어·입장권·액티비티(클룩) — 목적지를 누르면 인기 액티비티가 떠요."
-        />
+        <div>
+          <SectionTitle>🎢 여행지별 액티비티·투어 (누르면 그 도시 결과로)</SectionTitle>
+          <PartnerGrid partners={DEAL_PARTNERS} />
+          <SectionTitle>🧳 더 많은 여행 준비</SectionTitle>
+          <PartnerGrid partners={SERVICE_PARTNERS} />
+          {PARTNER_NOTE}
+        </div>
       )}
     </div>
   );
