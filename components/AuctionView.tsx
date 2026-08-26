@@ -6,6 +6,7 @@ import {
   AUCTION_SORTS,
 } from "@/lib/auction";
 import { formatWon, safeUrl } from "@/lib/format";
+import SortDropdown from "./SortDropdown";
 
 const TABS: { key: AuctionScope; label: string }[] = [
   { key: "all", label: "전체" },
@@ -29,38 +30,34 @@ export default async function AuctionView({
 }) {
   const items = await getAuctionDeals(scope, sort);
 
+  // 정렬 드롭다운이 유지할 쿼리
+  const keep: Record<string, string> = { category: "auction" };
+  if (scope !== "all") keep.ac = scope;
+
   return (
     <div>
-      <div className="mb-3 flex gap-2">
-        {TABS.map((t) => (
-          <Link
-            key={t.key}
-            href={href(t.key, sort)}
-            className={`rounded-full px-3 py-1.5 text-sm font-medium transition ${
-              scope === t.key
-                ? "bg-brand text-white"
-                : "border border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
-            }`}
-          >
-            {t.label}
-          </Link>
-        ))}
-      </div>
-
-      <div className="-mx-1 mb-4 flex gap-1.5 overflow-x-auto px-1 pb-1">
-        {AUCTION_SORTS.map((s) => (
-          <Link
-            key={s.key}
-            href={href(scope, s.key)}
-            className={`flex-shrink-0 rounded-full px-2.5 py-1 text-xs font-medium transition ${
-              sort === s.key
-                ? "bg-gray-900 text-white"
-                : "border border-gray-200 bg-white text-gray-500 hover:bg-gray-50"
-            }`}
-          >
-            {s.label}
-          </Link>
-        ))}
+      <div className="mb-4 flex items-center justify-between gap-2">
+        <div className="flex gap-2">
+          {TABS.map((t) => (
+            <Link
+              key={t.key}
+              href={href(t.key, sort)}
+              className={`rounded-full px-3 py-1.5 text-sm font-medium transition ${
+                scope === t.key
+                  ? "bg-brand text-white"
+                  : "border border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
+              }`}
+            >
+              {t.label}
+            </Link>
+          ))}
+        </div>
+        <SortDropdown
+          options={AUCTION_SORTS}
+          value={sort}
+          param="as"
+          params={keep}
+        />
       </div>
 
       {items.length === 0 ? (

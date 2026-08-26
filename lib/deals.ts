@@ -1,7 +1,20 @@
 import { supabase } from "./supabase";
 import { Deal, PricePoint, HOT_LIKE_THRESHOLD } from "./types";
 
-export type SortKey = "discount" | "recent";
+export type SortKey =
+  | "discount" // 할인률 높은순 (기본)
+  | "discount_asc" // 할인률 낮은순
+  | "price_asc" // 가격 낮은순
+  | "price_desc" // 가격 높은순
+  | "recent"; // 최신순
+
+export const DEAL_SORTS: { key: SortKey; label: string }[] = [
+  { key: "discount", label: "할인률 높은순" },
+  { key: "discount_asc", label: "할인률 낮은순" },
+  { key: "price_asc", label: "가격 낮은순" },
+  { key: "price_desc", label: "가격 높은순" },
+  { key: "recent", label: "최신순" },
+];
 
 /** DB 행 → Deal 매핑 */
 function rowToDeal(row: any, history: PricePoint[]): Deal {
@@ -41,21 +54,28 @@ function sortDeals(deals: Deal[], sort: SortKey): Deal[] {
   return [...sortActive(active, sort), ...sortActive(ended, sort)];
 }
 
+function headlineRate(d: Deal): number {
+  return d.discountVsAvg ?? d.discountVsList;
+}
+
 function sortActive(deals: Deal[], sort: SortKey): Deal[] {
   const arr = [...deals];
-  if (sort === "recent") {
-    arr.sort(
-      (a, b) =>
-        new Date(b.detectedAt).getTime() - new Date(a.detectedAt).getTime()
-    );
-  } else {
-    arr.sort((a, b) => {
-      const da = a.discountVsAvg ?? a.discountVsList;
-      const db = b.discountVsAvg ?? b.discountVsList;
-      return db - da;
-    });
+  switch (sort) {
+    case "recent":
+      return arr.sort(
+        (a, b) =>
+          new Date(b.detectedAt).getTime() - new Date(a.detectedAt).getTime()
+      );
+    case "discount_asc":
+      return arr.sort((a, b) => headlineRate(a) - headlineRate(b));
+    case "price_asc":
+      return arr.sort((a, b) => a.currentPrice - b.currentPrice);
+    case "price_desc":
+      return arr.sort((a, b) => b.currentPrice - a.currentPrice);
+    case "discount":
+    default:
+      return arr.sort((a, b) => headlineRate(b) - headlineRate(a));
   }
-  return arr;
 }
 
 export interface GetDealsOpts {

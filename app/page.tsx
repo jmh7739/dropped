@@ -37,7 +37,16 @@ export default async function Home({
   const category = validSlugs.has(searchParams.category ?? "")
     ? searchParams.category
     : undefined;
-  const sort: SortKey = searchParams.sort === "recent" ? "recent" : "discount";
+  const validDealSorts: SortKey[] = [
+    "discount",
+    "discount_asc",
+    "price_asc",
+    "price_desc",
+    "recent",
+  ];
+  const sort: SortKey = validDealSorts.includes(searchParams.sort as SortKey)
+    ? (searchParams.sort as SortKey)
+    : "discount";
   const hot = searchParams.hot === "1";
   const q = (searchParams.q ?? "").slice(0, 100);
   const page = Math.max(1, parseInt(searchParams.page ?? "1", 10) || 1);
@@ -126,9 +135,7 @@ export default async function Home({
             {activeCount}개
           </span>
         </h1>
-        <div className="-mx-1 overflow-x-auto px-1 pb-0.5">
-          <SortTabs category={category} sort={sort} hot={hot} q={q} />
-        </div>
+        <SortTabs category={category} sort={sort} hot={hot} q={q} />
       </div>
 
       <div className="mb-4">
