@@ -37,11 +37,6 @@ class AuctionItem:
 
 
 BASE = "https://apis.data.go.kr/B010003"
-# (자산유형, 오퍼레이션 경로)
-SERVICES = [
-    ("부동산", "OnbidRlstListSrvc2/getRlstCltrList2"),
-    ("자동차", "OnbidCarListSrvc2/getCarCltrList2"),
-]
 
 # 노출 제외할 입찰상태(끝났거나 무의미): 낙찰/취소/입찰마감/개찰중
 _SKIP_STATUS = {"0003", "0006", "0010", "0012"}
@@ -87,7 +82,8 @@ def _call(path: str, page_no: int) -> list[dict]:
         "resultType": "json",
         "prptDivCd": config.AUCTION_PROPERTY_DIVS,
         "pvctTrgtYn": "N",
-        "usbdNftStart": config.AUCTION_MIN_FAILS,  # 최소 유찰횟수(가격 하락 누적)
+        # 유찰횟수 필터는 안 씀(자동차는 usbdNft 미기재 많아 진짜 하락물건까지
+        # 걸러짐). '감정가 대비 하락률'로만 판정.
     }
     for attempt in range(3):
         try:
@@ -110,10 +106,13 @@ def fetch() -> list[AuctionItem]:
         print("[auction] DATA_GO_KR_KEY 없음 → 건너뜀")
         return []
 
-    seen: dict[str, tuple[float, AuctionItem]] = {}
-    for asset_type, path in SERVICES:
+    deals: list[AuctionItem] = []
+    summary = []
+    # 자산유형별로 따로 수집·필터·상한 → 부동산이 자동차를 밀어내지 않음
+    for asset_type, cfg in config.AUCTION_TYPES.items():
+        seen: dict[str, tuple[float, AuctionItem]] = {}
         for page in range(1, config.AUCTION_PAGES + 1):
-            rows = _call(path, page)
+            rows = _call(cfg["path"], page)
             if not rows:
                 break
             for it in rows:
@@ -121,11 +120,10 @@ def fetch() -> list[AuctionItem]:
                     continue
                 appraisal = _to_int(it.get("apslEvlAmt"))
                 min_bid = _to_int(it.get("lowstBidPrcIndctCont"))
-                # 감정가·최저가 둘 다 있고, 최저가가 감정가보다 낮아야 '떨어진' 물건
                 if not appraisal or not min_bid or min_bid >= appraisal:
                     continue
                 drop = (appraisal - min_bid) / appraisal
-                if drop < config.AUCTION_MIN_DROP:
+                if drop < cfg["min_drop"]:
                     continue
                 ext = it.get("cltrMngNo") or str(it.get("onbidCltrno"))
                 if ext in seen:
@@ -145,9 +143,10 @@ def fetch() -> list[AuctionItem]:
                     posted_at=None,
                 ))
             time.sleep(0.3)
+        ranked = sorted(seen.values(), key=lambda t: t[0], reverse=True)
+        picked = [item for _, item in ranked[: cfg["limit"]]]
+        deals.extend(picked)
+        summary.append(f"{asset_type} {len(picked)}건(후보 {len(seen)})")
 
-    # 하락률 높은 순으로 정렬 후 상한 컷
-    ranked = sorted(seen.values(), key=lambda t: t[0], reverse=True)
-    deals = [item for _, item in ranked[: config.AUCTION_LIMIT]]
-    print(f"[auction] 후보 {len(seen)}건 → 상위 {len(deals)}건 노출")
+    print(f"[auction] {', '.join(summary)} → 총 {len(deals)}건")
     return deals

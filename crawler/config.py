@@ -92,10 +92,15 @@ DATA_GO_KR_KEY = os.getenv("DATA_GO_KR_KEY", "")
 # 재산유형코드(복수, 쉼표): 0007압류 0005기타일반 0006유입 0008수탁 0010국유 0011공공개발
 AUCTION_PROPERTY_DIVS = "0007,0005,0006,0008,0010,0011"
 AUCTION_ROWS = 100         # 페이지당 결과 수
-AUCTION_PAGES = 3          # 자산유형별 페이지 수
+AUCTION_PAGES = 5          # 자산유형별 페이지 수(넓게)
 AUCTION_MIN_FAILS = 1      # 최소 유찰횟수(회차마다 가격 하락) — API usbdNftStart
-AUCTION_MIN_DROP = 0.35    # 감정가 대비 이 이상 떨어진 물건만 노출
-AUCTION_LIMIT = 60         # 최종 노출 상한(하락률 높은 순)
+# 자산유형별 (오퍼레이션·하락률임계·노출상한). 자동차는 하락폭이 작아 임계 낮춤.
+AUCTION_TYPES = {
+    "부동산": {"path": "OnbidRlstListSrvc2/getRlstCltrList2",
+             "min_drop": 0.35, "limit": 50},
+    "자동차": {"path": "OnbidCarListSrvc2/getCarCltrList2",
+             "min_drop": 0.18, "limit": 40},
+}
 
 # ── 탐지 임계값 (detect.py에서 사용) ──────────────────────────
 BASELINE_WINDOW_DAYS = 30       # 평소 기준가 계산 기간
