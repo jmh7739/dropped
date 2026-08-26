@@ -20,13 +20,19 @@ const STAY_PARTNERS: Partner[] = [
   { icon: "🗾", name: "라쿠텐 트래블", desc: "일본 숙소 전문", href: lp("rakutentr", "https://travel.rakuten.com") },
 ];
 
+// 목적지별 액티비티/투어 — 클룩 검색으로 딥링크(홈 말고 해당 여행지 결과로)
+const klook = (q: string) =>
+  lp("klook", `https://www.klook.com/ko/search/?query=${encodeURIComponent(q)}`);
+
 const DEAL_PARTNERS: Partner[] = [
-  { icon: "🎢", name: "클룩(Klook)", desc: "투어·입장권·액티비티", href: lp("klook", "https://www.klook.com/ko/") },
-  { icon: "🎟️", name: "KKday", desc: "현지 투어·티켓", href: lp("kkday", "https://www.kkday.com/ko") },
-  { icon: "🧭", name: "마이리얼트립", desc: "가이드 투어·패키지", href: lp("myrealtrip", "https://www.myrealtrip.com/") },
-  { icon: "🎫", name: "Go City", desc: "도시 관광 패스", href: lp("gocity", "https://gocity.com/ko") },
-  { icon: "🍊", name: "제주패스", desc: "제주 렌터카·액티비티", href: lp("jejupass", "http://www.jejupass.com") },
-  { icon: "🏷️", name: "땡처리닷컴", desc: "여행 땡처리 특가", href: lp("072com", "http://www.ttang.com") },
+  { icon: "🗼", name: "도쿄 투어·티켓", desc: "디즈니·인기 액티비티", href: klook("도쿄") },
+  { icon: "🏯", name: "오사카·교토", desc: "유니버설·간사이", href: klook("오사카") },
+  { icon: "🏖️", name: "다낭·베트남", desc: "바나힐·호이안", href: klook("다낭") },
+  { icon: "🛕", name: "방콕·태국", desc: "사원·쇼·투어", href: klook("방콕") },
+  { icon: "🦁", name: "싱가포르", desc: "유니버설·가든스", href: klook("싱가포르") },
+  { icon: "🎡", name: "홍콩·마카오", desc: "디즈니·오션파크", href: klook("홍콩") },
+  { icon: "🏮", name: "대만", desc: "타이베이·지우펀", href: klook("타이베이") },
+  { icon: "🍊", name: "제주·국내", desc: "국내 액티비티·입장권", href: klook("제주") },
 ];
 
 function PartnerGrid({ partners, note }: { partners: Partner[]; note: string }) {
@@ -104,7 +110,7 @@ export default function TravelView({
       {tab === "deal" && (
         <PartnerGrid
           partners={DEAL_PARTNERS}
-          note="🎢 투어·입장권·액티비티 — 디즈니·유니버설 티켓부터 현지 투어까지."
+          note="🎢 여행지별 투어·입장권·액티비티(클룩) — 목적지를 누르면 인기 액티비티가 떠요."
         />
       )}
     </div>
