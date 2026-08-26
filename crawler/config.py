@@ -67,8 +67,10 @@ MIN_HISTORY_POINTS = 6          # 최소 수집 횟수
 MIN_HISTORY_DAYS = 3            # 최소 관찰 기간(일). 둘 다 충족해야 확정
 
 MIN_DISCOUNT = 0.20             # 평소가 대비: 이 이상 하락해야 딜 (20%)
-# 이력 부족 신상품의 '잠정' 노출 기준(정가 대비). 뻥튀기 정가 거르려 높게.
-PROVISIONAL_MIN_DISCOUNT = 0.40 # 정가 대비 40%+ 급할인만 잠정 노출
+# 알리 전용 '잠정' 노출 밴드(정가 대비). 뻥튀기 정가를 감안해 '아주 깊은' 할인만.
+#   하한: 이 이상이어야 노출 / 상한: 이보다 깊으면 오류·사기성 의심으로 컷.
+PROVISIONAL_MIN_DISCOUNT = 0.50 # 정가 대비 50%+ 만 잠정 노출 (많이 싼 것만)
+PROVISIONAL_MAX_DISCOUNT = 0.85 # 정가 대비 85% 초과는 컷(오류/미끼 방지)
 MIN_PRICE = 1000               # 이 미만은 수집오류로 간주하고 컷
 ERROR_SUSPECT_DISCOUNT = 0.70   # 70~90% → 가격오류 "의심" 뱃지
 ERROR_HARD_CUT_DISCOUNT = 0.90  # 90% 초과 → 자동 노출 보류 (버그 확률↑)

@@ -37,12 +37,16 @@ def classify(
     list_price: Optional[int],
     history_prices: list[int],
     history_days: float,
+    platform: str = "",
 ) -> DealVerdict:
     """신뢰 우선 판정.
 
     - 확정 기준은 오직 '평소 실제 판매가(이력 평균/중앙값) 대비 하락률'.
     - 정가(list_price) 대비는 뻥튀기 정가에 속으므로 판정에 쓰지 않고 표시용으로만.
     - 이력이 부족하면 확정하지 않고 '관찰중'으로 둔다(가격은 계속 수집).
+    - 예외: 알리는 상품 회전이 빨라 이력을 쌓기 전에 사라지므로, '아주 깊은
+      정가대비 할인(뻥튀기라도 유의미한 밴드)'만 잠정 노출한다. 이력이 쌓이면
+      자동으로 '평균 대비'로 승격/정정된다.
     """
 
     # 정가 대비 — 표시(참고)용으로만 계산. 판정엔 안 씀.
@@ -81,6 +85,18 @@ def classify(
         return DealVerdict(True, baseline, discount_vs_avg, discount_vs_list,
                            is_lowest, is_error,
                            f"딜 확정 (평균대비 {rate*100:.0f}%)")
+
+    # ── 알리 예외: 이력 없이도 '아주 깊은' 정가대비 할인만 잠정 노출 ──────
+    #   회전이 빨라 이력을 못 쌓는 알리 특성상, 깊은 할인 밴드만 제한 노출.
+    #   밴드 상한을 둬서 오류/사기성 초저가는 거른다. 이력 쌓이면 평균대비로 승격.
+    if platform == "aliexpress" and discount_vs_list is not None:
+        d = discount_vs_list / 100
+        if config.PROVISIONAL_MIN_DISCOUNT <= d <= config.PROVISIONAL_MAX_DISCOUNT:
+            # 잠정딜은 '평소가' 신뢰가 아직 없음 → baseline/평균대비/역대최저 모두 비움.
+            #   (1~2개뿐인 이력으로 baseline을 잡으면 expire가 즉시 종료시켜 버림)
+            return DealVerdict(
+                True, None, None, discount_vs_list, False, False,
+                f"알리 잠정노출 (정가대비 {discount_vs_list:.0f}% — 이력 쌓는 중)")
 
     # ── 이력 부족: 노출 안 함(관찰중). 정가는 뻥튀기라 못 믿음 ──────
     #   가격만 계속 수집 → 이력 충분해지면 위에서 '평소 대비'로 판정.

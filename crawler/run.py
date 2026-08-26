@@ -49,6 +49,7 @@ def collect_and_flag() -> tuple[int, int]:
                 list_price=raw.list_price,
                 history_prices=history,
                 history_days=hdays,
+                platform=raw.platform,
             )
 
             tag = "[DEAL]" if verdict.is_deal else "[skip]"

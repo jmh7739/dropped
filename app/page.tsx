@@ -112,14 +112,16 @@ export default async function Home({
         <SearchBar initial={q} />
       </div>
 
-      <div className="mb-1 flex items-end justify-between">
-        <h1 className="text-xl font-extrabold">
-          {heading}
+      <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <h1 className="flex items-baseline text-xl font-extrabold">
+          <span>{heading}</span>
           <span className="ml-2 text-sm font-normal text-gray-400">
             {activeCount}개
           </span>
         </h1>
-        <SortTabs category={category} sort={sort} hot={hot} q={q} />
+        <div className="-mx-1 overflow-x-auto px-1 pb-0.5">
+          <SortTabs category={category} sort={sort} hot={hot} q={q} />
+        </div>
       </div>
 
       <div className="mb-4">
