@@ -20,6 +20,7 @@ except Exception:
 import config
 import db
 import detect
+import indexnow
 # 네이버 검색 API는 신규 앱에 권한 부여가 막혀(정책) 제외. sources/naver.py는
 # 남겨둠 — 향후 접근 가능해지면 아래 SOURCES에 다시 넣으면 됨.
 from sources import coupang, aliexpress, cps, flights, auction
@@ -120,7 +121,26 @@ def main() -> None:
     an = collect_auction()
     print(f"경매 {an}건 수집")
 
+    ping_indexnow()
+
     print("=== 완료 ===")
+
+
+def ping_indexnow() -> None:
+    """진행중 딜 상세 + 주요 페이지 URL을 IndexNow로 색인 통보."""
+    if config.DRY_RUN:
+        return
+    try:
+        urls = [
+            f"{indexnow.SITE}/",
+            f"{indexnow.SITE}/?category=flight",
+            f"{indexnow.SITE}/?category=auction",
+        ]
+        for d in db.active_deals():
+            urls.append(f"{indexnow.SITE}/deal/{d['id']}")
+        indexnow.submit(urls)
+    except Exception as e:
+        print(f"[indexnow] 건너뜀: {e}")
 
 
 def collect_flights() -> int:

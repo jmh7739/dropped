@@ -52,6 +52,12 @@ export default function RootLayout({
   return (
     <html lang="ko">
       <head>
+        <link
+          rel="alternate"
+          type="application/rss+xml"
+          title="떨어졌다 특가"
+          href="/feed.xml"
+        />
         {/* Travelpayouts Drive (여행 링크 자동 제휴 전환) */}
         <Script
           src="https://tp-em.com/NTY2NTY1.js?t=566565"
