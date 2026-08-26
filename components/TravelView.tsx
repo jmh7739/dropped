@@ -39,7 +39,7 @@ const DEAL_PARTNERS: Partner[] = [
 const SERVICE_PARTNERS: Partner[] = [
   { icon: "🎟️", name: "KKday", desc: "현지 투어·입장권", href: lp("kkday", "https://www.kkday.com/ko") },
   { icon: "🧭", name: "마이리얼트립", desc: "한국인 가이드 투어", href: lp("myrealtrip", "https://www.myrealtrip.com/") },
-  { icon: "🎫", name: "Go City", desc: "도시 관광패스(입장권 묶음)", href: lp("gocity", "https://gocity.com/ko") },
+  { icon: "🎫", name: "Go City", desc: "도시 관광패스", href: lp("gocity", "https://gocity.com/ko") },
   { icon: "🚄", name: "레일유럽", desc: "유럽 기차 패스·티켓", href: lp("re4akor", "http://www.raileurope.co.kr") },
   { icon: "📶", name: "에어알로 eSIM", desc: "해외 데이터 eSIM", href: lp("airalo", "https://www.airalo.com/ko") },
   { icon: "🏷️", name: "땡처리닷컴", desc: "여행 막판 땡처리 특가", href: lp("072com", "http://www.ttang.com") },
