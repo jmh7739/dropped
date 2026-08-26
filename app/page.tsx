@@ -7,6 +7,7 @@ import FlightsView from "@/components/FlightsView";
 import AuctionView from "@/components/AuctionView";
 import GoldboxSection from "@/components/GoldboxSection";
 import GoldboxBanner from "@/components/GoldboxBanner";
+import TopDrops from "@/components/TopDrops";
 import SearchBar from "@/components/SearchBar";
 import Pagination from "@/components/Pagination";
 import { AuctionScope, AuctionSort } from "@/lib/auction";
@@ -112,6 +113,20 @@ export default async function Home({
   const deals = allDeals.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
   const activeCount = allDeals.filter((d) => d.status !== "ended").length;
 
+  // 필터 없는 기본 홈 1페이지에서만 상단 TOP 순위 노출 (하락률 순, 종료딜 제외)
+  const isDefaultHome = !category && !hot && !q;
+  const topDrops =
+    isDefaultHome && safePage === 1
+      ? [...allDeals]
+          .filter((d) => d.status !== "ended")
+          .sort(
+            (a, b) =>
+              (b.discountVsAvg ?? b.discountVsList) -
+              (a.discountVsAvg ?? a.discountVsList)
+          )
+          .slice(0, 8)
+      : [];
+
   const heading = q
     ? `"${q}" 검색 결과`
     : hot
@@ -127,6 +142,8 @@ export default async function Home({
       <div className="mb-3">
         <SearchBar initial={q} />
       </div>
+
+      {topDrops.length > 0 && <TopDrops deals={topDrops} />}
 
       <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <h1 className="flex items-baseline text-xl font-extrabold">
