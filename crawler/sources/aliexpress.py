@@ -121,15 +121,20 @@ def fetch() -> list[RawDeal]:
                     cur = _to_int_won(p.get("target_sale_price"))
                     lst = _to_int_won(p.get("target_original_price")) or None
                     vol = _volume(p)
-                    # 정가 없거나(할인율 판단 불가) 판매량 적은 잡템은 제외
-                    if not lst or lst <= cur or vol < config.ALIEXPRESS_MIN_VOLUME:
+                    # 인기 상품만 추적(안 팔리는 잡템 제외). 할인 없어도 추적함.
+                    if vol < config.ALIEXPRESS_MIN_VOLUME or cur <= 0:
                         continue
-                    discount = (lst - cur) / lst
-                    # 오류/미끼(밴드 상한 초과)는 아예 수집 안 함
-                    if discount > config.PROVISIONAL_MAX_DISCOUNT:
-                        continue
+                    # 정가는 '멀쩡한 할인'일 때만 유지 → 잠정 노출용. 아니면 None.
+                    #   (없음/현재가 이하/85% 초과 뻥튀기 → None, 추적은 계속)
+                    if lst and lst > cur:
+                        discount = (lst - cur) / lst
+                        if discount > config.PROVISIONAL_MAX_DISCOUNT:
+                            lst = None
+                    else:
+                        lst = None
+                    disc = (lst - cur) / lst if lst else 0.0
                     seen_pid.add(pid)
-                    bucket.append((discount, vol, RawDeal(
+                    bucket.append((disc, vol, RawDeal(
                         platform="aliexpress",
                         external_product_id=pid,
                         title=p.get("product_title", ""),
@@ -144,14 +149,15 @@ def fetch() -> list[RawDeal]:
                 time.sleep(0.4)
         by_cat[slug] = bucket
 
-    # 카테고리별 할인 깊은 순 상위 N개씩 → 합치기
+    # 카테고리별 '판매량 상위' N개씩을 추적 풀로 반환(가격이력 수집).
+    #   → 이 중 detect가 '진짜 급락'만 화면에 띄움. 나머진 추적만.
+    #   (판매량 순으로 뽑아야 베스트셀러라 목록이 안정적 → 이력이 잘 쌓임)
     deals: list[RawDeal] = []
     summary = []
     for slug, bucket in by_cat.items():
-        bucket.sort(key=lambda t: (t[0], t[1]), reverse=True)
-        picked = [rd for _, _, rd in bucket[: config.ALIEXPRESS_PER_CATEGORY]]
+        bucket.sort(key=lambda t: t[1], reverse=True)  # 판매량 내림차순
+        picked = [rd for _, _, rd in bucket[: config.ALIEXPRESS_TRACK_PER_CATEGORY]]
         deals.extend(picked)
         summary.append(f"{slug}:{len(picked)}")
-    deals = deals[: config.ALIEXPRESS_MAX_DEALS]
-    print(f"[aliexpress] {len(deals)}건 (카테고리별 분산: {', '.join(summary)})")
+    print(f"[aliexpress] 추적 {len(deals)}건 (인기 상품, 카테고리별: {', '.join(summary)})")
     return deals

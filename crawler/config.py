@@ -26,10 +26,10 @@ COUPANG_BEST_LIMIT = 50   # 카테고리당 상위 N개 (콜/쿼터 고려해 �
 ALIEXPRESS_APP_KEY = os.getenv("ALIEXPRESS_APP_KEY", "")
 ALIEXPRESS_APP_SECRET = os.getenv("ALIEXPRESS_APP_SECRET", "")
 ALIEXPRESS_TRACKING_ID = os.getenv("ALIEXPRESS_TRACKING_ID", "")
-ALIEXPRESS_PAGES = 3      # 키워드당 페이지 수(페이지당 50) — 후보풀 확대
-ALIEXPRESS_MIN_VOLUME = 50   # 최소 판매량(인기 신호) — 잡템/사기성 제외
-ALIEXPRESS_MAX_DEALS = 72    # 전체 노출 상한
-ALIEXPRESS_PER_CATEGORY = 8  # 카테고리별 최대 노출 → 편중 방지(골고루)
+ALIEXPRESS_PAGES = 3       # 키워드당 페이지 수(페이지당 50) — 후보풀 확대
+# 전략: '인기 상품'을 넓게 추적(가격이력 수집)하고, 노출은 '진짜 급락'만.
+ALIEXPRESS_MIN_VOLUME = 100    # 인기 상품만 추적 — 안 팔리는 잡템 제외
+ALIEXPRESS_TRACK_PER_CATEGORY = 25  # 카테고리별 추적 풀(판매량 상위 N개, 화면엔 안 떠도 가격 수집)
 # 카테고리(slug)별 키워드. 카테고리마다 조금씩이라도 딜이 뜨도록 분산.
 #   slug은 lib/types.ts CATEGORIES와 일치. (상품권/소프트웨어는 알리에 없어 제외)
 ALIEXPRESS_KEYWORDS_BY_CAT = {
@@ -103,7 +103,8 @@ MIN_HISTORY_DAYS = 3            # 최소 관찰 기간(일). 둘 다 충족해�
 MIN_DISCOUNT = 0.20             # 평소가 대비: 이 이상 하락해야 딜 (20%)
 # 알리 전용 '잠정' 노출 밴드(정가 대비). 뻥튀기 정가를 감안해 '아주 깊은' 할인만.
 #   하한: 이 이상이어야 노출 / 상한: 이보다 깊으면 오류·사기성 의심으로 컷.
-PROVISIONAL_MIN_DISCOUNT = 0.35 # 정가 대비 35%+ 부터 잠정 노출 (깊은 순 정렬)
+# 잠정 노출은 '아주 깊은' 할인만(콜드스타트용). 이력 쌓이면 평균가 대비로 승격.
+PROVISIONAL_MIN_DISCOUNT = 0.50 # 정가 대비 50%+ 만 잠정 노출 (진짜 핫딜만)
 PROVISIONAL_MAX_DISCOUNT = 0.85 # 정가 대비 85% 초과는 컷(오류/미끼 방지)
 MIN_PRICE = 1000               # 이 미만은 수집오류로 간주하고 컷
 ERROR_SUSPECT_DISCOUNT = 0.70   # 70~90% → 가격오류 "의심" 뱃지
