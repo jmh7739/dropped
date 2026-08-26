@@ -113,17 +113,16 @@ export default async function Home({
   const deals = allDeals.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
   const activeCount = allDeals.filter((d) => d.status !== "ended").length;
 
-  // 필터 없는 기본 홈 1페이지에서만 상단 TOP 순위 노출 (하락률 순, 종료딜 제외)
+  // 필터 없는 기본 홈 1페이지에서만 상단 TOP 순위 노출 (종료딜 제외)
+  //   순위 = 하락률 + 인기(클릭·좋아요) 종합 점수. 트래픽 쌓이면 인기 반영↑
   const isDefaultHome = !category && !hot && !q;
+  const popScore = (d: (typeof allDeals)[number]) =>
+    (d.discountVsAvg ?? d.discountVsList) + d.clickCount * 2 + d.likeCount * 5;
   const topDrops =
     isDefaultHome && safePage === 1
       ? [...allDeals]
           .filter((d) => d.status !== "ended")
-          .sort(
-            (a, b) =>
-              (b.discountVsAvg ?? b.discountVsList) -
-              (a.discountVsAvg ?? a.discountVsList)
-          )
+          .sort((a, b) => popScore(b) - popScore(a))
           .slice(0, 8)
       : [];
 

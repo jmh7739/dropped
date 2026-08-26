@@ -67,16 +67,6 @@ def _to_int_won(price_str) -> int:
         return 0
 
 
-# 검색 키워드 → 우리 카테고리 slug (대략)
-_KW_SLUG = {
-    "무선이어폰": "mobile", "블루투스 스피커": "digital", "보조배터리": "mobile",
-    "스마트워치": "mobile", "usb 허브": "digital", "기계식 키보드": "digital",
-    "무선 마우스": "digital", "차량용 충전기": "mobile", "led 조명": "living",
-    "캠핑 랜턴": "sports", "주방 용품": "living", "수납 정리함": "living",
-    "공구 세트": "living", "휴대폰 거치대": "mobile", "게이밍 마우스패드": "digital",
-}
-
-
 def _query(keyword: str, page_no: int) -> list[dict]:
     data = _call(
         "aliexpress.affiliate.hotproduct.query",
@@ -117,42 +107,51 @@ def fetch() -> list[RawDeal]:
         print("[aliexpress] 키 없음 → 건너뜀")
         return []
 
-    # 한국인 관심 키워드로 검색 → 관련성 있는 상품. 상품ID로 중복 제거.
-    seen: dict[str, tuple[float, int, RawDeal]] = {}
-    for kw in config.ALIEXPRESS_KEYWORDS:
-        slug = _KW_SLUG.get(kw, "overseas")
-        for page in range(1, config.ALIEXPRESS_PAGES + 1):
-            for p in _query(kw, page):
-                pid = str(p.get("product_id"))
-                if pid in seen:
-                    continue
-                cur = _to_int_won(p.get("target_sale_price"))
-                lst = _to_int_won(p.get("target_original_price")) or None
-                vol = _volume(p)
-                # 정가 없거나(할인율 판단 불가) 판매량 적은 잡템은 제외
-                if not lst or lst <= cur or vol < config.ALIEXPRESS_MIN_VOLUME:
-                    continue
-                discount = (lst - cur) / lst
-                # 오류/미끼(밴드 상한 초과)는 아예 수집 안 함
-                if discount > config.PROVISIONAL_MAX_DISCOUNT:
-                    continue
-                seen[pid] = (discount, vol, RawDeal(
-                    platform="aliexpress",
-                    external_product_id=pid,
-                    title=p.get("product_title", ""),
-                    image_url=p.get("product_main_image_url", ""),
-                    product_url=p.get("product_detail_url", ""),
-                    affiliate_url=p.get("promotion_link")
-                    or p.get("product_detail_url", ""),
-                    current_price=cur,
-                    list_price=lst,
-                    category_slug=slug,
-                ))
-            time.sleep(0.4)
+    # 카테고리별로 후보 수집 → 카테고리마다 상위 N개만 → 편중 방지(골고루)
+    seen_pid: set[str] = set()
+    by_cat: dict[str, list[tuple[float, int, RawDeal]]] = {}
+    for slug, keywords in config.ALIEXPRESS_KEYWORDS_BY_CAT.items():
+        bucket: list[tuple[float, int, RawDeal]] = []
+        for kw in keywords:
+            for page in range(1, config.ALIEXPRESS_PAGES + 1):
+                for p in _query(kw, page):
+                    pid = str(p.get("product_id"))
+                    if pid in seen_pid:
+                        continue
+                    cur = _to_int_won(p.get("target_sale_price"))
+                    lst = _to_int_won(p.get("target_original_price")) or None
+                    vol = _volume(p)
+                    # 정가 없거나(할인율 판단 불가) 판매량 적은 잡템은 제외
+                    if not lst or lst <= cur or vol < config.ALIEXPRESS_MIN_VOLUME:
+                        continue
+                    discount = (lst - cur) / lst
+                    # 오류/미끼(밴드 상한 초과)는 아예 수집 안 함
+                    if discount > config.PROVISIONAL_MAX_DISCOUNT:
+                        continue
+                    seen_pid.add(pid)
+                    bucket.append((discount, vol, RawDeal(
+                        platform="aliexpress",
+                        external_product_id=pid,
+                        title=p.get("product_title", ""),
+                        image_url=p.get("product_main_image_url", ""),
+                        product_url=p.get("product_detail_url", ""),
+                        affiliate_url=p.get("promotion_link")
+                        or p.get("product_detail_url", ""),
+                        current_price=cur,
+                        list_price=lst,
+                        category_slug=slug,
+                    )))
+                time.sleep(0.4)
+        by_cat[slug] = bucket
 
-    # 할인 깊은 순 → 진짜 '떨어진' 것 우선. 동률이면 판매량 많은 순(인기).
-    ranked = sorted(seen.values(), key=lambda t: (t[0], t[1]), reverse=True)
-    deals = [rd for _, _, rd in ranked[: config.ALIEXPRESS_MAX_DEALS]]
-    print(f"[aliexpress] 후보 {len(seen)}건 → 상위 {len(deals)}건 "
-          f"(판매량 {config.ALIEXPRESS_MIN_VOLUME}+ · 할인 깊은 순)")
+    # 카테고리별 할인 깊은 순 상위 N개씩 → 합치기
+    deals: list[RawDeal] = []
+    summary = []
+    for slug, bucket in by_cat.items():
+        bucket.sort(key=lambda t: (t[0], t[1]), reverse=True)
+        picked = [rd for _, _, rd in bucket[: config.ALIEXPRESS_PER_CATEGORY]]
+        deals.extend(picked)
+        summary.append(f"{slug}:{len(picked)}")
+    deals = deals[: config.ALIEXPRESS_MAX_DEALS]
+    print(f"[aliexpress] {len(deals)}건 (카테고리별 분산: {', '.join(summary)})")
     return deals

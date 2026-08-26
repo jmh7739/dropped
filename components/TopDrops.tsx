@@ -4,7 +4,7 @@ import { formatWon, formatPercent, headlineDiscount } from "@/lib/format";
 import SafeImage from "./SafeImage";
 
 /**
- * 상단 "오늘의 급락 TOP N" — 하락률 높은 순 순위 노출.
+ * 상단 "지금 뜨는 특가 TOP N" — 하락률 + 인기(클릭·좋아요) 종합 순위.
  * 종료된 딜은 제외하고(진행중만), 수집(스캔)마다 갱신된다(ISR).
  */
 export default function TopDrops({ deals }: { deals: Deal[] }) {
@@ -15,8 +15,8 @@ export default function TopDrops({ deals }: { deals: Deal[] }) {
   return (
     <section className="mb-6 rounded-2xl border border-brand/20 bg-gradient-to-b from-brand/5 to-white p-4">
       <div className="mb-3 flex items-center gap-2">
-        <h2 className="text-lg font-extrabold text-gray-900">🔥 오늘의 급락 TOP</h2>
-        <span className="text-xs text-gray-400">하락률 순 · 수집마다 갱신</span>
+        <h2 className="text-lg font-extrabold text-gray-900">🔥 지금 뜨는 특가 TOP</h2>
+        <span className="text-xs text-gray-400">인기·하락률 종합 · 수집마다 갱신</span>
       </div>
 
       <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-1">
