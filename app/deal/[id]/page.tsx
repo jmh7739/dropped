@@ -26,10 +26,13 @@ export async function generateMetadata({
   const deal = await getDeal(Number(params.id));
   if (!deal) return { title: "딜을 찾을 수 없음" };
   return {
-    title: `${deal.title} — ${formatWon(deal.currentPrice)} | 떨어졌다`,
-    description: `${deal.categoryName} · 평소 ${formatWon(
-      deal.baselinePrice
-    )} → 현재 ${formatWon(deal.currentPrice)}`,
+    title: `${deal.title} — ${formatWon(deal.currentPrice)}`,
+    description:
+      deal.baselinePrice > 0
+        ? `${deal.categoryName} · 평소 ${formatWon(deal.baselinePrice)} → 현재 ${formatWon(deal.currentPrice)}`
+        : deal.listPrice > 0
+          ? `${deal.categoryName} · 정가 ${formatWon(deal.listPrice)} → 현재 ${formatWon(deal.currentPrice)}`
+          : `${deal.categoryName} · 현재 ${formatWon(deal.currentPrice)}`,
     openGraph: {
       title: deal.title,
       images: deal.imageUrl ? [deal.imageUrl] : [],
@@ -109,12 +112,16 @@ export default async function DealDetail({
           </div>
 
           <div className="mt-4 rounded-xl bg-gray-50 p-4">
-            <div className="text-sm text-gray-400 line-through">
-              정가 {formatWon(deal.listPrice)}
-            </div>
-            <div className="text-sm text-gray-500">
-              평소 평균 {formatWon(deal.baselinePrice)}
-            </div>
+            {deal.listPrice > 0 && (
+              <div className="text-sm text-gray-400 line-through">
+                정가 {formatWon(deal.listPrice)}
+              </div>
+            )}
+            {deal.baselinePrice > 0 && (
+              <div className="text-sm text-gray-500">
+                평소 평균 {formatWon(deal.baselinePrice)}
+              </div>
+            )}
             <div className="mt-1 text-3xl font-extrabold text-brand">
               {formatWon(deal.currentPrice)}
             </div>

@@ -53,6 +53,9 @@ export default function DealCard({
               {provisional && <ProvisionalBadge />}
               {deal.isLowestEver && <LowestEverBadge />}
               <ShippingBadge fee={deal.shippingFee} />
+              <span className="ml-auto whitespace-nowrap">
+                {timeAgo(deal.detectedAt)}
+              </span>
             </div>
             <h3 className="truncate text-sm font-medium text-gray-900">
               {deal.title}
@@ -134,6 +137,9 @@ export default function DealCard({
             </span>
             <span>{deal.categoryName}</span>
             <ShippingBadge fee={deal.shippingFee} />
+            <span className="ml-auto whitespace-nowrap">
+              {timeAgo(deal.detectedAt)}
+            </span>
           </div>
 
           <h3 className="line-clamp-2 text-sm font-medium text-gray-900">

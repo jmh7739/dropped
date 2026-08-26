@@ -27,8 +27,9 @@ from sources import coupang, aliexpress, cps, flights, auction
 SOURCES = [coupang, aliexpress, cps]
 
 
-def collect_and_flag() -> tuple[int, int]:
+def collect_and_flag() -> tuple[int, int, set[int]]:
     seen_product_ids: set[int] = set()
+    flagged_ids: set[int] = set()
     flagged = 0
     scanned = 0
 
@@ -70,14 +71,23 @@ def collect_and_flag() -> tuple[int, int]:
                 "is_price_error": verdict.is_price_error,
             })
             flagged += 1
+            flagged_ids.add(product_id)
 
-    return flagged, scanned
+    return flagged, scanned, flagged_ids
 
 
-def expire_stale_deals() -> int:
-    """진행중 딜 중 이번 수집에서 이탈했거나 가격 원복된 것 종료."""
+def expire_stale_deals(flagged_ids: set[int]) -> int:
+    """진행중 딜 종료 처리.
+    - 잠정딜(baseline 없음): 이번 수집에서 다시 딜로 안 잡히면 종료(누적 방지).
+    - 정식딜(baseline 있음): 가격이 평소가로 원복되면 종료.
+    """
     ended = 0
     for d in db.active_deals():
+        if d.get("baseline_price") is None:
+            if d["product_id"] not in flagged_ids:
+                db.end_deal(d["id"])
+                ended += 1
+            continue
         prices = db.recent_prices(d["product_id"])
         current = prices[-1] if prices else None
         if current is None:
@@ -92,10 +102,10 @@ def main() -> None:
     mode = "DRY_RUN(DB 미기록)" if config.DRY_RUN else "LIVE"
     print(f"=== 핫딜 수집 시작 [{mode}] ===")
 
-    flagged, scanned = collect_and_flag()
+    flagged, scanned, flagged_ids = collect_and_flag()
     print(f"\n스캔 {scanned}건 → 딜 {flagged}건 플래그")
 
-    ended = expire_stale_deals()
+    ended = expire_stale_deals(flagged_ids)
     if ended:
         print(f"종료 처리된 딜: {ended}건")
 
