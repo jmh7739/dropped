@@ -157,9 +157,6 @@ export default async function FlightsView({
   if (regions.length === 0) return <div>{EMPTY}</div>;
   return (
     <div>
-      <p className="mb-3 text-sm text-gray-500">
-        지역을 선택하면 노선별 최저가와 날짜별 특가를 볼 수 있어요.
-      </p>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
         {regions.map((r) => (
           <Link

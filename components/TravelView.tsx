@@ -71,10 +71,7 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 }
 
 const PARTNER_NOTE = (
-  <p className="mt-4 text-[11px] text-gray-400">
-    제휴 링크입니다. 예약 시 판매 페이지에서 최종 가격을 확인하세요. 트래픽이
-    쌓이면 개별 특가도 카드로 자동 노출됩니다.
-  </p>
+  <p className="mt-4 text-[11px] text-gray-400">제휴 링크입니다.</p>
 );
 
 const TABS: { key: TravelTab; label: string }[] = [
@@ -124,7 +121,7 @@ export default function TravelView({
       )}
       {tab === "deal" && (
         <div>
-          <SectionTitle>🎢 여행지별 액티비티·투어 (누르면 그 도시 결과로)</SectionTitle>
+          <SectionTitle>🎢 여행지별 액티비티·투어</SectionTitle>
           <PartnerGrid partners={DEAL_PARTNERS} />
           <SectionTitle>🧳 더 많은 여행 준비</SectionTitle>
           <PartnerGrid partners={SERVICE_PARTNERS} />
