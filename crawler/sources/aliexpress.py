@@ -77,7 +77,8 @@ def _query(keyword: str, page_no: int) -> list[dict]:
             "ship_to_country": "KR",
             "page_size": 50,
             "page_no": page_no,
-            "sort": "SALE_PRICE_ASC",
+            # 많이 팔린 순 → 실제 인기 상품(잡템 케이스·싸구려 아님). 핵심 필터.
+            "sort": "LAST_VOLUME_DESC",
             "tracking_id": config.ALIEXPRESS_TRACKING_ID,
         },
     )
@@ -198,9 +199,10 @@ def fetch() -> list[RawDeal]:
     deals: list[RawDeal] = []
     summary = []
     for slug, bucket in by_cat.items():
-        bucket.sort(key=lambda t: t[1], reverse=True)  # 판매량 내림차순
+        # 판매액(판매량 × 가격) 내림차순 → $1 잡템 대신 '많이 팔리고 값도 되는' 것 우선
+        bucket.sort(key=lambda t: t[1] * t[2].current_price, reverse=True)
         picked = [rd for _, _, rd in bucket[: config.ALIEXPRESS_TRACK_PER_CATEGORY]]
         deals.extend(picked)
         summary.append(f"{slug}:{len(picked)}")
-    print(f"[aliexpress] 추적 {len(deals)}건 (인기 상품, 카테고리별: {', '.join(summary)})")
+    print(f"[aliexpress] 추적 {len(deals)}건 (판매액 상위, 카테고리별: {', '.join(summary)})")
     return deals
