@@ -86,6 +86,7 @@ export interface GoldboxDeal {
   discountRate: number | null;
   unitPrice: string | null;
   shippingFee: number | null;
+  category: string | null;
 }
 
 /** 항공권 특가 (노선·날짜 구조, 국내선/국제선 구분) */
