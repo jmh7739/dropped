@@ -39,7 +39,10 @@ export const metadata: Metadata = {
   verification: {
     google: "_M4_jKpnBbDWBSw5xH5hqFFVcH8Eh8BuvWV8EPk-X3I",
     other: {
-      "naver-site-verification": "19dea3a500e9d725247ef654d68aad7cceb258d4",
+      "naver-site-verification": [
+        "19dea3a500e9d725247ef654d68aad7cceb258d4", // www.dropped.kr
+        "ceb8397858ec04d7617504a9a2b44e5dd771ed14", // dropped.kr (non-www)
+      ],
     },
   },
 };
