@@ -37,15 +37,33 @@ const DEAL_PARTNERS: Partner[] = [
   { icon: "🍊", name: "제주·국내", desc: "국내 액티비티·입장권", href: klook("제주") },
 ];
 
-// 더 많은 여행 준비 — Airalo(10.5%) 우선 + 마이리얼트립·KKday 선택지
+// 더 많은 여행 준비 — Airalo(10.5%) 우선 + KKday 선택지 (마이리얼트립은 별도 배너로 분리)
 const SERVICE_PARTNERS: Partner[] = [
   { icon: "📶", name: "에어알로 eSIM", desc: "해외 데이터 eSIM", href: lp("airalo", "https://www.airalo.com/ko") },
-  { icon: "🧭", name: "마이리얼트립", desc: "한국인 가이드 투어", href: lp("myrealtrip", "https://www.myrealtrip.com/") },
   { icon: "🎟️", name: "KKday", desc: "현지 투어·티켓", href: lp("kkday", "https://www.kkday.com/ko") },
   { icon: "🏷️", name: "땡처리닷컴", desc: "여행 막판 땡처리 특가", href: lp("072com", "http://www.ttang.com") },
   { icon: "🎫", name: "Go City", desc: "도시 관광패스", href: lp("gocity", "https://gocity.com/ko") },
   { icon: "🚄", name: "레일유럽", desc: "유럽 기차 패스·티켓", href: lp("re4akor", "http://www.raileurope.co.kr") },
 ];
+
+// 마이리얼트립 — 맨 아래 단독 배너 (한국인 가이드 투어 전문)
+function MyRealTripBanner() {
+  return (
+    <a
+      href={lp("myrealtrip", "https://www.myrealtrip.com/")}
+      target="_blank"
+      rel="nofollow sponsored noopener noreferrer"
+      className="mt-4 flex items-center gap-3 rounded-xl border border-gray-200 bg-white p-4 transition hover:border-brand/40 hover:shadow-md"
+    >
+      <span className="text-2xl">🧭</span>
+      <div className="flex-1">
+        <div className="text-sm font-extrabold text-gray-900">마이리얼트립</div>
+        <div className="text-[11px] text-gray-400">한국인 가이드 투어·현지 액티비티</div>
+      </div>
+      <span className="flex-shrink-0 text-xs font-bold text-brand">보러가기 →</span>
+    </a>
+  );
+}
 
 function PartnerGrid({ partners }: { partners: Partner[] }) {
   return (
@@ -123,6 +141,7 @@ export default function TravelView({
           <PartnerGrid partners={DEAL_PARTNERS} />
           <SectionTitle>🧳 더 많은 여행 준비</SectionTitle>
           <PartnerGrid partners={SERVICE_PARTNERS} />
+          <MyRealTripBanner />
         </div>
       )}
     </div>
