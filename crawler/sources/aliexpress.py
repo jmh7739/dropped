@@ -170,7 +170,6 @@ def fetch() -> list[RawDeal]:
                 if not slug:             # 분류 불가(잡템) → 제외
                     continue
                 cur = _to_int_won(p.get("target_sale_price"))
-                lst = _to_int_won(p.get("target_original_price")) or None
                 vol = _volume(p)
                 # 인기 상품만 추적(안 팔리는 잡템 제외). 할인 없어도 추적함.
                 #   식품/건강은 판매량이 원래 낮아 별도(낮은) 기준 적용.
@@ -181,16 +180,10 @@ def fetch() -> list[RawDeal]:
                 )
                 if vol < min_vol or cur <= 0:
                     continue
-                # 정가는 '멀쩡한 할인'일 때만 유지 → 잠정 노출용. 아니면 None.
-                if lst and lst > cur:
-                    discount = (lst - cur) / lst
-                    if discount > config.PROVISIONAL_MAX_DISCOUNT:
-                        lst = None
-                else:
-                    lst = None
-                disc = (lst - cur) / lst if lst else 0.0
+                # 알리 정가(original_price)는 뻥튀기라 안 믿음 → 아예 안 실음.
+                #   노출 판정은 오직 우리가 쌓는 '실제 가격이력' 대비로만 함.
                 seen_pid.add(pid)
-                by_cat.setdefault(slug, []).append((disc, vol, RawDeal(
+                by_cat.setdefault(slug, []).append((0.0, vol, RawDeal(
                     platform="aliexpress",
                     external_product_id=pid,
                     title=p.get("product_title", ""),
@@ -199,7 +192,7 @@ def fetch() -> list[RawDeal]:
                     affiliate_url=p.get("promotion_link")
                     or p.get("product_detail_url", ""),
                     current_price=cur,
-                    list_price=lst,
+                    list_price=None,   # 알리 정가 뻥튀기 → 안 실음(실이력으로만 판정)
                     category_slug=slug,
                 )))
             time.sleep(0.4)
