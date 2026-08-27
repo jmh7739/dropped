@@ -22,25 +22,25 @@ const STAY_PARTNERS: Partner[] = [
   { icon: "🗾", name: "라쿠텐 트래블", desc: "일본 숙소 전문", href: lp("rakutentr", "https://travel.rakuten.com") },
 ];
 
-// 목적지별 액티비티/투어 — 마이리얼트립(5.25%, 클룩 3.5%보다 높음) 검색 딥링크
-const mrt = (city: string) =>
-  lp("myrealtrip", `https://www.myrealtrip.com/search?q=${encodeURIComponent(city)}`);
+// 목적지별 액티비티/투어 — 클룩 검색 딥링크(액티비티 인벤토리가 가장 강함)
+const klook = (q: string) =>
+  lp("klook", `https://www.klook.com/ko/search/?query=${encodeURIComponent(q)}`);
 
 const DEAL_PARTNERS: Partner[] = [
-  { icon: "🗼", name: "도쿄 투어·티켓", desc: "디즈니·인기 액티비티", href: mrt("도쿄") },
-  { icon: "🏯", name: "오사카·교토", desc: "유니버설·간사이", href: mrt("오사카") },
-  { icon: "🏖️", name: "다낭·베트남", desc: "바나힐·호이안", href: mrt("다낭") },
-  { icon: "🛕", name: "방콕·태국", desc: "사원·쇼·투어", href: mrt("방콕") },
-  { icon: "🦁", name: "싱가포르", desc: "유니버설·가든스", href: mrt("싱가포르") },
-  { icon: "🎡", name: "홍콩·마카오", desc: "디즈니·오션파크", href: mrt("홍콩") },
-  { icon: "🏮", name: "대만", desc: "타이베이·지우펀", href: mrt("대만") },
-  { icon: "🍊", name: "제주·국내", desc: "국내 액티비티·입장권", href: mrt("제주") },
+  { icon: "🗼", name: "도쿄 투어·티켓", desc: "디즈니·인기 액티비티", href: klook("도쿄") },
+  { icon: "🏯", name: "오사카·교토", desc: "유니버설·간사이", href: klook("오사카") },
+  { icon: "🏖️", name: "다낭·베트남", desc: "바나힐·호이안", href: klook("다낭") },
+  { icon: "🛕", name: "방콕·태국", desc: "사원·쇼·투어", href: klook("방콕") },
+  { icon: "🦁", name: "싱가포르", desc: "유니버설·가든스", href: klook("싱가포르") },
+  { icon: "🎡", name: "홍콩·마카오", desc: "디즈니·오션파크", href: klook("홍콩") },
+  { icon: "🏮", name: "대만", desc: "타이베이·지우펀", href: klook("타이베이") },
+  { icon: "🍊", name: "제주·국내", desc: "국내 액티비티·입장권", href: klook("제주") },
 ];
 
-// 더 많은 여행 준비 — Airalo(10.5%) 우선, 클룩·KKday도 선택지로 유지(액티비티는 클룩이 강함)
+// 더 많은 여행 준비 — Airalo(10.5%) 우선 + 마이리얼트립·KKday 선택지
 const SERVICE_PARTNERS: Partner[] = [
   { icon: "📶", name: "에어알로 eSIM", desc: "해외 데이터 eSIM", href: lp("airalo", "https://www.airalo.com/ko") },
-  { icon: "🎢", name: "클룩(Klook)", desc: "전세계 액티비티·입장권", href: lp("klook", "https://www.klook.com/ko/") },
+  { icon: "🧭", name: "마이리얼트립", desc: "한국인 가이드 투어", href: lp("myrealtrip", "https://www.myrealtrip.com/") },
   { icon: "🎟️", name: "KKday", desc: "현지 투어·티켓", href: lp("kkday", "https://www.kkday.com/ko") },
   { icon: "🏷️", name: "땡처리닷컴", desc: "여행 막판 땡처리 특가", href: lp("072com", "http://www.ttang.com") },
   { icon: "🎫", name: "Go City", desc: "도시 관광패스", href: lp("gocity", "https://gocity.com/ko") },
