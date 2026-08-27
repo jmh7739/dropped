@@ -125,9 +125,14 @@ def _our_slug(p: dict) -> str | None:
         if sub in cat:
             slug = s
             break
-    if slug == "bh":  # 뷰티 & 헬스 → 제목에 보충제 힌트 있으면 식품/건강, 아니면 뷰티
+    if slug == "bh":  # 뷰티 & 헬스 → 제목에 보충제 힌트 있으면 건강, 아니면 뷰티
         title = p.get("product_title", "")
-        return "food" if any(h in title for h in _SUPPLEMENT) else "beauty"
+        return "health" if any(h in title for h in _SUPPLEMENT) else "beauty"
+    # 알리 '식품' 카테고리라도 제목이 보충제면 건강으로 (견과류 등 진짜 먹거리만 food)
+    if slug == "food":
+        title = p.get("product_title", "")
+        if any(h in title for h in _SUPPLEMENT):
+            return "health"
     return slug
 
 

@@ -31,7 +31,7 @@ DEEPLINK_PATH = f"{API_ROOT}/deeplink"
 CATEGORY_ID_SLUG = {
     1010: "beauty", 1011: "baby", 1012: "food", 1013: "living",
     1014: "living", 1015: "living", 1016: "appliance", 1017: "sports",
-    1020: "sports", 1024: "food", 1029: "living",
+    1020: "sports", 1024: "health", 1029: "living",
 }
 
 
@@ -107,6 +107,9 @@ def _category_map(coupang_category: str) -> str:
         "출산": "baby",
         "유아": "baby",
         "식품": "food",
+        "건강": "health",
+        "헬스": "health",
+        "영양제": "health",
         "생활": "living",
         "주방": "living",
         "패션": "fashion",
