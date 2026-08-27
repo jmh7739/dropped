@@ -41,7 +41,7 @@ export const metadata: Metadata = {
     other: {
       "naver-site-verification": [
         "19dea3a500e9d725247ef654d68aad7cceb258d4", // www.dropped.kr
-        "ceb8397858ec04d7617504a9a2b44e5dd771ed14", // dropped.kr (non-www)
+        "393b3329ad2a6dc4d528c527ebfcd038c673c777", // dropped.kr (non-www)
       ],
     },
   },
