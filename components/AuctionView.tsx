@@ -9,7 +9,6 @@ import { formatWon, safeUrl, timeAgo } from "@/lib/format";
 import SortDropdown from "./SortDropdown";
 
 const TABS: { key: AuctionScope; label: string }[] = [
-  { key: "all", label: "전체" },
   { key: "부동산", label: "부동산" },
   { key: "자동차", label: "자동차" },
 ];

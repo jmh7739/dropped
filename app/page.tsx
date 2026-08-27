@@ -41,6 +41,7 @@ export default async function Home({
     : undefined;
   const validDealSorts: SortKey[] = [
     "discount",
+    "popular",
     "discount_asc",
     "price_asc",
     "price_desc",
@@ -82,11 +83,7 @@ export default async function Home({
   // ── 경매 탭: 부동산/자동차 필터 ──
   if (isAuction) {
     const ascope: AuctionScope =
-      searchParams.ac === "부동산"
-        ? "부동산"
-        : searchParams.ac === "자동차"
-          ? "자동차"
-          : "all";
+      searchParams.ac === "자동차" ? "자동차" : "부동산";
     const validSorts: AuctionSort[] = [
       "discount_desc",
       "discount_asc",

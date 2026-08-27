@@ -70,9 +70,6 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
   return <p className="mb-2 mt-6 text-sm font-bold text-gray-700 first:mt-0">{children}</p>;
 }
 
-const PARTNER_NOTE = (
-  <p className="mt-4 text-[11px] text-gray-400">제휴 링크입니다.</p>
-);
 
 const TABS: { key: TravelTab; label: string }[] = [
   { key: "flight", label: "✈️ 항공권" },
@@ -116,7 +113,6 @@ export default function TravelView({
         <div>
           <SectionTitle>🏨 국내외 숙소 예약</SectionTitle>
           <PartnerGrid partners={STAY_PARTNERS} />
-          {PARTNER_NOTE}
         </div>
       )}
       {tab === "deal" && (
@@ -125,7 +121,6 @@ export default function TravelView({
           <PartnerGrid partners={DEAL_PARTNERS} />
           <SectionTitle>🧳 더 많은 여행 준비</SectionTitle>
           <PartnerGrid partners={SERVICE_PARTNERS} />
-          {PARTNER_NOTE}
         </div>
       )}
     </div>

@@ -3,6 +3,7 @@ import { Deal, PricePoint, HOT_LIKE_THRESHOLD } from "./types";
 
 export type SortKey =
   | "discount" // 할인률 높은순 (기본)
+  | "popular" // 인기순 (클릭·좋아요)
   | "discount_asc" // 할인률 낮은순
   | "price_asc" // 가격 낮은순
   | "price_desc" // 가격 높은순
@@ -10,6 +11,7 @@ export type SortKey =
 
 export const DEAL_SORTS: { key: SortKey; label: string }[] = [
   { key: "discount", label: "할인률 높은순" },
+  { key: "popular", label: "인기순" },
   { key: "discount_asc", label: "할인률 낮은순" },
   { key: "price_asc", label: "가격 낮은순" },
   { key: "price_desc", label: "가격 높은순" },
@@ -58,9 +60,16 @@ function headlineRate(d: Deal): number {
   return d.discountVsAvg ?? d.discountVsList;
 }
 
+// 인기 점수 = 하락률 + 클릭·좋아요 (page.tsx 상단 TOP과 동일 기준)
+function popScore(d: Deal): number {
+  return headlineRate(d) + d.clickCount * 2 + d.likeCount * 5;
+}
+
 function sortActive(deals: Deal[], sort: SortKey): Deal[] {
   const arr = [...deals];
   switch (sort) {
+    case "popular":
+      return arr.sort((a, b) => popScore(b) - popScore(a));
     case "recent":
       return arr.sort(
         (a, b) =>
