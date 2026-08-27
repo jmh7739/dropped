@@ -13,12 +13,13 @@ function lp(mid: string, target: string): string {
 
 type Partner = { icon: string; name: string; desc: string; href: string };
 
-// 겹치는 몰은 커미션 높은 순으로 배치 (호텔스컴바인 28% > 아고다 4.9% > 호텔스닷컴 4.4%)
+// 커미션 높은 순으로 배치하되, 브랜드 다양성 위해 낮은 것(야놀자·라쿠텐)도 유지
 const STAY_PARTNERS: Partner[] = [
   { icon: "🔎", name: "호텔스컴바인", desc: "전세계 호텔 최저가 비교", href: lp("hcombine2", "https://www.hotelscombined.co.kr") },
   { icon: "🏨", name: "아고다", desc: "해외 호텔·리조트", href: lp("agoda", "https://www.agoda.com/ko-kr") },
   { icon: "🛎️", name: "호텔스닷컴", desc: "호텔 예약·10박 1박 무료", href: lp("hotelskr", "https://kr.hotels.com/") },
   { icon: "🛏️", name: "야놀자 NOL", desc: "국내 호텔·펜션·모텔", href: lp("yanolja", "https://nol.yanolja.com/") },
+  { icon: "🗾", name: "라쿠텐 트래블", desc: "일본 숙소 전문", href: lp("rakutentr", "https://travel.rakuten.com") },
 ];
 
 // 목적지별 액티비티/투어 — 마이리얼트립(5.25%, 클룩 3.5%보다 높음) 검색 딥링크
@@ -36,9 +37,11 @@ const DEAL_PARTNERS: Partner[] = [
   { icon: "🍊", name: "제주·국내", desc: "국내 액티비티·입장권", href: mrt("제주") },
 ];
 
-// 더 많은 여행 준비 — 겹치지 않는 것 + 커미션 높은 것 (Airalo 10.5%). KKday(2.1%)는 마리트와 겹쳐 제외
+// 더 많은 여행 준비 — Airalo(10.5%) 우선, 클룩·KKday도 선택지로 유지(액티비티는 클룩이 강함)
 const SERVICE_PARTNERS: Partner[] = [
   { icon: "📶", name: "에어알로 eSIM", desc: "해외 데이터 eSIM", href: lp("airalo", "https://www.airalo.com/ko") },
+  { icon: "🎢", name: "클룩(Klook)", desc: "전세계 액티비티·입장권", href: lp("klook", "https://www.klook.com/ko/") },
+  { icon: "🎟️", name: "KKday", desc: "현지 투어·티켓", href: lp("kkday", "https://www.kkday.com/ko") },
   { icon: "🏷️", name: "땡처리닷컴", desc: "여행 막판 땡처리 특가", href: lp("072com", "http://www.ttang.com") },
   { icon: "🎫", name: "Go City", desc: "도시 관광패스", href: lp("gocity", "https://gocity.com/ko") },
   { icon: "🚄", name: "레일유럽", desc: "유럽 기차 패스·티켓", href: lp("re4akor", "http://www.raileurope.co.kr") },
