@@ -173,7 +173,13 @@ def fetch() -> list[RawDeal]:
                 lst = _to_int_won(p.get("target_original_price")) or None
                 vol = _volume(p)
                 # 인기 상품만 추적(안 팔리는 잡템 제외). 할인 없어도 추적함.
-                if vol < config.ALIEXPRESS_MIN_VOLUME or cur <= 0:
+                #   식품/건강은 판매량이 원래 낮아 별도(낮은) 기준 적용.
+                min_vol = (
+                    config.ALIEXPRESS_MIN_VOLUME_FOOD
+                    if slug in ("food", "health")
+                    else config.ALIEXPRESS_MIN_VOLUME
+                )
+                if vol < min_vol or cur <= 0:
                     continue
                 # 정가는 '멀쩡한 할인'일 때만 유지 → 잠정 노출용. 아니면 None.
                 if lst and lst > cur:
