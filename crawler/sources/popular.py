@@ -56,10 +56,14 @@ def fetch() -> list[RawDeal]:
         sale = int(x.get("sale_price") or 0)          # 할인가(현재가)
         normal = int(x.get("price") or 0)             # 정가(원가)
         disc = int(x.get("discount_rate") or 0)       # 할인율 %
-        # 품질: 실제 할인 있고(정가>할인가) 이미지·이름·링크·5천원 이상
+        sales = int(x.get("sales_count") or 0)        # 판매량
+        # 품질: 이미지·이름·링크·5천원 이상 + 실제 할인(정가>할인가)
         if not (title and img and url) or sale < 5000:
             continue
         if not (normal > sale and disc > 0):
+            continue
+        # '괜찮은 것만': 할인율 15%+ & 판매량 10+ (의미있는 할인 + 실판매)
+        if disc < 15 or sales < 10:
             continue
         deals.append(RawDeal(
             platform="cps",

@@ -169,9 +169,12 @@ export default async function Home({
     <div>
       {demoBanner}
 
-      <div className="mb-3">
+      <div className="mb-2">
         <SearchBar initial={q} />
       </div>
+      <p className="mb-3 rounded-md bg-gray-50 px-2.5 py-1.5 text-[11px] text-gray-500">
+        📢 이 페이지는 제휴마케팅이 포함된 광고로, 구매 시 커미션을 지급받습니다.
+      </p>
 
       {topDrops.length > 0 && <TopDrops deals={topDrops} />}
 
