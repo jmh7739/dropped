@@ -105,7 +105,7 @@ export default function PriceChart({
       </svg>
       <div className="mt-1 flex gap-4 text-xs text-gray-500">
         <span>
-          <span className="text-green-600">●</span> 역대최저 {formatWon(min)}
+          <span className="text-green-600">●</span> 기간 내 최저 {formatWon(min)}
         </span>
         <span>
           <span className="text-gray-400">┈</span> 평균 {formatWon(avg)}

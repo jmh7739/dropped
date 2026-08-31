@@ -11,7 +11,7 @@ import ShareButton from "@/components/ShareButton";
 import SafeImage from "@/components/SafeImage";
 import {
   DiscountBadge,
-  LowestEverBadge,
+  StatusBadge,
   PriceErrorBadge,
   ShippingBadge,
 } from "@/components/DiscountBadge";
@@ -49,6 +49,19 @@ export default async function DealDetail({
   if (!deal) notFound();
 
   const { rate, basis } = headlineDiscount(deal);
+  // 정직한 표시용: 실제 가격 추적 기간·횟수
+  const pts = deal.history.length;
+  const trackedDays =
+    pts > 1
+      ? Math.max(
+          1,
+          Math.round(
+            (new Date(deal.history[pts - 1].collectedAt).getTime() -
+              new Date(deal.history[0].collectedAt).getTime()) /
+              86400000
+          )
+        )
+      : 0;
 
   // 구글 리치 결과용 Product 구조화 데이터
   const jsonLd = {
@@ -104,11 +117,17 @@ export default async function DealDetail({
 
           <h1 className="text-lg font-bold leading-snug">{deal.title}</h1>
 
-          <div className="mt-3 flex flex-wrap gap-1.5">
-            {rate > 0 && <DiscountBadge rate={rate} basis={basis} />}
-            {deal.isLowestEver && <LowestEverBadge />}
+          <div className="mt-3 flex flex-wrap items-center gap-1.5">
+            {deal.isCurated
+              ? rate > 0 && <DiscountBadge rate={rate} basis={basis} />
+              : <StatusBadge rate={rate} isLowestEver={deal.isLowestEver} />}
             {deal.isPriceError && <PriceErrorBadge />}
             <ShippingBadge fee={deal.shippingFee} />
+            {!deal.isCurated && pts > 0 && (
+              <span className="rounded border border-gray-200 bg-white px-1.5 py-0.5 text-[11px] text-gray-500">
+                📊 가격 추적 {trackedDays > 0 ? `${trackedDays}일` : "시작"} · {pts}회
+              </span>
+            )}
           </div>
 
           <div className="mt-4 rounded-xl bg-gray-50 p-4">
@@ -119,7 +138,7 @@ export default async function DealDetail({
             )}
             {deal.baselinePrice > 0 && (
               <div className="text-sm text-gray-500">
-                평소 평균 {formatWon(deal.baselinePrice)}
+                최근 평균 {formatWon(deal.baselinePrice)}
               </div>
             )}
             <div className="mt-1 text-3xl font-extrabold text-brand">

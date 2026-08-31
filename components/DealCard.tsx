@@ -2,10 +2,8 @@ import Link from "next/link";
 import { Deal, mallLabel } from "@/lib/types";
 import { formatWon, headlineDiscount, timeAgo } from "@/lib/format";
 import {
-  DiscountBadge,
-  LowestEverBadge,
+  StatusBadge,
   PriceErrorBadge,
-  ProvisionalBadge,
   ShippingBadge,
 } from "./DiscountBadge";
 import LikeButton from "./LikeButton";
@@ -20,8 +18,7 @@ export default function DealCard({
   deal: Deal;
   variant?: "gallery" | "list";
 }) {
-  const { rate, basis } = headlineDiscount(deal);
-  const provisional = basis === "정가";
+  const { rate } = headlineDiscount(deal);
   const saving = (deal.baselinePrice || deal.listPrice) - deal.currentPrice;
   const ended = deal.status === "ended";
   const isCurated = deal.isCurated;
@@ -64,12 +61,10 @@ export default function DealCard({
           </div>
           <div className="min-w-0 flex-1">
             <div className="mb-0.5 flex flex-wrap items-center gap-1.5 text-[11px] text-gray-400">
-              {isCurated ? curatedBadge : <DiscountBadge rate={rate} basis={basis} />}
+              {isCurated ? curatedBadge : <StatusBadge rate={rate} isLowestEver={deal.isLowestEver} />}
               <span className="rounded bg-gray-100 px-1.5 py-0.5 text-gray-600">
                 {mallLabel(deal)}
               </span>
-              {!isCurated && provisional && <ProvisionalBadge />}
-              {deal.isLowestEver && <LowestEverBadge />}
               <ShippingBadge fee={deal.shippingFee} />
               <span className="ml-auto whitespace-nowrap" suppressHydrationWarning>
                 {timeAgo(deal.detectedAt)}
@@ -143,9 +138,7 @@ export default function DealCard({
             </div>
           )}
           <div className="absolute left-2 top-2 flex flex-col items-start gap-1">
-            {isCurated ? curatedBadge : <DiscountBadge rate={rate} basis={basis} />}
-            {!isCurated && provisional && <ProvisionalBadge />}
-            {deal.isLowestEver && <LowestEverBadge />}
+            {isCurated ? curatedBadge : <StatusBadge rate={rate} isLowestEver={deal.isLowestEver} />}
             {deal.isPriceError && <PriceErrorBadge />}
           </div>
         </div>

@@ -120,7 +120,16 @@ export default async function Home({
   // ── 쇼핑 딜 ──
   const fetched = await getDeals({ category, sort, hotOnly: hot, q });
   // 기본: 종료딜 숨김. 'se=1'(종료딜 보기)일 때만 포함
-  const allDeals = showEnded ? fetched : fetched.filter((d) => d.status !== "ended");
+  const visible = showEnded ? fetched : fetched.filter((d) => d.status !== "ended");
+  // 같은 브랜드(제목 첫 단어) 도배 방지 — 최대 2개 (알리 유사상품 반복 완화)
+  const brandSeen = new Map<string, number>();
+  const allDeals = visible.filter((d) => {
+    const key = (d.title.trim().split(/[\s,\[\]()·]+/)[0] || "").toLowerCase();
+    const n = brandSeen.get(key) ?? 0;
+    if (n >= 2) return false;
+    brandSeen.set(key, n + 1);
+    return true;
+  });
   const totalPages = Math.max(1, Math.ceil(allDeals.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
   const deals = allDeals.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);

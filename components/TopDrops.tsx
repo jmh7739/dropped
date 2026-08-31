@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Deal, mallLabel } from "@/lib/types";
-import { formatWon, formatPercent, headlineDiscount } from "@/lib/format";
+import { formatWon, headlineDiscount } from "@/lib/format";
+import { StatusBadge } from "./DiscountBadge";
 import SafeImage from "./SafeImage";
 
 /**
@@ -36,8 +37,8 @@ export default function TopDrops({ deals }: { deals: Deal[] }) {
                   alt={d.title}
                   className="h-full w-full object-cover transition group-hover:scale-105"
                 />
-                <span className="absolute right-2 top-2 rounded-md bg-brand px-1.5 py-0.5 text-xs font-bold text-white">
-                  🔻{formatPercent(rate)}
+                <span className="absolute right-2 top-2">
+                  <StatusBadge rate={rate} isLowestEver={d.isLowestEver} />
                 </span>
               </div>
               <div className="flex flex-1 flex-col gap-0.5 p-2.5">
