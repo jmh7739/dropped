@@ -68,6 +68,15 @@ def classify(
                    and history_days >= config.MIN_HISTORY_DAYS
                    and baseline is not None)
 
+    # 가격 변동성 가드: 최고/최저가 배수가 크면(널뛰는 가격) baseline 오염 → 가짜 급락.
+    #   (예: 25,500 → 50,000 → 22,000 처럼 위로 튀는 알리 가격) 신뢰불가로 보류.
+    if has_history and history_prices:
+        lo = min(history_prices)
+        if lo > 0 and max(history_prices) / lo > config.MAX_PRICE_VOLATILITY:
+            return DealVerdict(False, baseline, discount_vs_avg, discount_vs_list,
+                               is_lowest, False,
+                               f"가격 변동성 과다({max(history_prices)/lo:.1f}배) → 신뢰불가 보류")
+
     if has_history:
         # ── 1순위: 평소 실제가 대비 (신뢰 지표) ──────────────
         rate = (discount_vs_avg or 0) / 100

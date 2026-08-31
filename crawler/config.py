@@ -159,7 +159,9 @@ MIN_HISTORY_POINTS = 6          # 최소 수집 횟수 (1시간 크론 → 약 6
 MIN_HISTORY_DAYS = 1            # 최소 관찰 기간(일) — 최소 하루는 지켜봐야 '평소가'가 믿을 만
 MIN_DISCOUNT = 0.05             # 평소가 대비 5%+ 하락하면 노출 ('어느정도 싸진 것'부터)
 MIN_PRICE = 1000               # 이 미만은 수집오류로 간주하고 컷
-MIN_PRICE = 1000               # 이 미만은 수집오류로 간주하고 컷
+# 가격 변동성 가드: 같은 상품인데 최고/최저가 이 배수 이상 널뛰면(알리 등 시점별
+#   가격 불일치) baseline 오염 → 가짜 급락. 신뢰 불가로 보류한다.
+MAX_PRICE_VOLATILITY = 2.0
 ERROR_SUSPECT_DISCOUNT = 0.70   # 70~90% → 가격오류 "의심" 뱃지
 ERROR_HARD_CUT_DISCOUNT = 0.90  # 90% 초과 → 자동 노출 보류 (버그 확률↑)
 
