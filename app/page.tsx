@@ -15,8 +15,9 @@ import { AuctionScope, AuctionSort } from "@/lib/auction";
 import { PAGE_SIZE } from "@/lib/nav";
 import { CATEGORIES } from "@/lib/types";
 
-// ISR: 10분마다 정적 페이지 재생성
-export const revalidate = 600;
+// 딜은 매시간 바뀌므로 항상 최신 데이터로 렌더(정적캐시 스테일 방지).
+//   트래픽 늘면 revalidate로 되돌려 캐싱 최적화 가능.
+export const dynamic = "force-dynamic";
 
 export default async function Home({
   searchParams,
