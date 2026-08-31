@@ -121,14 +121,19 @@ export async function getDeals(opts: GetDealsOpts = {}): Promise<Deal[]> {
   return sortDeals(deals, sort);
 }
 
-/** 국내몰 추천 특가(MD 큐레이션 = baseline 없는 활성 딜). 정렬 지원. */
-export async function getCuratedDeals(sort: SortKey = "popular"): Promise<Deal[]> {
+/** 국내몰 추천 특가(MD 큐레이션 = baseline 없는 활성 딜). 카테고리 필터·정렬 지원. */
+export async function getCuratedDeals(
+  sort: SortKey = "popular",
+  category?: string
+): Promise<Deal[]> {
   if (!supabase) return [];
-  const { data, error } = await supabase
+  let query = supabase
     .from("v_active_deals")
     .select("*")
     .is("baseline_price", null)
     .eq("status", "active");
+  if (category) query = query.eq("category_slug", category);
+  const { data, error } = await query;
   if (error || !data) {
     console.error("getCuratedDeals error:", error?.message);
     return [];

@@ -10,9 +10,8 @@ export default async function GoldboxSection() {
 
   return (
     <section className="mt-10">
-      <div className="mb-2 flex items-end justify-between">
+      <div className="mb-2">
         <h2 className="text-lg font-extrabold">🛒 쿠팡 핫딜</h2>
-        <span className="text-xs text-gray-400">골드박스·특가 모음 · 매일 갱신</span>
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">

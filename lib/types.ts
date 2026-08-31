@@ -54,7 +54,7 @@ export const CATEGORIES: Category[] = [
   { name: "생활/주방", slug: "living", dealType: "shopping" },
   { name: "식품", slug: "food", dealType: "shopping" },
   { name: "건강/보충제", slug: "health", dealType: "shopping" },
-  { name: "패션/잡화", slug: "fashion", dealType: "shopping" },
+  { name: "패션/의류", slug: "fashion", dealType: "shopping" },
   { name: "뷰티", slug: "beauty", dealType: "shopping" },
   { name: "육아/유아", slug: "baby", dealType: "shopping" },
   { name: "스포츠/레저", slug: "sports", dealType: "shopping" },

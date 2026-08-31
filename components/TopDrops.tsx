@@ -16,7 +16,6 @@ export default function TopDrops({ deals }: { deals: Deal[] }) {
     <section className="mb-6 rounded-2xl border border-brand/20 bg-gradient-to-b from-brand/5 to-white p-4">
       <div className="mb-3 flex items-center gap-2">
         <h2 className="text-lg font-extrabold text-gray-900">🔥 지금 뜨는 특가 TOP</h2>
-        <span className="text-xs text-gray-400">인기·하락률 종합 · 수집마다 갱신</span>
       </div>
 
       <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-1">

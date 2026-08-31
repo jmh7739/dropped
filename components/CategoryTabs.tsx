@@ -9,11 +9,13 @@ export default function CategoryTabs({
   sort,
   hot,
   q,
+  showEnded,
 }: {
   active?: string;
   sort: string;
   hot: boolean;
   q?: string;
+  showEnded?: boolean;
 }) {
   const base =
     "whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-medium transition";
@@ -23,7 +25,7 @@ export default function CategoryTabs({
   return (
     <nav className="flex gap-2 overflow-x-auto pb-2">
       <Link
-        href={homeHref({ sort, hot, q })}
+        href={homeHref({ sort, hot, q, showEnded })}
         className={`${base} ${!active ? on : off}`}
       >
         전체
@@ -31,7 +33,7 @@ export default function CategoryTabs({
       {SHOPPING.map((c) => (
         <Link
           key={c.slug}
-          href={homeHref({ category: c.slug, sort, hot, q })}
+          href={homeHref({ category: c.slug, sort, hot, q, showEnded })}
           className={`${base} ${active === c.slug ? on : off}`}
         >
           {c.name}

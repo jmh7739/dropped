@@ -21,10 +21,9 @@ export default function GoldboxBanner() {
             <span className="rounded bg-amber-400 px-1.5 py-0.5 text-[11px] font-bold text-amber-950">
               쿠팡 골드박스
             </span>
-            <span className="text-[11px] text-gray-400">쿠팡 자체 데일리 특가</span>
           </div>
           <p className="mt-0.5 truncate text-sm font-bold text-gray-900">
-            매일 바뀌는 쿠팡 오늘의 특가 전체보기
+            쿠팡 오늘의 특가 보기
           </p>
         </div>
       </div>

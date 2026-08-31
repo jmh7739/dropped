@@ -25,12 +25,7 @@ export default function DealCard({
   const saving = (deal.baselinePrice || deal.listPrice) - deal.currentPrice;
   const ended = deal.status === "ended";
   const isCurated = deal.isCurated;
-  // MD 추천 특가(국내몰 큐레이션): 할인율 뱃지 대신 'MD추천', 취소선 가격 숨김
-  const mdBadge = (
-    <span className="rounded-md bg-indigo-600 px-1.5 py-0.5 text-[11px] font-bold text-white">
-      🇰🇷 MD추천
-    </span>
-  );
+  // 국내몰 큐레이션: 할인율 뱃지 없음(원가 정보 없어 % 못 매김), 취소선 가격 숨김
 
   // ── 리스트형: 한 줄에 조밀하게 (한 화면에 더 많이) ──
   if (variant === "list") {
@@ -53,7 +48,7 @@ export default function DealCard({
           </div>
           <div className="min-w-0 flex-1">
             <div className="mb-0.5 flex flex-wrap items-center gap-1.5 text-[11px] text-gray-400">
-              {isCurated ? mdBadge : <DiscountBadge rate={rate} basis={basis} />}
+              {isCurated ? null : <DiscountBadge rate={rate} basis={basis} />}
               <span className="rounded bg-gray-100 px-1.5 py-0.5 text-gray-600">
                 {mallLabel(deal)}
               </span>
@@ -132,8 +127,8 @@ export default function DealCard({
             </div>
           )}
           <div className="absolute left-2 top-2 flex flex-col items-start gap-1">
-            {isCurated ? mdBadge : <DiscountBadge rate={rate} basis={basis} />}
-            {provisional && <ProvisionalBadge />}
+            {isCurated ? null : <DiscountBadge rate={rate} basis={basis} />}
+            {!isCurated && provisional && <ProvisionalBadge />}
             {deal.isLowestEver && <LowestEverBadge />}
             {deal.isPriceError && <PriceErrorBadge />}
           </div>

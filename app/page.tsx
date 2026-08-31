@@ -33,7 +33,7 @@ export default async function Home({
     ac?: string;
     as?: string;
     q?: string;
-    he?: string;
+    se?: string;
     page?: string;
   };
 }) {
@@ -54,7 +54,7 @@ export default async function Home({
     ? (searchParams.sort as SortKey)
     : "discount";
   const hot = searchParams.hot === "1";
-  const hideEnded = searchParams.he === "1";
+  const showEnded = searchParams.se === "1"; // 기본은 종료딜 숨김
   const q = (searchParams.q ?? "").slice(0, 100);
   const page = Math.max(1, parseInt(searchParams.page ?? "1", 10) || 1);
   const activeCat = CATEGORIES.find((c) => c.slug === category);
@@ -112,8 +112,8 @@ export default async function Home({
 
   // ── 쇼핑 딜 ──
   const fetched = await getDeals({ category, sort, hotOnly: hot, q });
-  // '종료딜 숨기기' 체크 시 종료된 딜 제외
-  const allDeals = hideEnded ? fetched.filter((d) => d.status !== "ended") : fetched;
+  // 기본: 종료딜 숨김. 'se=1'(종료딜 보기)일 때만 포함
+  const allDeals = showEnded ? fetched : fetched.filter((d) => d.status !== "ended");
   const totalPages = Math.max(1, Math.ceil(allDeals.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
   const deals = allDeals.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
@@ -160,11 +160,11 @@ export default async function Home({
             {activeCount}개
           </span>
         </h1>
-        <SortTabs category={category} sort={sort} hot={hot} q={q} hideEnded={hideEnded} />
+        <SortTabs category={category} sort={sort} hot={hot} q={q} showEnded={showEnded} />
       </div>
 
       <div className="mb-4">
-        <CategoryTabs active={category} sort={sort} hot={hot} q={q} />
+        <CategoryTabs active={category} sort={sort} hot={hot} q={q} showEnded={showEnded} />
       </div>
 
       {deals.length === 0 ? (
@@ -177,13 +177,13 @@ export default async function Home({
           <Pagination
             page={safePage}
             totalPages={totalPages}
-            base={{ category, sort, hot, q, ...(hideEnded ? { he: "1" } : {}) }}
+            base={{ category, sort, hot, q, ...(showEnded ? { se: "1" } : {}) }}
           />
         </>
       )}
 
-      {/* 국내몰 추천 특가(리얼핫딜 MD 큐레이션) + 쿠팡 골드박스는 하단 유지 */}
-      {isDefaultHome && <CuratedSection />}
+      {/* 국내몰 추천 특가: 홈·카테고리에서 표시(선택 카테고리로 필터). 검색·인기딜만 제외 */}
+      {!q && !hot && <CuratedSection category={category} sort={sort} />}
       {isDefaultHome && <GoldboxSection />}
     </div>
   );
