@@ -57,7 +57,7 @@ export default function DealCard({
               <span className="rounded bg-gray-100 px-1.5 py-0.5 text-gray-600">
                 {mallLabel(deal)}
               </span>
-              {provisional && <ProvisionalBadge />}
+              {!isCurated && provisional && <ProvisionalBadge />}
               {deal.isLowestEver && <LowestEverBadge />}
               <ShippingBadge fee={deal.shippingFee} />
               <span className="ml-auto whitespace-nowrap">

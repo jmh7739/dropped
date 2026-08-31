@@ -11,9 +11,7 @@ export default async function CuratedSection() {
     <section className="mt-10">
       <div className="mb-2 flex flex-wrap items-end justify-between gap-1">
         <h2 className="text-lg font-extrabold">🇰🇷 국내몰 추천 특가</h2>
-        <span className="text-xs text-gray-400">
-          제휴사 MD 추천 · 가격추적 급락딜과 별개
-        </span>
+        <span className="text-xs text-gray-400">제휴사 MD 추천</span>
       </div>
 
       <DealGrid deals={deals} />
