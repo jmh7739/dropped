@@ -85,10 +85,13 @@ def classify(
                                is_lowest, True,
                                f"평균대비 {rate*100:.0f}% > 하드컷 → 보류")
         is_error = rate >= config.ERROR_SUSPECT_DISCOUNT
-        if rate < config.MIN_DISCOUNT:
+        # 알리는 노이즈가 커서 더 큰 하락만 인정 (소폭 하락 남발 방지)
+        min_disc = (config.MIN_DISCOUNT_ALI if platform == "aliexpress"
+                    else config.MIN_DISCOUNT)
+        if rate < min_disc:
             return DealVerdict(False, baseline, discount_vs_avg, discount_vs_list,
                                is_lowest, is_error,
-                               f"평균대비 {rate*100:.0f}% < 임계값 → 딜 아님")
+                               f"평균대비 {rate*100:.0f}% < 임계값({min_disc*100:.0f}%) → 딜 아님")
         return DealVerdict(True, baseline, discount_vs_avg, discount_vs_list,
                            is_lowest, is_error,
                            f"딜 확정 (평균대비 {rate*100:.0f}%)")
