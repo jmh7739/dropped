@@ -71,17 +71,23 @@ def fetch() -> list[RawDeal]:
                 url = p.get("target_url", "")
                 if not price or not url:
                     continue
+                name = p.get("p_name", "")
+                img = p.get("img_url", "")
+                # 국내몰 상품 API(11번가 등)는 실제 상품사진을 줌 → MD추천 후보로.
+                #   품질: 이미지·이름 있고 5천원 이상 (잡템·빈값 제외)
+                curated = bool(img) and len(name) >= 4 and price >= 5000
                 deals.append(RawDeal(
                     platform="cps",
                     external_product_id=str(p.get("p_code")),
-                    title=p.get("p_name", ""),
-                    image_url=p.get("img_url", ""),
+                    title=name,
+                    image_url=img,
                     product_url=url,
                     affiliate_url=url,   # 이미 우리 제휴ID 포함
                     current_price=price,
                     list_price=None,     # 정가 없음 → 이력으로 판정
                     category_slug=slug,
                     mall_name=mall,
+                    curated=curated,
                 ))
 
     malls = sorted({d.mall_name for d in deals})

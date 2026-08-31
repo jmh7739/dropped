@@ -47,6 +47,8 @@ function rowToDeal(row: any, history: PricePoint[]): Deal {
     history,
     likeCount: Number(row.like_count ?? 0),
     clickCount: Number(row.click_count ?? 0),
+    // baseline 없음 = 가격추적 급락딜이 아닌 'MD 추천 특가'(국내몰 큐레이션)
+    isCurated: row.baseline_price == null,
   };
 }
 
@@ -103,7 +105,10 @@ export async function getDeals(opts: GetDealsOpts = {}): Promise<Deal[]> {
   // Supabase 미연결 시 빈 목록 (가짜 데이터 없음)
   if (!supabase) return [];
 
-  let query = supabase.from("v_active_deals").select("*");
+  let query = supabase
+    .from("v_active_deals")
+    .select("*")
+    .not("baseline_price", "is", null); // 급락딜만(추천딜=baseline null은 제외)
   if (category) query = query.eq("category_slug", category);
   if (hotOnly) query = query.gte("like_count", HOT_LIKE_THRESHOLD);
   if (term) query = query.ilike("title", `%${term}%`);
@@ -114,6 +119,22 @@ export async function getDeals(opts: GetDealsOpts = {}): Promise<Deal[]> {
   }
   const deals = data.map((row) => rowToDeal(row, []));
   return sortDeals(deals, sort);
+}
+
+/** 국내몰 추천 특가(MD 큐레이션 = baseline 없는 활성 딜). 정렬 지원. */
+export async function getCuratedDeals(sort: SortKey = "popular"): Promise<Deal[]> {
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from("v_active_deals")
+    .select("*")
+    .is("baseline_price", null)
+    .eq("status", "active");
+  if (error || !data) {
+    console.error("getCuratedDeals error:", error?.message);
+    return [];
+  }
+  const deals = data.map((row) => rowToDeal(row, []));
+  return sortActive(deals, sort);
 }
 
 /** 상세 페이지용: 딜 1건 + 가격 이력 */

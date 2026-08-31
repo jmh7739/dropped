@@ -105,7 +105,13 @@ export default async function DealDetail({
           <h1 className="text-lg font-bold leading-snug">{deal.title}</h1>
 
           <div className="mt-3 flex flex-wrap gap-1.5">
-            <DiscountBadge rate={rate} basis={basis} />
+            {deal.isCurated ? (
+              <span className="rounded-md bg-indigo-600 px-1.5 py-0.5 text-xs font-bold text-white">
+                🇰🇷 MD추천
+              </span>
+            ) : (
+              <DiscountBadge rate={rate} basis={basis} />
+            )}
             {deal.isLowestEver && <LowestEverBadge />}
             {deal.isPriceError && <PriceErrorBadge />}
             <ShippingBadge fee={deal.shippingFee} />

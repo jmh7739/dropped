@@ -43,6 +43,7 @@ export interface Deal {
   history: PricePoint[];
   likeCount: number;
   clickCount: number;
+  isCurated: boolean; // true = MD 추천 특가(국내몰 큐레이션, 가격추적 급락딜 아님)
 }
 
 export const CATEGORIES: Category[] = [

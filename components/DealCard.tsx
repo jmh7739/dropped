@@ -24,6 +24,13 @@ export default function DealCard({
   const provisional = basis === "정가";
   const saving = (deal.baselinePrice || deal.listPrice) - deal.currentPrice;
   const ended = deal.status === "ended";
+  const isCurated = deal.isCurated;
+  // MD 추천 특가(국내몰 큐레이션): 할인율 뱃지 대신 'MD추천', 취소선 가격 숨김
+  const mdBadge = (
+    <span className="rounded-md bg-indigo-600 px-1.5 py-0.5 text-[11px] font-bold text-white">
+      🇰🇷 MD추천
+    </span>
+  );
 
   // ── 리스트형: 한 줄에 조밀하게 (한 화면에 더 많이) ──
   if (variant === "list") {
@@ -46,7 +53,7 @@ export default function DealCard({
           </div>
           <div className="min-w-0 flex-1">
             <div className="mb-0.5 flex flex-wrap items-center gap-1.5 text-[11px] text-gray-400">
-              <DiscountBadge rate={rate} basis={basis} />
+              {isCurated ? mdBadge : <DiscountBadge rate={rate} basis={basis} />}
               <span className="rounded bg-gray-100 px-1.5 py-0.5 text-gray-600">
                 {mallLabel(deal)}
               </span>
@@ -64,9 +71,11 @@ export default function DealCard({
               <span className="text-base font-extrabold text-brand">
                 {formatWon(deal.currentPrice)}
               </span>
-              <span className="text-[11px] text-gray-400 line-through">
-                {formatWon(deal.baselinePrice || deal.listPrice)}
-              </span>
+              {!isCurated && (
+                <span className="text-[11px] text-gray-400 line-through">
+                  {formatWon(deal.baselinePrice || deal.listPrice)}
+                </span>
+              )}
               {saving > 0 && (
                 <span className="text-[11px] font-semibold text-blue-600">
                   {formatWon(saving).replace("원", "")}원↓
@@ -123,7 +132,7 @@ export default function DealCard({
             </div>
           )}
           <div className="absolute left-2 top-2 flex flex-col items-start gap-1">
-            <DiscountBadge rate={rate} basis={basis} />
+            {isCurated ? mdBadge : <DiscountBadge rate={rate} basis={basis} />}
             {provisional && <ProvisionalBadge />}
             {deal.isLowestEver && <LowestEverBadge />}
             {deal.isPriceError && <PriceErrorBadge />}
@@ -147,9 +156,11 @@ export default function DealCard({
           </h3>
 
           <div className="mt-auto pt-1">
-            <div className="text-xs text-gray-400 line-through">
-              {formatWon(deal.baselinePrice || deal.listPrice)}
-            </div>
+            {!isCurated && (
+              <div className="text-xs text-gray-400 line-through">
+                {formatWon(deal.baselinePrice || deal.listPrice)}
+              </div>
+            )}
             <div className="flex items-baseline gap-1">
               <span className="text-lg font-extrabold text-brand">
                 {formatWon(deal.currentPrice)}

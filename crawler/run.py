@@ -60,20 +60,31 @@ def collect_and_flag() -> tuple[int, int, set[int]]:
             print(f"{tag}{err} | {raw.platform} | {raw.title[:30]} "
                   f"| {raw.current_price:,}원 | {verdict.reason}")
 
-            if not verdict.is_deal:
-                continue
-
-            db.upsert_active_deal(product_id, {
-                "current_price": raw.current_price,
-                "list_price": raw.list_price,
-                "baseline_price": verdict.baseline_price,
-                "discount_vs_list": verdict.discount_vs_list,
-                "discount_vs_avg": verdict.discount_vs_avg,
-                "is_lowest_ever": verdict.is_lowest_ever,
-                "is_price_error": verdict.is_price_error,
-            })
-            flagged += 1
-            flagged_ids.add(product_id)
+            if verdict.is_deal:
+                db.upsert_active_deal(product_id, {
+                    "current_price": raw.current_price,
+                    "list_price": raw.list_price,
+                    "baseline_price": verdict.baseline_price,
+                    "discount_vs_list": verdict.discount_vs_list,
+                    "discount_vs_avg": verdict.discount_vs_avg,
+                    "is_lowest_ever": verdict.is_lowest_ever,
+                    "is_price_error": verdict.is_price_error,
+                })
+                flagged += 1
+                flagged_ids.add(product_id)
+            elif raw.curated:
+                # 국내몰 MD 추천 특가: 가격추적 급락은 아니지만 큐레이션으로 노출.
+                #   baseline_price=None 이 '추천딜' 마커(프론트가 급락딜과 분리).
+                db.upsert_active_deal(product_id, {
+                    "current_price": raw.current_price,
+                    "list_price": None,
+                    "baseline_price": None,
+                    "discount_vs_list": None,
+                    "discount_vs_avg": None,
+                    "is_lowest_ever": False,
+                    "is_price_error": False,
+                })
+                flagged_ids.add(product_id)  # expire가 즉시 종료 안 하게
 
     return flagged, scanned, flagged_ids
 
