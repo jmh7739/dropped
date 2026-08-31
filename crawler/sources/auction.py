@@ -140,7 +140,7 @@ def fetch() -> list[AuctionItem]:
                     appraisal_price=appraisal,
                     min_bid_price=min_bid,
                     fail_count=_to_int(it.get("usbdNft")) or 0,
-                    bid_start_date=_bid_datetime(it.get("cltrBidBeginDt")),
+                    bid_start_date=_bid_datetime(it.get("cltrBidBgngDt")),
                     bid_end_date=_bid_datetime(it.get("cltrBidEndDt")),
                     detail_url=_detail_url(it),
                     posted_at=None,

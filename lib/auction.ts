@@ -65,6 +65,8 @@ export async function getAuctionDeals(
     minBidPrice: r.min_bid_price,
     failCount: r.fail_count ?? 0,
     bidDate: r.bid_date,
+    bidStartDate: r.bid_start_date ?? null,
+    bidEndDate: r.bid_end_date ?? null,
     detailUrl: r.detail_url,
     collectedAt: r.collected_at ?? null,
   }));

@@ -114,15 +114,20 @@ export default async function AuctionView({
                   </div>
                 </div>
 
-                <div className="mt-auto flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-gray-400">
+                {/* 입찰 기간: 언제부터 언제까지 */}
+                {(a.bidStartDate || a.bidEndDate || a.bidDate) && (
+                  <div className="mt-2 rounded-md bg-red-50 px-2 py-1 text-[11px] font-semibold leading-tight text-red-600">
+                    🗓 입찰{" "}
+                    {a.bidStartDate && a.bidEndDate
+                      ? `${a.bidStartDate} ~ ${a.bidEndDate}`
+                      : `마감 ~ ${a.bidEndDate ?? a.bidDate}`}
+                  </div>
+                )}
+
+                <div className="mt-auto flex flex-wrap items-center gap-x-2 gap-y-1 pt-1 text-[11px] text-gray-400">
                   <span>{a.caseNo}</span>
                   {a.collectedAt && (
                     <span>· 등록 {timeAgo(a.collectedAt)}</span>
-                  )}
-                  {a.bidDate && (
-                    <span className="ml-auto rounded bg-red-50 px-1.5 py-0.5 font-semibold text-red-500">
-                      입찰마감 ~{a.bidDate}
-                    </span>
                   )}
                 </div>
               </a>

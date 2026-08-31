@@ -119,7 +119,9 @@ export interface AuctionDeal {
   appraisalPrice: number | null; // 감정가
   minBidPrice: number | null; // 최저입찰가
   failCount: number; // 유찰 횟수
-  bidDate: string | null; // 입찰기일
+  bidDate: string | null; // 입찰기일(종료·하위호환)
+  bidStartDate: string | null; // 입찰 시작일시
+  bidEndDate: string | null; // 입찰 종료(마감)일시
   detailUrl: string;
   collectedAt: string | null; // 우리 사이트 등록일시
 }

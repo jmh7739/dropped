@@ -222,23 +222,30 @@ def flight_fresh_within(hours: float) -> bool:
 def upsert_auction_deal(item) -> None:
     if config.DRY_RUN:
         return
-    client().table("auction_deals").upsert(
-        {
-            "source": item.source,
-            "external_id": item.external_id,
-            "case_no": item.case_no,
-            "asset_type": item.asset_type,
-            "title": item.title,
-            "location": item.location,
-            "appraisal_price": item.appraisal_price,
-            "min_bid_price": item.min_bid_price,
-            "fail_count": item.fail_count,
-            "bid_date": item.bid_end_date,   # 입찰마감(종료일)을 기존 bid_date 컬럼에
-            "detail_url": item.detail_url,
-            "posted_at": item.posted_at,
-        },
-        on_conflict="source,external_id",
-    ).execute()
+    payload = {
+        "source": item.source,
+        "external_id": item.external_id,
+        "case_no": item.case_no,
+        "asset_type": item.asset_type,
+        "title": item.title,
+        "location": item.location,
+        "appraisal_price": item.appraisal_price,
+        "min_bid_price": item.min_bid_price,
+        "fail_count": item.fail_count,
+        "bid_date": item.bid_end_date,       # 하위호환(종료일)
+        "bid_start_date": item.bid_start_date,  # 입찰 시작일시
+        "bid_end_date": item.bid_end_date,      # 입찰 종료(마감)일시
+        "detail_url": item.detail_url,
+        "posted_at": item.posted_at,
+    }
+    tbl = client().table("auction_deals")
+    try:
+        tbl.upsert(payload, on_conflict="source,external_id").execute()
+    except Exception:
+        # 마이그레이션(bid_start_date/bid_end_date 컬럼) 전이면 해당 컬럼 없이 재시도
+        for k in ("bid_start_date", "bid_end_date"):
+            payload.pop(k, None)
+        tbl.upsert(payload, on_conflict="source,external_id").execute()
 
 
 def prune_old_auction() -> None:
