@@ -77,6 +77,15 @@ def classify(
                                is_lowest, False,
                                f"가격 변동성 과다({max(history_prices)/lo:.1f}배) → 신뢰불가 보류")
 
+        # 상시 세일가 가드: 현재가 이하가 이력에서 자주 나타나면(플래시세일 반복 등)
+        #   '떨어진 것'이 아니라 '원래 가끔 이 가격' → 급락 아님(보류). 가격은 계속 수집.
+        low_band = current_price * (1 + config.RECURRING_LOW_EPSILON)
+        low_freq = sum(1 for p in history_prices if p <= low_band) / n
+        if low_freq >= config.RECURRING_LOW_FRACTION:
+            return DealVerdict(False, baseline, discount_vs_avg, discount_vs_list,
+                               is_lowest, False,
+                               f"상시 세일가(현재가 이력의 {low_freq*100:.0f}% 등장) → 급락 아님")
+
     if has_history:
         # ── 1순위: 평소 실제가 대비 (신뢰 지표) ──────────────
         rate = (discount_vs_avg or 0) / 100
