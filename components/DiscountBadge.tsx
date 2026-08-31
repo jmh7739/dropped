@@ -1,4 +1,4 @@
-import { formatPercent } from "@/lib/format";
+import { formatPercent, formatWon } from "@/lib/format";
 
 export function DiscountBadge({
   rate,
@@ -46,7 +46,7 @@ export function ShippingBadge({ fee }: { fee: number | null }) {
   }
   return (
     <span className="inline-flex items-center rounded bg-gray-100 px-1.5 py-0.5 text-[11px] text-gray-500">
-      배송 {fee.toLocaleString("ko-KR")}원
+      배송 {formatWon(fee)}
     </span>
   );
 }

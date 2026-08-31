@@ -1,6 +1,14 @@
+// 서버(Node ICU)와 브라우저의 toLocaleString 차이로 하이드레이션 불일치가 나서
+//   결정적(deterministic) 천단위 구분으로 대체한다.
+export function groupThousands(v: number): string {
+  const n = Math.round(v);
+  const sign = n < 0 ? "-" : "";
+  return sign + Math.abs(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
+
 export function formatWon(v: number | null | undefined): string {
   if (v === null || v === undefined) return "-";
-  return v.toLocaleString("ko-KR") + "원";
+  return groupThousands(v) + "원";
 }
 
 export function formatPercent(v: number | null | undefined): string {
