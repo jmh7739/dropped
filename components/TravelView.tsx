@@ -18,7 +18,9 @@ const STAY_PARTNERS: Partner[] = [
   { icon: "🔎", name: "호텔스컴바인", desc: "전세계 호텔 최저가 비교", href: lp("hcombine2", "https://www.hotelscombined.co.kr") },
   { icon: "🏨", name: "아고다", desc: "해외 호텔·리조트", href: lp("agoda", "https://www.agoda.com/ko-kr") },
   { icon: "🛎️", name: "호텔스닷컴", desc: "호텔 예약·10박 1박 무료", href: lp("hotelskr", "https://kr.hotels.com/") },
+  { icon: "✈️", name: "익스피디아", desc: "호텔+항공 패키지", href: lp("expedia", "https://www.expedia.co.kr") },
   { icon: "🛏️", name: "야놀자 NOL", desc: "국내 호텔·펜션·모텔", href: lp("yanolja", "https://nol.yanolja.com/") },
+  { icon: "🌏", name: "트립닷컴", desc: "항공·호텔 종합 예약", href: lp("ctrip", "https://kr.trip.com/") },
   { icon: "🗾", name: "라쿠텐 트래블", desc: "일본 숙소 전문", href: lp("rakutentr", "https://travel.rakuten.com") },
 ];
 
@@ -45,6 +47,8 @@ const SERVICE_PARTNERS: Partner[] = [
   { icon: "🎟️", name: "KKday", desc: "현지 투어·티켓", href: lp("kkday", "https://www.kkday.com/ko") },
   { icon: "🎫", name: "Go City", desc: "도시 관광패스", href: lp("gocity", "https://gocity.com/ko") },
   { icon: "🚄", name: "레일유럽", desc: "유럽 기차 패스·티켓", href: lp("re4akor", "http://www.raileurope.co.kr") },
+  { icon: "🚗", name: "제주패스", desc: "제주 렌터카·투어", href: lp("jejupass", "https://www.jejupass.com") },
+  { icon: "🛫", name: "트래블로카", desc: "국내외 항공·호텔", href: lp("traveloka", "https://www.traveloka.com/ko-kr") },
 ];
 
 function PartnerGrid({ partners }: { partners: Partner[] }) {
