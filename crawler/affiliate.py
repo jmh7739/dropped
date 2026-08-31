@@ -15,21 +15,47 @@ from urllib.parse import quote, urlparse
 import config
 
 # 도메인 → (표시용 쇼핑몰명, 링크프라이스 merchant 코드)
-# merchant 코드는 링크프라이스 계정에서 확인한 실제 값으로 교체할 것.
-# ✅ = 링크프라이스에서 승인 확인됨(merchant 코드 검증). 나머지는 승인 후 코드 확인 필요.
+# 현재 계정에서 쓰는 상품/핫딜 피드의 merchant_id와 여행 딥링크 코드를 함께 둔다.
+# 새 승인 몰은 여기에 도메인만 추가하면 네이버·외부 후보 링크도 제휴 링크로 바뀐다.
 MERCHANTS = {
-    "gmarket.co.kr":     ("G마켓", "gmarket"),    # ✅ 승인됨
-    "agoda.com":         ("아고다", "agoda"),      # ✅ 승인됨(숙박)
-    "yanolja.com":       ("야놀자", "yanolja"),    # ✅ 승인됨(숙박)
-    "nol.yanolja.com":   ("야놀자", "yanolja"),    # ✅
+    "gmarket.co.kr":     ("G마켓", "gmarket"),
     "auction.co.kr":     ("옥션", "auction"),
     "11st.co.kr":        ("11번가", "11st"),
     "wemakeprice.com":   ("위메프", "wemakeprice"),
     "ssg.com":           ("SSG", "ssg"),
+    "emart.ssg.com":     ("이마트", "emart"),
     "lotteon.com":       ("롯데온", "lotteon"),
     "interpark.com":     ("인터파크", "interpark"),
     "ohou.se":           ("오늘의집", "ohouse"),
     "oliveyoung.co.kr":  ("올리브영", "oliveyoung"),
+    "wconcept.co.kr":    ("W컨셉", "wconcept"),
+    "iherb.com":         ("아이허브", "iherb"),
+    "e-himart.co.kr":    ("하이마트", "himart"),
+    "himart.co.kr":      ("하이마트", "himart"),
+    "yes24.com":         ("예스24", "yes24"),
+    "kyobobook.co.kr":   ("교보문고", "kbbook"),
+    "gsshop.com":        ("GS SHOP", "gsshop"),
+    "hmall.com":         ("Hmall", "hmall"),
+    "nsmall.com":        ("NS홈쇼핑", "nsmall"),
+    "gongyoungshop.kr":  ("공영홈쇼핑", "gongyoung"),
+    "lotteimall.com":    ("롯데홈쇼핑", "lotteimall"),
+    "agoda.com":         ("아고다", "agoda"),
+    "yanolja.com":       ("야놀자", "yanolja"),
+    "hotelscombined.com": ("호텔스컴바인", "hcombine2"),
+    "hotels.com":        ("호텔스닷컴", "hotelskr"),
+    "travel.rakuten.com": ("라쿠텐 트래블", "rakutentr"),
+    "klook.com":         ("클룩", "klook"),
+    "airalo.com":        ("에어알로", "airalo"),
+    "myrealtrip.com":    ("마이리얼트립", "myrealtrip"),
+    "ttang.com":         ("땡처리닷컴", "072com"),
+    "kkday.com":         ("KKday", "kkday"),
+    "gocity.com":        ("Go City", "gocity"),
+    "raileurope.co.kr":  ("레일유럽", "re4akor"),
+}
+
+# 상품/핫딜 API가 주는 merchant_id → 화면 표시명.
+MERCHANT_NAMES = {
+    merchant: name for name, merchant in MERCHANTS.values()
 }
 
 
@@ -40,9 +66,15 @@ def detect_mall(url: str) -> tuple[str, str] | None:
     except Exception:
         return None
     for domain, info in MERCHANTS.items():
-        if domain in host:
+        # example-gmarket.co.kr 같은 유사 도메인 오인식을 막는다.
+        if host == domain or host.endswith("." + domain):
             return info
     return None
+
+
+def merchant_name(merchant: str) -> str:
+    """LinkPrice merchant_id를 사람이 읽을 수 있는 쇼핑몰명으로."""
+    return MERCHANT_NAMES.get(merchant, merchant)
 
 
 def to_affiliate(url: str) -> tuple[str, str] | None:

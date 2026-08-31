@@ -80,15 +80,42 @@ def _query(keyword: str, page_no: int) -> list[dict]:
             # 많이 팔린 순 → 실제 인기 상품(잡템 케이스·싸구려 아님). 핵심 필터.
             "sort": "LAST_VOLUME_DESC",
             "tracking_id": config.ALIEXPRESS_TRACKING_ID,
+            # 한국 배송이 지나치게 오래 걸리는 상품은 후보에서 제외한다.
+            "delivery_days": config.ALIEXPRESS_MAX_DELIVERY_DAYS,
         },
     )
+    return _products(data, "aliexpress_affiliate_hotproduct_query_response")
+
+
+def _products(data: dict | None, response_key: str) -> list[dict]:
+    """Ali API별 응답 껍데기 차이를 흡수해 상품 배열만 반환한다."""
     try:
-        result = data["aliexpress_affiliate_hotproduct_query_response"][
-            "resp_result"
-        ]["result"]
-        return result["products"]["product"]
+        result = data[response_key]["resp_result"]["result"]
+        products = result["products"]["product"]
+        return products if isinstance(products, list) else [products]
     except (KeyError, TypeError):
         return []
+
+
+def _promo_query(promo_name: str, page_no: int) -> list[dict]:
+    """공식 베스트셀러/주간딜 테마에서 한국 배송 가능 상품을 가져온다."""
+    data = _call(
+        "aliexpress.affiliate.featuredpromo.products.get",
+        {
+            "promotion_name": promo_name,
+            "page_no": page_no,
+            "page_size": 50,
+            "target_currency": "KRW",
+            "target_language": "ko",
+            "country": "KR",
+            "tracking_id": config.ALIEXPRESS_TRACKING_ID,
+            "sort": "volumeDesc",
+        },
+    )
+    return _products(
+        data,
+        "aliexpress_affiliate_featuredpromo_products_get_response",
+    )
 
 
 # ── 상품의 '실제 Ali 카테고리'로 우리 slug 판정 (키워드 오분류 방지) ──
@@ -148,53 +175,106 @@ def _volume(p: dict) -> int:
     return 0
 
 
+def _evaluate_rate(p: dict) -> float | None:
+    """'96.8%' 같은 응답을 숫자로. 미제공 상품은 None으로 유지한다."""
+    value = p.get("evaluate_rate")
+    if value is None:
+        return None
+    try:
+        return float(str(value).replace("%", "").strip())
+    except (TypeError, ValueError):
+        return None
+
+
+def _rotated_keywords() -> list[str]:
+    """매 실행마다 키워드 일부만 순환해 호출량과 후보 다양성을 함께 확보한다."""
+    keywords = [
+        kw for kws in config.ALIEXPRESS_KEYWORDS_BY_CAT.values() for kw in kws
+    ]
+    if not keywords:
+        return []
+    size = min(config.ALIEXPRESS_DISCOVERY_KEYWORDS_PER_RUN, len(keywords))
+    # GitHub Actions가 시간 단위로 실행되므로 같은 시간에는 같은 풀을 쓴다.
+    slot = int(time.time() // 3600)
+    start = (slot * size) % len(keywords)
+    return [keywords[(start + i) % len(keywords)] for i in range(size)]
+
+
 def fetch() -> list[RawDeal]:
     if not config.ALIEXPRESS_APP_KEY:
         print("[aliexpress] 키 없음 → 건너뜀")
         return []
 
-    # 모든 키워드로 상품을 찾되, 분류는 '상품의 실제 Ali 카테고리'로 → 오분류 방지.
-    #   못 맞추는 잡템은 아예 제외. 카테고리별 상위 N개만 유지.
+    # 공식 베스트셀러/주간딜 테마를 우선 수집하고, 순환 키워드로 새 후보를 보충한다.
+    # 분류는 상품의 실제 Ali 카테고리 기준이며, 카테고리별 상위 N개만 추적한다.
     seen_pid: set[str] = set()
-    by_cat: dict[str, list[tuple[float, int, RawDeal]]] = {}
-    all_keywords = [
-        kw for kws in config.ALIEXPRESS_KEYWORDS_BY_CAT.values() for kw in kws
-    ]
-    for kw in all_keywords:
+    by_cat: dict[str, list[tuple[int, int, int, RawDeal]]] = {}
+    promo_rows = 0
+    keyword_rows = 0
+
+    def consider(p: dict, featured: bool) -> None:
+        """품질 필터를 통과한 상품을 카테고리별 후보 풀에 추가한다."""
+        nonlocal promo_rows, keyword_rows
+        pid = str(p.get("product_id"))
+        if not pid or pid in seen_pid:
+            return
+        slug = _our_slug(p)
+        if not slug:
+            return
+        cur = _to_int_won(p.get("target_sale_price"))
+        vol = _volume(p)
+        min_vol = (
+            config.ALIEXPRESS_MIN_VOLUME_FOOD
+            if slug in ("food", "health")
+            else config.ALIEXPRESS_MIN_VOLUME
+        )
+        rating = _evaluate_rate(p)
+        if vol < min_vol or cur <= 0:
+            return
+        if rating is not None and rating < config.ALIEXPRESS_MIN_EVALUATE_RATE:
+            return
+        url = p.get("product_detail_url", "")
+        affiliate_url = p.get("promotion_link") or url
+        if not url or not affiliate_url:
+            return
+        seen_pid.add(pid)
+        deal = RawDeal(
+            platform="aliexpress",
+            external_product_id=pid,
+            title=p.get("product_title", ""),
+            image_url=p.get("product_main_image_url", ""),
+            product_url=url,
+            affiliate_url=affiliate_url,
+            current_price=cur,
+            list_price=None,   # 알리 정가는 뻥튀기 → 안 실음(실제 가격이력으로만 판정)
+            category_slug=slug,
+        )
+        # 공식 캠페인을 우선하고, 그 안에서는 판매액이 큰 안정 상품을 고른다.
+        by_cat.setdefault(slug, []).append((int(featured), vol * cur, vol, deal))
+        if featured:
+            promo_rows += 1
+        else:
+            keyword_rows += 1
+
+    # 1) 알리 공식 추천 테마: 한국 배송 가능·고평가 베스트셀러 위주
+    for promo in config.ALIEXPRESS_FEATURED_PROMOS:
+        for page in range(1, config.ALIEXPRESS_PROMO_PAGES + 1):
+            try:
+                for p in _promo_query(promo, page):
+                    consider(p, featured=True)
+            except requests.RequestException as e:
+                print(f"[aliexpress] 프로모션 '{promo}' 실패: {e}")
+            time.sleep(0.4)
+
+    # 2) 전체 키워드를 매시간 일부씩 순환: API 쿼터를 지키며 신규 후보 발굴
+    keywords = _rotated_keywords()
+    for kw in keywords:
         for page in range(1, config.ALIEXPRESS_PAGES + 1):
-            for p in _query(kw, page):
-                pid = str(p.get("product_id"))
-                if pid in seen_pid:
-                    continue
-                slug = _our_slug(p)      # 실제 카테고리로 판정
-                if not slug:             # 분류 불가(잡템) → 제외
-                    continue
-                cur = _to_int_won(p.get("target_sale_price"))
-                vol = _volume(p)
-                # 인기 상품만 추적(안 팔리는 잡템 제외). 할인 없어도 추적함.
-                #   식품/건강은 판매량이 원래 낮아 별도(낮은) 기준 적용.
-                min_vol = (
-                    config.ALIEXPRESS_MIN_VOLUME_FOOD
-                    if slug in ("food", "health")
-                    else config.ALIEXPRESS_MIN_VOLUME
-                )
-                if vol < min_vol or cur <= 0:
-                    continue
-                # 알리 정가(original_price)는 뻥튀기라 안 믿음 → 아예 안 실음.
-                #   노출 판정은 오직 우리가 쌓는 '실제 가격이력' 대비로만 함.
-                seen_pid.add(pid)
-                by_cat.setdefault(slug, []).append((0.0, vol, RawDeal(
-                    platform="aliexpress",
-                    external_product_id=pid,
-                    title=p.get("product_title", ""),
-                    image_url=p.get("product_main_image_url", ""),
-                    product_url=p.get("product_detail_url", ""),
-                    affiliate_url=p.get("promotion_link")
-                    or p.get("product_detail_url", ""),
-                    current_price=cur,
-                    list_price=None,   # 알리 정가 뻥튀기 → 안 실음(실이력으로만 판정)
-                    category_slug=slug,
-                )))
+            try:
+                for p in _query(kw, page):
+                    consider(p, featured=False)
+            except requests.RequestException as e:
+                print(f"[aliexpress] 키워드 '{kw}' 실패: {e}")
             time.sleep(0.4)
 
     # 카테고리별 '판매량 상위' N개씩을 추적 풀로 반환(가격이력 수집).
@@ -203,10 +283,14 @@ def fetch() -> list[RawDeal]:
     deals: list[RawDeal] = []
     summary = []
     for slug, bucket in by_cat.items():
-        # 판매액(판매량 × 가격) 내림차순 → $1 잡템 대신 '많이 팔리고 값도 되는' 것 우선
-        bucket.sort(key=lambda t: t[1] * t[2].current_price, reverse=True)
-        picked = [rd for _, _, rd in bucket[: config.ALIEXPRESS_TRACK_PER_CATEGORY]]
+        # 공식 캠페인 우선 → 판매액/판매량 순. $1 잡템보다 안정적인 고수요 상품을 추적.
+        bucket.sort(key=lambda t: (t[0], t[1], t[2]), reverse=True)
+        picked = [rd for _, _, _, rd in bucket[: config.ALIEXPRESS_TRACK_PER_CATEGORY]]
         deals.extend(picked)
         summary.append(f"{slug}:{len(picked)}")
-    print(f"[aliexpress] 추적 {len(deals)}건 (판매액 상위, 카테고리별: {', '.join(summary)})")
+    print(
+        f"[aliexpress] 추적 {len(deals)}건 "
+        f"(공식캠페인 {promo_rows}·순환키워드 {keyword_rows}, "
+        f"키워드 {len(keywords)}개, 카테고리별: {', '.join(summary)})"
+    )
     return deals

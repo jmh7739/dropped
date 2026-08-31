@@ -4,13 +4,13 @@
 네이버가 IndexNow를 지원하므로 국내 색인 속도에 특히 유용.
 (구글은 IndexNow 미지원 → sitemap 재크롤로 처리)
 
-키 파일: public/{KEY}.txt (내용=KEY) 가 https://dropped.kr/{KEY}.txt 로 서빙돼야 함.
+키 파일: public/{KEY}.txt (내용=KEY) 가 https://www.dropped.kr/{KEY}.txt 로 서빙돼야 함.
 """
 from __future__ import annotations
 import requests
 
-SITE = "https://dropped.kr"
-HOST = "dropped.kr"
+SITE = "https://www.dropped.kr"
+HOST = "www.dropped.kr"
 KEY = "e92339646bdd26906f01f4768d2b0efc"
 ENDPOINT = "https://api.indexnow.org/indexnow"
 

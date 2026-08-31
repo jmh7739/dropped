@@ -3,7 +3,7 @@ import { getDeals } from "@/lib/deals";
 import { CATEGORIES } from "@/lib/types";
 
 const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL || "https://dropped.kr";
+  process.env.NEXT_PUBLIC_SITE_URL || "https://www.dropped.kr";
 
 export const revalidate = 600;
 

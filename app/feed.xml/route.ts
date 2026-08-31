@@ -1,7 +1,7 @@
 import { getDeals } from "@/lib/deals";
 import { formatWon } from "@/lib/format";
 
-const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://dropped.kr";
+const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://www.dropped.kr";
 
 // 10분마다 갱신
 export const revalidate = 600;

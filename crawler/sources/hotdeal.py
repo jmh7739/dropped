@@ -17,17 +17,10 @@ from __future__ import annotations
 import requests
 
 import config
+import affiliate
 from .base import RawDeal
 
 API = "https://api.linkprice.com/ci/hotdeal/data/{aid}"
-
-# 머천트 코드 → 표시용 한글명 (cps와 공유해도 되지만 독립 유지)
-_MALL = {
-    "11st": "11번가", "gmarket": "G마켓", "auction": "옥션", "lotteon": "롯데온",
-    "emart": "이마트", "yes24": "예스24", "wconcept": "W컨셉", "iherb": "아이허브",
-    "himart": "하이마트", "kbbook": "교보문고", "ssg": "SSG", "gsshop": "GS SHOP",
-    "hmall": "Hmall", "nsmall": "NS홈쇼핑", "expedia": "익스피디아",
-}
 
 # 상품명 키워드 → 우리 slug (위에서부터 우선). 못 맞추면 living(생활)으로.
 _KW_SLUG = [
@@ -46,6 +39,8 @@ _KW_SLUG = [
       "스포츠"), "sports"),
     (("셔츠", "팬츠", "자켓", "코트", "니트", "원피스", "청바지", "백팩", "가방",
       "지갑", "신발", "운동화", "모자", "양말", "벨트", "패딩"), "fashion"),
+    (("책", "도서", "소설", "에세이", "만화", "교재", "잡지", "전집", "문고",
+      "북", "출판", "저자", "리더기", "전자책"), "books"),
 ]
 
 # API category → 대략 slug 힌트 (키워드로 못 잡을 때 폴백)
@@ -55,9 +50,10 @@ _CAT_HINT = {
     "식품·생활": "living",
     "종합쇼핑몰": "living",
     "MD’S PICK": "living",
+    "도서·여행": "books",
 }
-# 제외할 카테고리 (도서·여행 = 사실상 도서, 우리 카테고리 없음)
-_SKIP_CATEGORY = {"도서·여행", "참여", "설치"}
+# 상품이 아닌 앱 설치/가입형만 제외한다.
+_SKIP_CATEGORY = {"참여", "설치"}
 
 
 def _to_int(v) -> int:
@@ -105,6 +101,10 @@ def fetch() -> list[RawDeal]:
         disc = _to_int(p.get("discount_price"))
         normal = _to_int(p.get("normal_price"))
         price = disc if disc > 0 else normal
+        
+        # 배송비 정보 추가
+        shipping = p.get("shipping_charge", "")
+        shipping_fee = 0 if shipping and "무료" in shipping else None
         url = p.get("click_url", "")
         if not price or not url:
             continue
@@ -119,7 +119,8 @@ def fetch() -> list[RawDeal]:
             current_price=price,
             list_price=None,     # 정가 안 믿음 → 실이력으로만 판정
             category_slug=slug,
-            mall_name=_MALL.get(mcode, mcode),
+            mall_name=affiliate.merchant_name(mcode),
+            shipping_fee=shipping_fee,
         ))
 
     malls = sorted({d.mall_name for d in deals})

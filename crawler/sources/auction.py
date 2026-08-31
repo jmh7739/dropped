@@ -31,7 +31,8 @@ class AuctionItem:
     appraisal_price: Optional[int]
     min_bid_price: Optional[int]
     fail_count: int
-    bid_date: Optional[str]    # 'YYYY-MM-DD'
+    bid_start_date: Optional[str]  # 경매 시작일시 'YYYY-MM-DD HH:MM'
+    bid_end_date: Optional[str]    # 경매 종료일시 'YYYY-MM-DD HH:MM'
     detail_url: str
     posted_at: Optional[str]
 
@@ -60,11 +61,12 @@ def _to_int(v) -> Optional[int]:
     return int(s) if s.isdigit() else None
 
 
-def _bid_date(yyyymmddhhmm: Optional[str]) -> Optional[str]:
-    if not yyyymmddhhmm or len(str(yyyymmddhhmm)) < 8:
+def _bid_datetime(yyyymmddhhmm: Optional[str]) -> Optional[str]:
+    """'202608301400' → '2026-08-30 14:00'"""
+    if not yyyymmddhhmm or len(str(yyyymmddhhmm)) < 12:
         return None
     s = str(yyyymmddhhmm)
-    return f"{s[0:4]}-{s[4:6]}-{s[6:8]}"
+    return f"{s[0:4]}-{s[4:6]}-{s[6:8]} {s[8:10]}:{s[10:12]}"
 
 
 def _location(it: dict) -> Optional[str]:
@@ -138,7 +140,8 @@ def fetch() -> list[AuctionItem]:
                     appraisal_price=appraisal,
                     min_bid_price=min_bid,
                     fail_count=_to_int(it.get("usbdNft")) or 0,
-                    bid_date=_bid_date(it.get("cltrBidEndDt")),
+                    bid_start_date=_bid_datetime(it.get("cltrBidBeginDt")),
+                    bid_end_date=_bid_datetime(it.get("cltrBidEndDt")),
                     detail_url=_detail_url(it),
                     posted_at=None,
                 ))

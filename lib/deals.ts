@@ -22,6 +22,7 @@ export const DEAL_SORTS: { key: SortKey; label: string }[] = [
 function rowToDeal(row: any, history: PricePoint[]): Deal {
   return {
     id: row.deal_id,
+    productId: row.product_id,
     platform: row.platform,
     mallName: row.mall_name ?? null,
     shippingFee: row.shipping_fee ?? null,

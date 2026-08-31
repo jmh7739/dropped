@@ -170,6 +170,9 @@ def rollup_old_history() -> None:
 def upsert_flight_deal(item) -> None:
     if config.DRY_RUN:
         return
+    # collected_at은 카드 표시가 아니라 마지막 성공 수집 시각이다.
+    # 이를 갱신해야 flight_fresh_within()이 중복 API 호출을 막는다.
+    from datetime import datetime, timezone
     client().table("flight_deals").upsert(
         {
             "source": item.source,
@@ -183,6 +186,7 @@ def upsert_flight_deal(item) -> None:
             "is_domestic": item.is_domestic,
             "deal_url": item.deal_url,
             "posted_at": item.posted_at,
+            "collected_at": datetime.now(timezone.utc).isoformat(),
         },
         on_conflict="source,external_id",
     ).execute()
@@ -229,7 +233,7 @@ def upsert_auction_deal(item) -> None:
             "appraisal_price": item.appraisal_price,
             "min_bid_price": item.min_bid_price,
             "fail_count": item.fail_count,
-            "bid_date": item.bid_date,
+            "bid_date": item.bid_end_date,   # 입찰마감(종료일)을 기존 bid_date 컬럼에
             "detail_url": item.detail_url,
             "posted_at": item.posted_at,
         },

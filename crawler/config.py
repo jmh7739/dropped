@@ -26,8 +26,21 @@ COUPANG_BEST_LIMIT = 50   # 카테고리당 상위 N개 (콜/쿼터 고려해 �
 ALIEXPRESS_APP_KEY = os.getenv("ALIEXPRESS_APP_KEY", "")
 ALIEXPRESS_APP_SECRET = os.getenv("ALIEXPRESS_APP_SECRET", "")
 ALIEXPRESS_TRACKING_ID = os.getenv("ALIEXPRESS_TRACKING_ID", "")
-ALIEXPRESS_PAGES = 4       # 키워드당 페이지 수(페이지당 50) — 후보풀 확대
-# 전략: '인기 상품'을 넓게 추적(가격이력 수집)하고, 노출은 '진짜 급락'만.
+ALIEXPRESS_PAGES = 2       # 선택된 키워드당 페이지 수(페이지당 50)
+# 발견용 키워드는 시간별로 순환한다. 217개 전부를 매시간 호출하지 않아
+# API 쿼터를 지키면서도 한 사이클(약 9시간)마다 모든 키워드를 다시 확인한다.
+ALIEXPRESS_DISCOVERY_KEYWORDS_PER_RUN = 100
+# API의 고정 추천 테마. 한국 배송 가능 상품만 받아 안정적인 가격추적 풀을 만든다.
+ALIEXPRESS_FEATURED_PROMOS = [
+    "DS_ConsumerElectronics_bestsellers",
+    "DS_Home&Kitchen_bestsellers",
+    "DS_Beauty_bestsellers",
+    "DS_Sports&Outdoors_bestsellers",
+]
+ALIEXPRESS_PROMO_PAGES = 1
+ALIEXPRESS_MIN_EVALUATE_RATE = 90.0  # 평점 응답이 있는 상품은 90% 미만 제외
+ALIEXPRESS_MAX_DELIVERY_DAYS = 10
+# 전략: 공식 캠페인/베스트셀러를 우선 추적하고, 순환 키워드로 후보를 확장한다.
 ALIEXPRESS_MIN_VOLUME = 50     # 최소 판매량(잡템만 제외) — 추적 풀 넓힘
 # 식품/건강은 원래 판매량이 낮음(가전 기준 적용하면 다 잘림) → 낮은 기준
 ALIEXPRESS_MIN_VOLUME_FOOD = 10
@@ -87,7 +100,9 @@ ALIEXPRESS_KEYWORDS_BY_CAT = {
 }
 
 # ── 링크프라이스(CPS: G마켓·11번가·위메프 등 국내몰 통합 제휴) ──
-LINKPRICE_AFFILIATE_ID = os.getenv("LINKPRICE_AFFILIATE_ID", "")
+LINKPRICE_AFFILIATE_ID = os.getenv("LINKPRICE_AFFILIATE_ID", "A100707159")
+# auth_key는 비밀값(실적조회용) → 하드코딩 금지. 공개 레포 유출 방지 위해 env로만.
+LINKPRICE_AUTH_KEY = os.getenv("LINKPRICE_AUTH_KEY", "")
 
 # ── 네이버 쇼핑 검색 API (후보 발굴용, 커넥트 프로그램 키) ──────
 NAVER_CLIENT_ID = os.getenv("NAVER_CLIENT_ID", "")
@@ -137,15 +152,11 @@ BASELINE_METHOD = "median"      # "median" | "mean"  (중앙값이 스파이크�
 
 # 신뢰 우선: 확정 딜로 노출하려면 최소 이력이 있어야 함.
 # 이력이 부족하면 '관찰중'으로 두고 가격만 계속 수집(정가 대비로는 확정 안 함).
-MIN_HISTORY_POINTS = 6          # 최소 수집 횟수
-MIN_HISTORY_DAYS = 3            # 최소 관찰 기간(일). 둘 다 충족해야 확정
-
-MIN_DISCOUNT = 0.20             # 평소가 대비: 이 이상 하락해야 딜 (20%)
-# 알리 전용 '잠정' 노출 밴드(정가 대비). 뻥튀기 정가를 감안해 '아주 깊은' 할인만.
-#   하한: 이 이상이어야 노출 / 상한: 이보다 깊으면 오류·사기성 의심으로 컷.
-# 잠정 노출은 '아주 깊은' 할인만(콜드스타트용). 이력 쌓이면 평균가 대비로 승격.
-PROVISIONAL_MIN_DISCOUNT = 0.50 # 정가 대비 50%+ 만 잠정 노출 (진짜 핫딜만)
-PROVISIONAL_MAX_DISCOUNT = 0.85 # 정가 대비 85% 초과는 컷(오류/미끼 방지)
+# 실제 가격이력 대비로만 판정(정가 안 믿음). 백그라운드는 계속 수집, 노출은 '정말 싼 것'만.
+MIN_HISTORY_POINTS = 6          # 최소 수집 횟수 (1시간 크론 → 약 6시간이면 충족)
+MIN_HISTORY_DAYS = 1            # 최소 관찰 기간(일) — 최소 하루는 지켜봐야 '평소가'가 믿을 만
+MIN_DISCOUNT = 0.05             # 평소가 대비 5%+ 하락하면 노출 ('어느정도 싸진 것'부터)
+MIN_PRICE = 1000               # 이 미만은 수집오류로 간주하고 컷
 MIN_PRICE = 1000               # 이 미만은 수집오류로 간주하고 컷
 ERROR_SUSPECT_DISCOUNT = 0.70   # 70~90% → 가격오류 "의심" 뱃지
 ERROR_HARD_CUT_DISCOUNT = 0.90  # 90% 초과 → 자동 노출 보류 (버그 확률↑)

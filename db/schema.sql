@@ -54,8 +54,8 @@ create table if not exists hot_deals (
   current_price    bigint not null,
   list_price       bigint,            -- 정가(스냅샷)
   baseline_price   bigint,            -- 평소 기준가(30일 평균/중앙값)
-  discount_vs_list numeric(5,2),      -- 정가 대비 하락률 %
-  discount_vs_avg  numeric(5,2),      -- 평균 대비 하락률 %
+  discount_vs_list numeric(8,2),      -- 정가 대비 하락률 % (확장: 5,2 → 8,2)
+  discount_vs_avg  numeric(8,2),      -- 평균 대비 하락률 % (확장: 5,2 → 8,2)
   is_lowest_ever   boolean not null default false,  -- 역대 최저가 여부
   is_price_error   boolean not null default false,  -- 가격오류 의심 플래그
   status           text not null default 'active'
@@ -124,6 +124,7 @@ insert into categories (name, slug, deal_type, sort_order) values
   ('육아/유아',     'baby',      'shopping', 90),
   ('스포츠/레저',   'sports',    'shopping', 100),
   ('상품권/쿠폰',   'voucher',   'shopping', 110),
+  ('도서/콘텐츠',   'books',     'shopping', 115),
   ('해외직구',      'overseas',  'shopping', 120),
   ('항공권 특가',   'flight',    'flight',   200),
   ('경매 특가',     'auction',   'auction',  300)

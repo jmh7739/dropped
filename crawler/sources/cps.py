@@ -16,11 +16,12 @@ from __future__ import annotations
 import requests
 
 import config
+import affiliate
 from .base import RawDeal
 
 API = "https://api.linkprice.com/ci/product/data/{aid}"
 
-# list_ 카테고리 → 우리 slug (recommend는 혼합이라 생활로 일반화, book은 제외)
+# list_ 카테고리 → 우리 slug (recommend는 혼합이라 생활로 일반화)
 _CAT_SLUG = {
     "list_recommend": "living",
     "list_fashion": "fashion",
@@ -28,15 +29,7 @@ _CAT_SLUG = {
     "list_digital": "digital",
     "list_beauty": "beauty",
     "list_baby": "baby",
-    # list_book 등 우리에 없는 카테고리는 매핑 안 함 → 건너뜀
-}
-
-# 머천트 코드 → 표시용 한글명
-_MALL = {
-    "11st": "11번가", "gmarket": "G마켓", "auction": "옥션", "lotteon": "롯데온",
-    "emart": "이마트", "yes24": "예스24", "gongyoung": "공영홈쇼핑",
-    "hmall": "Hmall", "nsmall": "NS홈쇼핑", "lotteimall": "롯데홈쇼핑",
-    "ssg": "SSG", "gsshop": "GS SHOP",
+    "list_book": "books",
 }
 
 
@@ -72,7 +65,7 @@ def fetch() -> list[RawDeal]:
         for mcode, items in merchants.items():
             if not isinstance(items, list):
                 continue
-            mall = _MALL.get(mcode, mcode)
+            mall = affiliate.merchant_name(mcode)
             for p in items:
                 price = _to_int(p.get("p_price"))
                 url = p.get("target_url", "")

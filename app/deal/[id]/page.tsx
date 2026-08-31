@@ -133,10 +133,10 @@ export default async function DealDetail({
           </div>
 
           <div className="mt-4 flex items-center gap-2">
-            <LikeButton productId={deal.id} initialCount={deal.likeCount} />
+            <LikeButton productId={deal.productId} initialCount={deal.likeCount} />
             <ShareButton path={`/deal/${deal.id}`} title={deal.title} compact />
             <div className="flex-1">
-              <BuyButton productId={deal.id} href={deal.affiliateUrl}>
+              <BuyButton productId={deal.productId} href={deal.affiliateUrl}>
                 최저가로 사러 가기 →
               </BuyButton>
             </div>

@@ -82,7 +82,7 @@ export default function DealCard({
         </Link>
         <div className="flex flex-shrink-0 flex-col items-stretch gap-1.5">
           <div className="flex gap-1.5">
-            <LikeButton productId={deal.id} initialCount={deal.likeCount} size="sm" />
+            <LikeButton productId={deal.productId} initialCount={deal.likeCount} size="sm" />
             <ShareButton path={`/deal/${deal.id}`} title={deal.title} compact />
           </div>
           {ended ? (
@@ -90,7 +90,7 @@ export default function DealCard({
               종료됨
             </span>
           ) : (
-            <BuyButton productId={deal.id} href={deal.affiliateUrl} compact>
+            <BuyButton productId={deal.productId} href={deal.affiliateUrl} compact>
               구매 →
             </BuyButton>
           )}
@@ -170,7 +170,7 @@ export default function DealCard({
       {/* 액션 행: 좋아요 + 바로구매 (상세 링크와 분리) */}
       <div className="flex items-center gap-2 px-3 pb-3">
         <LikeButton
-          productId={deal.id}
+          productId={deal.productId}
           initialCount={deal.likeCount}
           size="sm"
         />
@@ -181,7 +181,7 @@ export default function DealCard({
               종료됨
             </span>
           ) : (
-            <BuyButton productId={deal.id} href={deal.affiliateUrl} compact>
+            <BuyButton productId={deal.productId} href={deal.affiliateUrl} compact>
               바로구매 →
             </BuyButton>
           )}

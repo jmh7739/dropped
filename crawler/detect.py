@@ -50,12 +50,12 @@ def classify(
     # 정가 대비 — 표시(참고)용으로만 계산. 판정엔 안 씀.
     discount_vs_list = None
     if list_price and list_price > 0:
-        discount_vs_list = round((list_price - current_price) / list_price * 100, 2)
+        discount_vs_list = min(round((list_price - current_price) / list_price * 100, 2), 999999.99)
 
     baseline = compute_baseline(history_prices)
     discount_vs_avg = None
     if baseline and baseline > 0:
-        discount_vs_avg = round((baseline - current_price) / baseline * 100, 2)
+        discount_vs_avg = min(round((baseline - current_price) / baseline * 100, 2), 999999.99)
 
     is_lowest = bool(history_prices) and current_price <= min(history_prices)
     n = len(history_prices)
@@ -86,7 +86,7 @@ def classify(
 
     # ── 이력 부족: 노출 안 함(관찰중). 정가(list_price)는 뻥튀기라 안 믿음 ──
     #   가격만 계속 수집 → 이력 충분해지면 위에서 '평소 실제가 대비'로만 판정.
-    #   (예전 '알리 잠정노출'은 거짓정가 기반이라 제거함 — 진짜 가격추적만 신뢰)
+    #   (거짓정가 기반 '잠정 노출'은 제거함 — 진짜 급락만 노출)
     return DealVerdict(
         False, baseline, discount_vs_avg, discount_vs_list, is_lowest, False,
         f"관찰중(이력 {n}회/{history_days:.1f}일 — 평소가 쌓는 중)")

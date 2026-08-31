@@ -18,6 +18,8 @@ export interface PricePoint {
 
 export interface Deal {
   id: number;
+  /** hot_deals.id와 별개인 products.id. 반응(좋아요/클릭)은 이 값을 사용한다. */
+  productId: number;
   platform: Platform;
   mallName: string | null; // 표시용 쇼핑몰명 (G마켓 등). 없으면 platform 라벨 사용
   shippingFee: number | null; // 배송비 (0=무료, null=정보없음)
@@ -56,6 +58,7 @@ export const CATEGORIES: Category[] = [
   { name: "육아/유아", slug: "baby", dealType: "shopping" },
   { name: "스포츠/레저", slug: "sports", dealType: "shopping" },
   { name: "상품권/쿠폰", slug: "voucher", dealType: "shopping" },
+  { name: "도서/콘텐츠", slug: "books", dealType: "shopping" },
   { name: "여행", slug: "flight", dealType: "flight" },
   { name: "경매 특가", slug: "auction", dealType: "auction" },
 ];

@@ -16,7 +16,8 @@ create table if not exists auction_deals (
   appraisal_price  bigint,                   -- 감정가
   min_bid_price    bigint,                   -- 최저입찰가
   fail_count       int default 0,            -- 유찰 횟수
-  bid_date         date,                     -- 입찰기일
+  bid_start_date   timestamptz,              -- 경매 시작일시
+  bid_end_date     timestamptz,              -- 경매 종료일시
   detail_url       text,                     -- 상세(법원경매정보) 링크
   posted_at        timestamptz,
   collected_at     timestamptz not null default now(),
