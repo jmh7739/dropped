@@ -6,6 +6,7 @@ import SortTabs from "@/components/SortTabs";
 import TravelView, { TravelTab } from "@/components/TravelView";
 import AuctionView from "@/components/AuctionView";
 import GoldboxSection from "@/components/GoldboxSection";
+import CuratedSection from "@/components/CuratedSection";
 import GoldboxBanner from "@/components/GoldboxBanner";
 import TopDrops from "@/components/TopDrops";
 import SearchBar from "@/components/SearchBar";
@@ -31,6 +32,7 @@ export default async function Home({
     ac?: string;
     as?: string;
     q?: string;
+    he?: string;
     page?: string;
   };
 }) {
@@ -51,6 +53,7 @@ export default async function Home({
     ? (searchParams.sort as SortKey)
     : "discount";
   const hot = searchParams.hot === "1";
+  const hideEnded = searchParams.he === "1";
   const q = (searchParams.q ?? "").slice(0, 100);
   const page = Math.max(1, parseInt(searchParams.page ?? "1", 10) || 1);
   const activeCat = CATEGORIES.find((c) => c.slug === category);
@@ -107,7 +110,9 @@ export default async function Home({
   }
 
   // ── 쇼핑 딜 ──
-  const allDeals = await getDeals({ category, sort, hotOnly: hot, q });
+  const fetched = await getDeals({ category, sort, hotOnly: hot, q });
+  // '종료딜 숨기기' 체크 시 종료된 딜 제외
+  const allDeals = hideEnded ? fetched.filter((d) => d.status !== "ended") : fetched;
   const totalPages = Math.max(1, Math.ceil(allDeals.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
   const deals = allDeals.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
@@ -154,7 +159,7 @@ export default async function Home({
             {activeCount}개
           </span>
         </h1>
-        <SortTabs category={category} sort={sort} hot={hot} q={q} />
+        <SortTabs category={category} sort={sort} hot={hot} q={q} hideEnded={hideEnded} />
       </div>
 
       <div className="mb-4">
@@ -171,12 +176,13 @@ export default async function Home({
           <Pagination
             page={safePage}
             totalPages={totalPages}
-            base={{ category, sort, hot, q }}
+            base={{ category, sort, hot, q, ...(hideEnded ? { he: "1" } : {}) }}
           />
         </>
       )}
 
-      {/* 쿠팡 골드박스(수동 등록분) 섹션은 하단 유지 */}
+      {/* 국내몰 추천 특가(리얼핫딜 MD 큐레이션) + 쿠팡 골드박스는 하단 유지 */}
+      {isDefaultHome && <CuratedSection />}
       {isDefaultHome && <GoldboxSection />}
     </div>
   );
