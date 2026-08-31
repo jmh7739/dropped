@@ -23,7 +23,25 @@ export default async function CuratedSection({
 }) {
   const all = await getCuratedDeals(cs);
   if (all.length === 0) return null; // 추천 특가가 아예 없으면 섹션 숨김
-  const deals = cc ? all.filter((d) => d.categorySlug === cc) : all;
+  let deals = cc ? all.filter((d) => d.categorySlug === cc) : all;
+
+  // 딜 신호(특가·할인·1+1 등) 있는 것 우선 — 기본(인기순)일 때만 재배치
+  if (cs === "popular") {
+    const sig = (t: string) =>
+      /특가|할인|세일|1\+1|증정|한정|기획전|단독|무료배송|초특가|최저가|사은품/.test(t);
+    deals = [...deals.filter((d) => sig(d.title)), ...deals.filter((d) => !sig(d.title))];
+  }
+
+  // 전체 보기: 한 카테고리가 도배하지 않게 카테고리당 상한(12개)
+  if (!cc) {
+    const perCat = new Map<string, number>();
+    deals = deals.filter((d) => {
+      const n = perCat.get(d.categorySlug) ?? 0;
+      if (n >= 12) return false;
+      perCat.set(d.categorySlug, n + 1);
+      return true;
+    });
+  }
 
   return (
     <section className="mt-10">
