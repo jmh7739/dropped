@@ -1,7 +1,7 @@
 import { getDeals, SortKey } from "@/lib/deals";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import DealGrid from "@/components/DealGrid";
-import CategoryTabs from "@/components/CategoryTabs";
+import SortDropdown from "@/components/SortDropdown";
 import SortTabs from "@/components/SortTabs";
 import TravelView, { TravelTab } from "@/components/TravelView";
 import AuctionView from "@/components/AuctionView";
@@ -34,6 +34,8 @@ export default async function Home({
     as?: string;
     q?: string;
     se?: string;
+    cc?: string; // 국내몰 추천 특가 카테고리 (독립)
+    cs?: string; // 국내몰 추천 특가 정렬 (독립)
     page?: string;
   };
 }) {
@@ -56,6 +58,11 @@ export default async function Home({
   const hot = searchParams.hot === "1";
   const showEnded = searchParams.se === "1"; // 기본은 종료딜 숨김
   const q = (searchParams.q ?? "").slice(0, 100);
+  // 국내몰 추천 특가(하단) 독립 카테고리·정렬
+  const cc = validSlugs.has(searchParams.cc ?? "") ? searchParams.cc : undefined;
+  const cs: SortKey = validDealSorts.includes(searchParams.cs as SortKey)
+    ? (searchParams.cs as SortKey)
+    : "popular";
   const page = Math.max(1, parseInt(searchParams.page ?? "1", 10) || 1);
   const activeCat = CATEGORIES.find((c) => c.slug === category);
   const isFlight = activeCat?.dealType === "flight";
@@ -140,6 +147,24 @@ export default async function Home({
         ? activeCat.name
         : "🔥 오늘의 급락 특가";
 
+  // 드롭다운이 유지할 현재 전체 쿼리(각 드롭다운은 자기 param만 덮어씀 → 위/아래 독립)
+  const allParams: Record<string, string> = {};
+  if (category) allParams.category = category;
+  if (sort !== "discount") allParams.sort = sort;
+  if (hot) allParams.hot = "1";
+  if (q) allParams.q = q;
+  if (showEnded) allParams.se = "1";
+  if (cc) allParams.cc = cc;
+  if (cs !== "popular") allParams.cs = cs;
+  // 상단 카테고리 드롭다운 옵션 (전체 + 쇼핑 카테고리)
+  const catOptions = [
+    { key: "", label: "전체 카테고리" },
+    ...CATEGORIES.filter((c) => c.dealType === "shopping").map((c) => ({
+      key: c.slug,
+      label: c.name,
+    })),
+  ];
+
   return (
     <div>
       {demoBanner}
@@ -160,11 +185,23 @@ export default async function Home({
             {activeCount}개
           </span>
         </h1>
-        <SortTabs category={category} sort={sort} hot={hot} q={q} showEnded={showEnded} />
-      </div>
-
-      <div className="mb-4">
-        <CategoryTabs active={category} sort={sort} hot={hot} q={q} showEnded={showEnded} />
+        <div className="flex flex-wrap items-center gap-2">
+          <SortDropdown
+            options={catOptions}
+            value={category ?? ""}
+            param="category"
+            params={allParams}
+          />
+          <SortTabs
+            category={category}
+            sort={sort}
+            hot={hot}
+            q={q}
+            showEnded={showEnded}
+            cc={cc}
+            cs={cs}
+          />
+        </div>
       </div>
 
       {deals.length === 0 ? (
@@ -182,8 +219,10 @@ export default async function Home({
         </>
       )}
 
-      {/* 국내몰 추천 특가: 홈·카테고리에서 표시(선택 카테고리로 필터). 검색·인기딜만 제외 */}
-      {!q && !hot && <CuratedSection category={category} sort={sort} />}
+      {/* 국내몰 추천 특가: 상단과 독립된 카테고리(cc)·정렬(cs) 드롭다운. 검색·인기딜만 제외 */}
+      {!q && !hot && (
+        <CuratedSection cc={cc} cs={cs} catOptions={catOptions} params={allParams} />
+      )}
       {isDefaultHome && <GoldboxSection />}
     </div>
   );

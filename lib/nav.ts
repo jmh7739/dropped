@@ -6,6 +6,8 @@ export function homeHref(params: {
   q?: string;
   page?: number;
   showEnded?: boolean; // 기본은 종료딜 숨김 → 켤 때만 se=1
+  cc?: string; // 하단 국내몰 추천 카테고리 (독립 유지)
+  cs?: string; // 하단 국내몰 추천 정렬 (독립 유지)
 }): string {
   const sp = new URLSearchParams();
   if (params.category) sp.set("category", params.category);
@@ -13,6 +15,8 @@ export function homeHref(params: {
   if (params.hot) sp.set("hot", "1");
   if (params.q) sp.set("q", params.q);
   if (params.showEnded) sp.set("se", "1");
+  if (params.cc) sp.set("cc", params.cc);
+  if (params.cs && params.cs !== "popular") sp.set("cs", params.cs);
   if (params.page && params.page > 1) sp.set("page", String(params.page));
   const q = sp.toString();
   return q ? `/?${q}` : "/";

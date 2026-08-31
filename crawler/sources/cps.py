@@ -21,7 +21,7 @@ from .base import RawDeal
 
 API = "https://api.linkprice.com/ci/product/data/{aid}"
 
-# list_ 카테고리 → 우리 slug (recommend는 혼합이라 생활로 일반화)
+# list_ 카테고리 → 우리 slug (recommend는 혼합이라 상품명으로 재분류)
 _CAT_SLUG = {
     "list_recommend": "living",
     "list_fashion": "fashion",
@@ -31,6 +31,38 @@ _CAT_SLUG = {
     "list_baby": "baby",
     "list_book": "books",
 }
+
+# 상품명 키워드 → 우리 slug (위에서부터 우선). recommend 혼합 목록을 실제 카테고리로.
+_KW_SLUG = [
+    (("기저귀", "분유", "물티슈", "유아", "아기", "젖병", "치발기", "베베", "키즈", "아동"), "baby"),
+    (("비타민", "홍삼", "영양제", "유산균", "콜라겐", "프로틴", "오메가", "루테인",
+      "마그네슘", "밀크씨슬", "글루코사민", "프로폴리스"), "health"),
+    (("노트북", "마우스", "키보드", "모니터", "ssd", "usb", "그래픽카드", "rtx",
+      "cpu", "조립pc", "게이밍pc", "공유기", "웹캠", "ram", "메모리"), "digital"),
+    (("갤럭시", "아이폰", "버즈", "케이스", "보조배터리", "태블릿", "아이패드", "충전기"), "mobile"),
+    (("냉장고", "세탁기", "청소기", "에어프라이어", "가습기", "선풍기", "드라이어",
+      "면도기", "에어컨", "정수기", "밥솥", "인덕션", "건조기", "tv", "티비", "모니터암"), "appliance"),
+    (("셔츠", "팬츠", "니트", "코트", "원피스", "운동화", "신발", "슬리퍼", "백팩",
+      "가방", "지갑", "양말", "속옷", "언더웨어", "브라", "드로즈", "맨투맨", "후드",
+      "청바지", "자켓", "패딩", "레깅스", "에코백", "모자", "벨트"), "fashion"),
+    (("스킨", "로션", "크림", "세럼", "에센스", "마스크팩", "선크림", "쿠션", "립",
+      "향수", "샴푸", "클렌징", "파운데이션", "틴트", "미스트", "앰플", "토너"), "beauty"),
+    (("캠핑", "텐트", "등산", "자전거", "골프", "요가", "덤벨", "낚시", "헬스", "런닝", "트레킹"), "sports"),
+    (("멸치", "오징어", "쌀", "김치", "라면", "과자", "견과", "커피", "육포", "어묵",
+      "떡", "반찬", "갈비", "고기", "햄", "소시지", "우유", "음료", "콜라", "버거",
+      "치킨", "피자", "도넛", "던킨", "빵", "초콜릿", "젤리", "사탕", "젓갈", "명란",
+      "꿀", "즙", "차 ", "티백", "생수", "간식", "찜", "탕", "국", "건어물", "황태", "쥐포", "곱창"), "food"),
+    (("사료", "고양이", "강아지", "반려", "애견", "캐츠", "세제", "휴지", "청소",
+      "수납", "주방", "냄비", "프라이팬", "세탁", "건조대", "정리", "밀폐", "텀블러", "그릇"), "living"),
+]
+
+
+def _slug_by_name(name: str) -> str | None:
+    lower = name.lower()
+    for kws, slug in _KW_SLUG:
+        if any(kw.lower() in lower for kw in kws):
+            return slug
+    return None
 
 
 def _to_int(v) -> int:
@@ -73,6 +105,8 @@ def fetch() -> list[RawDeal]:
                     continue
                 name = p.get("p_name", "")
                 img = p.get("img_url", "")
+                # recommend 혼합 목록은 상품명으로 실제 카테고리 판정(전부 생활 방지)
+                item_slug = _slug_by_name(name) or slug or "living"
                 # 국내몰 상품 API(11번가 등)는 실제 상품사진을 줌 → MD추천 후보로.
                 #   품질: 이미지·이름 있고 5천원 이상 (잡템·빈값 제외)
                 curated = bool(img) and len(name) >= 4 and price >= 5000
@@ -85,7 +119,7 @@ def fetch() -> list[RawDeal]:
                     affiliate_url=url,   # 이미 우리 제휴ID 포함
                     current_price=price,
                     list_price=None,     # 정가 없음 → 이력으로 판정
-                    category_slug=slug,
+                    category_slug=item_slug,
                     mall_name=mall,
                     curated=curated,
                 ))

@@ -9,12 +9,16 @@ export default function SortTabs({
   hot,
   q,
   showEnded,
+  cc,
+  cs,
 }: {
   category?: string;
   sort: string;
   hot: boolean;
   q?: string;
   showEnded: boolean;
+  cc?: string;
+  cs?: string;
 }) {
   // 정렬 드롭다운이 유지할 다른 쿼리 (page는 1로 리셋 → 생략)
   const keep: Record<string, string> = {};
@@ -22,12 +26,14 @@ export default function SortTabs({
   if (hot) keep.hot = "1";
   if (q) keep.q = q;
   if (showEnded) keep.se = "1";
+  if (cc) keep.cc = cc;
+  if (cs && cs !== "popular") keep.cs = cs;
 
   return (
     <div className="flex items-center gap-2">
       {/* 인기딜만 필터 토글 */}
       <Link
-        href={homeHref({ category, sort, hot: !hot, q, showEnded })}
+        href={homeHref({ category, sort, hot: !hot, q, showEnded, cc, cs })}
         className={`flex-shrink-0 rounded-full px-2.5 py-1.5 text-xs font-bold transition ${
           hot
             ? "bg-brand text-white"
@@ -38,7 +44,7 @@ export default function SortTabs({
       </Link>
       {/* 종료딜 숨기기 토글 (기본 ON) */}
       <Link
-        href={homeHref({ category, sort, hot, q, showEnded: !showEnded })}
+        href={homeHref({ category, sort, hot, q, showEnded: !showEnded, cc, cs })}
         className={`flex-shrink-0 rounded-full px-2.5 py-1.5 text-xs font-bold transition ${
           !showEnded
             ? "bg-brand text-white"
