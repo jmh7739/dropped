@@ -29,7 +29,9 @@ ALIEXPRESS_TRACKING_ID = os.getenv("ALIEXPRESS_TRACKING_ID", "")
 ALIEXPRESS_PAGES = 2       # 선택된 키워드당 페이지 수(페이지당 50)
 # 발견용 키워드는 시간별로 순환한다. 217개 전부를 매시간 호출하지 않아
 # API 쿼터를 지키면서도 한 사이클(약 9시간)마다 모든 키워드를 다시 확인한다.
-ALIEXPRESS_DISCOVERY_KEYWORDS_PER_RUN = 100
+# 전체 키워드를 매 실행 스캔(로테이션 사실상 해제) → 지금 싼 것을 최대한 많이 포착.
+#   공개 레포라 GitHub Actions 무제한, 알리 쿼터도 여유. 1회 ~15분(1시간 크론 내).
+ALIEXPRESS_DISCOVERY_KEYWORDS_PER_RUN = 250
 # API의 고정 추천 테마. 한국 배송 가능 상품만 받아 안정적인 가격추적 풀을 만든다.
 ALIEXPRESS_FEATURED_PROMOS = [
     "DS_ConsumerElectronics_bestsellers",
