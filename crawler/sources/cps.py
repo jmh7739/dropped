@@ -107,13 +107,8 @@ def fetch() -> list[RawDeal]:
                 img = p.get("img_url", "")
                 # recommend 혼합 목록은 상품명으로 실제 카테고리 판정(전부 생활 방지)
                 item_slug = _slug_by_name(name) or slug or "living"
-                # MD추천 후보(괜찮은 것만): 이미지 O + 한글 이름(코드성 제외)
-                #   + 8천원 이상 + 도서 제외. 잡템 컷.
-                has_korean = any("가" <= ch <= "힣" for ch in name)
-                curated = (
-                    bool(img) and has_korean and price >= 8000
-                    and item_slug != "books"
-                )
+                # 추천 특가는 popular 소스(할인율 있는 것)가 담당 → cps는 추적 풀만.
+                curated = False
                 deals.append(RawDeal(
                     platform="cps",
                     external_product_id=str(p.get("p_code")),

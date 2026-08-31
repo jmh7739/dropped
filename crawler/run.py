@@ -24,9 +24,9 @@ import indexnow
 # 네이버 검색 API는 신규 앱에 권한 부여가 막혀(정책) 제외. sources/naver.py는
 # 남겨둠 — 향후 접근 가능해지면 아래 SOURCES에 다시 넣으면 됨.
 # linkprice_products는 cps와 같은 /ci/product/data API라 중복 → cps만 사용
-from sources import coupang, aliexpress, cps, hotdeal, flights, auction
+from sources import coupang, aliexpress, cps, hotdeal, popular, flights, auction
 
-SOURCES = [coupang, aliexpress, cps, hotdeal]
+SOURCES = [coupang, aliexpress, cps, hotdeal, popular]
 
 
 def collect_and_flag() -> tuple[int, int, set[int]]:
@@ -73,13 +73,19 @@ def collect_and_flag() -> tuple[int, int, set[int]]:
                 flagged += 1
                 flagged_ids.add(product_id)
             elif raw.curated:
-                # 국내몰 MD 추천 특가: 가격추적 급락은 아니지만 큐레이션으로 노출.
+                # 국내몰 추천 특가: 제휴사 실판매가 기준 할인(원가→할인가).
                 #   baseline_price=None 이 '추천딜' 마커(프론트가 급락딜과 분리).
+                #   list_price(원가) 있으면 할인율 표시 (거짓정가 아님 — 국내몰 실판매가).
+                dvl = None
+                if raw.list_price and raw.list_price > raw.current_price:
+                    dvl = round(
+                        (raw.list_price - raw.current_price) / raw.list_price * 100, 2
+                    )
                 db.upsert_active_deal(product_id, {
                     "current_price": raw.current_price,
-                    "list_price": None,
+                    "list_price": raw.list_price,
                     "baseline_price": None,
-                    "discount_vs_list": None,
+                    "discount_vs_list": dvl,
                     "discount_vs_avg": None,
                     "is_lowest_ever": False,
                     "is_price_error": False,

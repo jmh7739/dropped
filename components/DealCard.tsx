@@ -25,7 +25,23 @@ export default function DealCard({
   const saving = (deal.baselinePrice || deal.listPrice) - deal.currentPrice;
   const ended = deal.status === "ended";
   const isCurated = deal.isCurated;
-  // 국내몰 큐레이션: 할인율 뱃지 없음(원가 정보 없어 % 못 매김), 취소선 가격 숨김
+  // 국내몰 추천: 제휴사 실판매가 기준 할인(원가→할인가). 있으면 할인율·원가 표시.
+  const curatedDisc =
+    isCurated && deal.listPrice > deal.currentPrice
+      ? Math.round(((deal.listPrice - deal.currentPrice) / deal.listPrice) * 100)
+      : 0;
+  const curatedBadge =
+    curatedDisc > 0 ? (
+      <span className="rounded-md bg-brand px-1.5 py-0.5 text-[11px] font-bold text-white">
+        🔻{curatedDisc}%
+      </span>
+    ) : null;
+  // 취소선 표시 가격: 큐레이션은 원가, 급락딜은 평소가
+  const strikePrice = isCurated
+    ? curatedDisc > 0
+      ? deal.listPrice
+      : 0
+    : deal.baselinePrice || deal.listPrice;
 
   // ── 리스트형: 한 줄에 조밀하게 (한 화면에 더 많이) ──
   if (variant === "list") {
@@ -48,7 +64,7 @@ export default function DealCard({
           </div>
           <div className="min-w-0 flex-1">
             <div className="mb-0.5 flex flex-wrap items-center gap-1.5 text-[11px] text-gray-400">
-              {isCurated ? null : <DiscountBadge rate={rate} basis={basis} />}
+              {isCurated ? curatedBadge : <DiscountBadge rate={rate} basis={basis} />}
               <span className="rounded bg-gray-100 px-1.5 py-0.5 text-gray-600">
                 {mallLabel(deal)}
               </span>
@@ -66,9 +82,9 @@ export default function DealCard({
               <span className="text-base font-extrabold text-brand">
                 {formatWon(deal.currentPrice)}
               </span>
-              {!isCurated && (
+              {strikePrice > deal.currentPrice && (
                 <span className="text-[11px] text-gray-400 line-through">
-                  {formatWon(deal.baselinePrice || deal.listPrice)}
+                  {formatWon(strikePrice)}
                 </span>
               )}
               {saving > 0 && (
@@ -127,7 +143,7 @@ export default function DealCard({
             </div>
           )}
           <div className="absolute left-2 top-2 flex flex-col items-start gap-1">
-            {isCurated ? null : <DiscountBadge rate={rate} basis={basis} />}
+            {isCurated ? curatedBadge : <DiscountBadge rate={rate} basis={basis} />}
             {!isCurated && provisional && <ProvisionalBadge />}
             {deal.isLowestEver && <LowestEverBadge />}
             {deal.isPriceError && <PriceErrorBadge />}
@@ -151,9 +167,9 @@ export default function DealCard({
           </h3>
 
           <div className="mt-auto pt-1">
-            {!isCurated && (
+            {strikePrice > deal.currentPrice && (
               <div className="text-xs text-gray-400 line-through">
-                {formatWon(deal.baselinePrice || deal.listPrice)}
+                {formatWon(strikePrice)}
               </div>
             )}
             <div className="flex items-baseline gap-1">

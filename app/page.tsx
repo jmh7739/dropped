@@ -62,7 +62,7 @@ export default async function Home({
   const cc = validSlugs.has(searchParams.cc ?? "") ? searchParams.cc : undefined;
   const cs: SortKey = validDealSorts.includes(searchParams.cs as SortKey)
     ? (searchParams.cs as SortKey)
-    : "popular";
+    : "discount";
   const page = Math.max(1, parseInt(searchParams.page ?? "1", 10) || 1);
   const activeCat = CATEGORIES.find((c) => c.slug === category);
   const isFlight = activeCat?.dealType === "flight";

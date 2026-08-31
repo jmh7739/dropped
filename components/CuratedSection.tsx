@@ -4,6 +4,7 @@ import SortDropdown from "./SortDropdown";
 
 // 국내몰 추천 특가 — 상단 급락딜과 독립된 카테고리(cc)·정렬(cs) 드롭다운.
 const CURATED_SORTS = [
+  { key: "discount", label: "할인률 높은순" },
   { key: "popular", label: "인기순" },
   { key: "price_asc", label: "가격 낮은순" },
   { key: "price_desc", label: "가격 높은순" },
@@ -12,7 +13,7 @@ const CURATED_SORTS = [
 
 export default async function CuratedSection({
   cc,
-  cs = "popular",
+  cs = "discount",
   catOptions,
   params,
 }: {

@@ -57,6 +57,11 @@ MERCHANTS = {
 MERCHANT_NAMES = {
     merchant: name for name, merchant in MERCHANTS.values()
 }
+# 인기상품(popularProducts) 피드의 머천트 코드 → 표시명 보강
+MERCHANT_NAMES.update({
+    "halfclub1": "하프클럽", "ohouse": "오늘의집", "lotteon": "롯데온",
+    "gmarket": "G마켓", "himart": "하이마트", "11st": "11번가",
+})
 
 
 def detect_mall(url: str) -> tuple[str, str] | None:
