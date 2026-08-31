@@ -11,7 +11,7 @@ export function StatusBadge({
   const { label, cls } = dealStatus(rate, isLowestEver);
   return (
     <span
-      className={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[11px] font-bold ${cls}`}
+      className={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[11px] font-bold shadow-sm ring-1 ring-white/70 ${cls}`}
     >
       {label}
     </span>

@@ -68,5 +68,5 @@ export function dealStatus(
     return { label: "🏆 최근 최저가", cls: "bg-amber-400 text-amber-950" };
   if (rate >= 8)
     return { label: `🟢 좋은 가격 ${Math.round(rate)}%`, cls: "bg-emerald-600 text-white" };
-  return { label: `📉 ${Math.round(rate)}%↓`, cls: "bg-brand/10 text-brand" };
+  return { label: `📉 ${Math.round(rate)}%↓`, cls: "bg-slate-800 text-white" };
 }
