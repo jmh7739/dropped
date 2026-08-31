@@ -127,7 +127,7 @@ export default async function AuctionView({
                 <div className="mt-auto flex flex-wrap items-center gap-x-2 gap-y-1 pt-1 text-[11px] text-gray-400">
                   <span>{a.caseNo}</span>
                   {a.collectedAt && (
-                    <span>· 등록 {timeAgo(a.collectedAt)}</span>
+                    <span suppressHydrationWarning>· 등록 {timeAgo(a.collectedAt)}</span>
                   )}
                 </div>
               </a>

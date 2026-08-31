@@ -74,7 +74,7 @@ export default function FlightCard({ flight }: { flight: FlightDeal }) {
             {roundTrip ? "왕복 예상가~" : "편도 예상가~"}
           </span>
         </div>
-        <span className="text-[11px] text-gray-400">
+        <span className="text-[11px] text-gray-400" suppressHydrationWarning>
           {flight.postedAt ? `${timeAgo(flight.postedAt)} 시세` : flight.source}
         </span>
       </div>

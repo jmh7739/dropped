@@ -71,7 +71,7 @@ export default function DealCard({
               {!isCurated && provisional && <ProvisionalBadge />}
               {deal.isLowestEver && <LowestEverBadge />}
               <ShippingBadge fee={deal.shippingFee} />
-              <span className="ml-auto whitespace-nowrap">
+              <span className="ml-auto whitespace-nowrap" suppressHydrationWarning>
                 {timeAgo(deal.detectedAt)}
               </span>
             </div>
@@ -157,7 +157,7 @@ export default function DealCard({
             </span>
             <span>{deal.categoryName}</span>
             <ShippingBadge fee={deal.shippingFee} />
-            <span className="ml-auto whitespace-nowrap">
+            <span className="ml-auto whitespace-nowrap" suppressHydrationWarning>
               {timeAgo(deal.detectedAt)}
             </span>
           </div>

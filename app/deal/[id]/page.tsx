@@ -99,13 +99,13 @@ export default async function DealDetail({
               {mallLabel(deal)}
             </span>
             <span>{deal.categoryName}</span>
-            <span>· {timeAgo(deal.detectedAt)} 감지</span>
+            <span suppressHydrationWarning>· {timeAgo(deal.detectedAt)} 감지</span>
           </div>
 
           <h1 className="text-lg font-bold leading-snug">{deal.title}</h1>
 
           <div className="mt-3 flex flex-wrap gap-1.5">
-            {!deal.isCurated && <DiscountBadge rate={rate} basis={basis} />}
+            {rate > 0 && <DiscountBadge rate={rate} basis={basis} />}
             {deal.isLowestEver && <LowestEverBadge />}
             {deal.isPriceError && <PriceErrorBadge />}
             <ShippingBadge fee={deal.shippingFee} />
