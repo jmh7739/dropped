@@ -190,29 +190,73 @@ def upsert_flight_deal(item) -> None:
     # collected_at은 카드 표시가 아니라 마지막 성공 수집 시각이다.
     # 이를 갱신해야 flight_fresh_within()이 중복 API 호출을 막는다.
     from datetime import datetime, timezone
-    client().table("flight_deals").upsert(
-        {
-            "source": item.source,
-            "external_id": item.external_id,
-            "origin": item.origin,
-            "destination": item.destination,
-            "depart_date": item.depart_date,
-            "return_date": item.return_date,
-            "airline": item.airline,
-            "price": item.price,
-            "is_domestic": item.is_domestic,
-            "deal_url": item.deal_url,
-            "posted_at": item.posted_at,
-            "collected_at": datetime.now(timezone.utc).isoformat(),
-        },
-        on_conflict="source,external_id",
-    ).execute()
+    from statistics import median
+
+    # 이 노선·날짜의 가격 이력을 쌓고 평소가(중앙값)를 계산 → "평소보다 하락" 판정용.
+    #   flight_price_history 테이블이 아직 없으면(마이그레이션 전) 조용히 건너뛴다.
+    baseline = None
+    if item.price:
+        try:
+            client().table("flight_price_history").insert(
+                {"external_id": item.external_id, "price": item.price}
+            ).execute()
+            hist = (
+                client()
+                .table("flight_price_history")
+                .select("price")
+                .eq("external_id", item.external_id)
+                .order("collected_at", desc=True)
+                .limit(300)
+                .execute()
+                .data
+            )
+            prices = [h["price"] for h in hist if h.get("price")]
+            if prices:
+                baseline = int(median(prices))
+        except Exception as e:
+            print(f"[flights] price_history 스킵(마이그레이션 전?): {e}")
+
+    body = {
+        "source": item.source,
+        "external_id": item.external_id,
+        "origin": item.origin,
+        "destination": item.destination,
+        "depart_date": item.depart_date,
+        "return_date": item.return_date,
+        "airline": item.airline,
+        "price": item.price,
+        "is_domestic": item.is_domestic,
+        "deal_url": item.deal_url,
+        "posted_at": item.posted_at,
+        "collected_at": datetime.now(timezone.utc).isoformat(),
+    }
+    if baseline is not None:
+        body["baseline_price"] = baseline
+    try:
+        client().table("flight_deals").upsert(
+            body, on_conflict="source,external_id"
+        ).execute()
+    except Exception:
+        # baseline_price 컬럼이 아직 없으면 빼고 재시도(마이그레이션 전 호환).
+        body.pop("baseline_price", None)
+        client().table("flight_deals").upsert(
+            body, on_conflict="source,external_id"
+        ).execute()
 
 
 def prune_old_flights() -> None:
     if config.DRY_RUN:
         return
     client().rpc("prune_old_flight_deals").execute()
+    # 가격 이력은 90일치만 유지(테이블 없으면 스킵).
+    try:
+        from datetime import datetime, timedelta, timezone
+        cutoff = (datetime.now(timezone.utc) - timedelta(days=90)).isoformat()
+        client().table("flight_price_history").delete().lt(
+            "collected_at", cutoff
+        ).execute()
+    except Exception:
+        pass
 
 
 def flight_fresh_within(hours: float) -> bool:

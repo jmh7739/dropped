@@ -85,6 +85,7 @@ function rowToDeal(r: any): FlightDeal {
     returnDate: r.return_date,
     airline: r.airline,
     price: r.price,
+    baselinePrice: r.baseline_price ?? null,
     isDomestic: r.is_domestic,
     dealUrl: r.deal_url,
     postedAt: r.posted_at,

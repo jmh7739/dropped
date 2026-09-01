@@ -13,6 +13,13 @@ function fmtDate(iso: string | null): string {
 export default function FlightCard({ flight }: { flight: FlightDeal }) {
   const roundTrip = Boolean(flight.returnDate);
   const stayHref = stayUrl(flight.destination);
+  // 평소가(중앙값) 대비 하락률 — 이력이 쌓이면 "가격이 떨어졌다" 판정.
+  const disc =
+    flight.baselinePrice && flight.price && flight.baselinePrice > flight.price
+      ? Math.round(
+          ((flight.baselinePrice - flight.price) / flight.baselinePrice) * 100
+        )
+      : 0;
 
   return (
     <div className="relative flex flex-col rounded-xl border border-gray-200 bg-white transition hover:shadow-md">
@@ -49,6 +56,15 @@ export default function FlightCard({ flight }: { flight: FlightDeal }) {
         {flight.airline && (
           <span className="text-gray-500">{flight.airline}</span>
         )}
+        {disc >= 8 && (
+          <span
+            className={`rounded px-1.5 py-0.5 font-extrabold text-white ${
+              disc >= 15 ? "bg-red-600" : "bg-sky-500"
+            }`}
+          >
+            {disc >= 15 ? "🔥" : "📉"} 평소보다 {disc}%↓
+          </span>
+        )}
       </div>
 
       <div className="flex items-center gap-2 text-lg font-bold text-gray-900">
@@ -70,6 +86,11 @@ export default function FlightCard({ flight }: { flight: FlightDeal }) {
 
       <div className="mt-1 flex items-end justify-between">
         <div>
+          {disc >= 8 && flight.baselinePrice && (
+            <div className="text-[11px] text-gray-400 line-through">
+              평소 {formatWon(flight.baselinePrice)}
+            </div>
+          )}
           <span className="text-xl font-extrabold text-brand">
             {flight.price ? formatWon(flight.price) : "가격 문의"}
           </span>

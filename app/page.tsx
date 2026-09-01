@@ -167,7 +167,7 @@ export default async function Home({
         ? psLabel
         : activeCat
           ? activeCat.name
-          : "🔥 오늘의 급락 특가";
+          : "🔥 오늘의 특가";
 
   // 드롭다운이 유지할 현재 전체 쿼리(각 드롭다운은 자기 param만 덮어씀 → 위/아래 독립)
   const allParams: Record<string, string> = {};

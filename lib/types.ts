@@ -103,6 +103,7 @@ export interface FlightDeal {
   returnDate: string | null; // null이면 편도
   airline: string | null;
   price: number | null;
+  baselinePrice: number | null; // 이 노선·날짜의 평소가(중앙값). 없으면 판정 불가
   isDomestic: boolean;
   dealUrl: string;
   postedAt: string | null;

@@ -34,6 +34,10 @@ export default function SafeImage({
       src={src}
       alt={alt}
       loading="lazy"
+      decoding="async"
+      // 알리/CDN이 리퍼러 검사로 핫링크 차단(400/403)하는 경우가 많음 →
+      //   리퍼러를 안 보내면 상당수 정상 로드된다.
+      referrerPolicy="no-referrer"
       onError={() => setFailed(true)}
       className={className}
     />
