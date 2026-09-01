@@ -7,9 +7,8 @@ import {
 } from "@/lib/flights";
 import { formatWon } from "@/lib/format";
 import FlightCard from "./FlightCard";
-import KoreaFlag from "./KoreaFlag";
 
-/** 국내는 태극기 SVG, 나머지는 이모지 (국기 이모지가 Windows서 깨지는 문제 회피) */
+/** 지역 아이콘 — 국기 이모지가 Windows서 깨져서 범용 이모지 사용(국내=🏠 등) */
 function RegionIcon({
   region,
   variant,
@@ -17,17 +16,6 @@ function RegionIcon({
   region: string;
   variant: "card" | "crumb";
 }) {
-  if (region === "국내") {
-    return (
-      <KoreaFlag
-        className={
-          variant === "card"
-            ? "inline-block h-6 w-9 rounded-sm"
-            : "inline-block h-4 w-6 rounded-sm align-[-0.15em]"
-        }
-      />
-    );
-  }
   return (
     <span className={variant === "card" ? "text-2xl" : ""}>
       {regionEmoji(region)}

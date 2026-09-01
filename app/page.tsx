@@ -1,7 +1,6 @@
 import { getDeals, SortKey, PriceStatusKey, PRICE_STATUS } from "@/lib/deals";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import DealGrid from "@/components/DealGrid";
-import PriceStatusChips from "@/components/PriceStatusChips";
 import HotdealTabs from "@/components/HotdealTabs";
 import SortDropdown from "@/components/SortDropdown";
 import SortTabs from "@/components/SortTabs";
@@ -193,8 +192,9 @@ export default async function Home({
     <div>
       {demoBanner}
 
+      {/* 맨 위: 쿠팡 골드박스 배너 */}
       <div className="mb-3">
-        <SearchBar initial={q} />
+        <GoldboxBanner />
       </div>
 
       {/* 핫딜 세그먼트: 📉 급락(가격 하락 증명) | 🛒 베스트(국내몰 인기) */}
@@ -211,17 +211,6 @@ export default async function Home({
         /* ── 📉 급락: 가격 추적으로 평소보다 떨어진 것 ── */
         <>
           {topDrops.length > 0 && <TopDrops deals={topDrops} />}
-
-          {/* 쿠팡 골드박스 배너: 상단 TOP 바로 아래(잘 보이는 자리) */}
-          {isDefaultHome && <GoldboxBanner />}
-
-          {/* 가격 상태 필터 — 상품종류보다 앞. "얼마나 싼가"로 거른다 */}
-          {!q && !hot && (
-            <PriceStatusChips
-              active={ps}
-              base={{ category, sort, hot, q, showEnded, cc, cs }}
-            />
-          )}
 
           <div className="mb-1 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
             <h1 className="flex items-baseline text-xl font-extrabold">
@@ -271,6 +260,11 @@ export default async function Home({
           {isDefaultHome && <GoldboxSection />}
         </>
       )}
+
+      {/* 맨 아래: 상품 검색 */}
+      <div className="mt-10">
+        <SearchBar initial={q} />
+      </div>
     </div>
   );
 }
