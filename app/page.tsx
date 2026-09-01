@@ -128,8 +128,8 @@ export default async function Home({
 
   // ── 쇼핑 딜 ──
   const fetched = await getDeals({ category, sort, hotOnly: hot, q, priceStatus: ps });
-  // 기본: 종료딜 숨김. 'se=1'(종료딜 보기)일 때만 포함
-  const visible = showEnded ? fetched : fetched.filter((d) => d.status !== "ended");
+  // 종료딜은 항상 숨김 (토글 없음)
+  const visible = fetched.filter((d) => d.status !== "ended");
   // 같은 브랜드(제목 첫 단어) 도배 방지 — 최대 2개 (알리 유사상품 반복 완화)
   const brandSeen = new Map<string, number>();
   const allDeals = visible.filter((d) => {

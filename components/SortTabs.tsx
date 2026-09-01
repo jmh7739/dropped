@@ -45,17 +45,6 @@ export default function SortTabs({
       >
         🔥 인기딜만
       </Link>
-      {/* 종료딜 숨기기 토글 (기본 ON) */}
-      <Link
-        href={homeHref({ category, sort, hot, q, showEnded: !showEnded, ps, cc, cs })}
-        className={`flex-shrink-0 rounded-full px-2.5 py-1.5 text-xs font-bold transition ${
-          !showEnded
-            ? "bg-brand text-white"
-            : "border border-gray-200 bg-white text-gray-500 hover:bg-gray-50"
-        }`}
-      >
-        {!showEnded ? "☑" : "☐"} 종료딜 숨기기
-      </Link>
       {/* 정렬 드롭다운 (우측) */}
       <SortDropdown options={DEAL_SORTS} value={sort} param="sort" params={keep} />
     </div>

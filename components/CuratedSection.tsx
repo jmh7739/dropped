@@ -1,6 +1,7 @@
 import { getCuratedDeals, SortKey } from "@/lib/deals";
 import DealGrid from "./DealGrid";
 import SortDropdown from "./SortDropdown";
+import TopDrops from "./TopDrops";
 
 // 국내몰 추천 특가 — 상단 급락딜과 독립된 카테고리(cc)·정렬(cs) 드롭다운.
 const CURATED_SORTS = [
@@ -24,6 +25,10 @@ export default async function CuratedSection({
 }) {
   const all = await getCuratedDeals(cs);
   if (all.length === 0) return null; // 추천 특가가 아예 없으면 섹션 숨김
+  // 지금 뜨는 베스트 TOP — 원가 대비 할인율 큰 순 상위(카테고리 필터 없을 때만)
+  const topBest = !cc
+    ? [...all].sort((a, b) => b.discountVsList - a.discountVsList).slice(0, 8)
+    : [];
   let deals = cc ? all.filter((d) => d.categorySlug === cc) : all;
 
   // 딜 신호(특가·할인·1+1 등) 있는 것 우선 — 기본(인기순)일 때만 재배치
@@ -46,6 +51,9 @@ export default async function CuratedSection({
 
   return (
     <section>
+      {topBest.length > 0 && (
+        <TopDrops deals={topBest} title="🛒 지금 뜨는 베스트 TOP" />
+      )}
       <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-xl font-extrabold">🛒 베스트딜</h2>
         <div className="flex flex-wrap items-center gap-2">
