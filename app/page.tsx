@@ -2,6 +2,7 @@ import { getDeals, SortKey, PriceStatusKey, PRICE_STATUS } from "@/lib/deals";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import DealGrid from "@/components/DealGrid";
 import PriceStatusChips from "@/components/PriceStatusChips";
+import HotdealTabs from "@/components/HotdealTabs";
 import SortDropdown from "@/components/SortDropdown";
 import SortTabs from "@/components/SortTabs";
 import TravelView, { TravelTab } from "@/components/TravelView";
@@ -64,7 +65,9 @@ export default async function Home({
   const ps = validPs.has(searchParams.ps as PriceStatusKey)
     ? (searchParams.ps as PriceStatusKey)
     : undefined;
-  // 국내몰 추천 특가(하단) 독립 카테고리·정렬
+  // 핫딜 세그먼트: 급락(기본) | 베스트(국내몰 인기)
+  const sec: "drop" | "best" = searchParams.sec === "best" ? "best" : "drop";
+  // 베스트(국내몰) 독립 카테고리·정렬
   const cc = validSlugs.has(searchParams.cc ?? "") ? searchParams.cc : undefined;
   const cs: SortKey = validDealSorts.includes(searchParams.cs as SortKey)
     ? (searchParams.cs as SortKey)
@@ -173,6 +176,7 @@ export default async function Home({
   if (q) allParams.q = q;
   if (showEnded) allParams.se = "1";
   if (ps) allParams.ps = ps;
+  if (sec === "best") allParams.sec = "best";
   if (cc) allParams.cc = cc;
   if (cs !== "popular") allParams.cs = cs;
   // 상단 카테고리 드롭다운 옵션 (전체 + 쇼핑 카테고리)
@@ -192,66 +196,80 @@ export default async function Home({
         <SearchBar initial={q} />
       </div>
 
-      {topDrops.length > 0 && <TopDrops deals={topDrops} />}
+      {/* 핫딜 세그먼트: 📉 급락(가격 하락 증명) | 🛒 베스트(국내몰 인기) */}
+      <HotdealTabs
+        sec={sec}
+        drop={{ category, sort, hot, q, showEnded, ps }}
+        best={{ cc, cs }}
+      />
 
-      {/* 쿠팡 골드박스 배너: 상단 TOP 바로 아래(잘 보이는 자리) */}
-      {isDefaultHome && <GoldboxBanner />}
-
-      {/* 가격 상태 필터 — 상품종류보다 앞. "얼마나 싼가"로 거른다 */}
-      {!q && !hot && (
-        <PriceStatusChips
-          active={ps}
-          base={{ category, sort, hot, q, showEnded, cc, cs }}
-        />
-      )}
-
-      <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-        <h1 className="flex items-baseline text-xl font-extrabold">
-          <span>{heading}</span>
-          <span className="ml-2 text-sm font-normal text-gray-400">
-            {activeCount}개
-          </span>
-        </h1>
-        <div className="flex flex-wrap items-center gap-2">
-          <SortDropdown
-            options={catOptions}
-            value={category ?? ""}
-            param="category"
-            params={allParams}
-          />
-          <SortTabs
-            category={category}
-            sort={sort}
-            hot={hot}
-            q={q}
-            showEnded={showEnded}
-            ps={ps}
-            cc={cc}
-            cs={cs}
-          />
-        </div>
-      </div>
-
-      {deals.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-gray-300 bg-white p-12 text-center text-gray-400">
-          {q ? "검색 결과가 없습니다." : "아직 이 카테고리에 감지된 특가가 없습니다."}
-        </div>
+      {sec === "best" ? (
+        /* ── 🛒 베스트: 국내몰 인기 세일 (원가 대비 할인율) ── */
+        <CuratedSection cc={cc} cs={cs} catOptions={catOptions} params={allParams} />
       ) : (
+        /* ── 📉 급락: 가격 추적으로 평소보다 떨어진 것 ── */
         <>
-          <DealGrid deals={deals} />
-          <Pagination
-            page={safePage}
-            totalPages={totalPages}
-            base={{ category, sort, hot, q, ...(showEnded ? { se: "1" } : {}), ...(ps ? { ps } : {}) }}
-          />
+          {topDrops.length > 0 && <TopDrops deals={topDrops} />}
+
+          {/* 쿠팡 골드박스 배너: 상단 TOP 바로 아래(잘 보이는 자리) */}
+          {isDefaultHome && <GoldboxBanner />}
+
+          {/* 가격 상태 필터 — 상품종류보다 앞. "얼마나 싼가"로 거른다 */}
+          {!q && !hot && (
+            <PriceStatusChips
+              active={ps}
+              base={{ category, sort, hot, q, showEnded, cc, cs }}
+            />
+          )}
+
+          <div className="mb-1 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <h1 className="flex items-baseline text-xl font-extrabold">
+              <span>{heading}</span>
+              <span className="ml-2 text-sm font-normal text-gray-400">
+                {activeCount}개
+              </span>
+            </h1>
+            <div className="flex flex-wrap items-center gap-2">
+              <SortDropdown
+                options={catOptions}
+                value={category ?? ""}
+                param="category"
+                params={allParams}
+              />
+              <SortTabs
+                category={category}
+                sort={sort}
+                hot={hot}
+                q={q}
+                showEnded={showEnded}
+                ps={ps}
+                cc={cc}
+                cs={cs}
+              />
+            </div>
+          </div>
+          <p className="mb-3 text-xs text-gray-400">
+            가격을 추적해 평소보다 진짜 떨어진 것만
+          </p>
+
+          {deals.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-gray-300 bg-white p-12 text-center text-gray-400">
+              {q ? "검색 결과가 없습니다." : "아직 이 카테고리에 감지된 특가가 없습니다."}
+            </div>
+          ) : (
+            <>
+              <DealGrid deals={deals} />
+              <Pagination
+                page={safePage}
+                totalPages={totalPages}
+                base={{ category, sort, hot, q, ...(showEnded ? { se: "1" } : {}), ...(ps ? { ps } : {}) }}
+              />
+            </>
+          )}
+
+          {isDefaultHome && <GoldboxSection />}
         </>
       )}
-
-      {/* 국내몰 추천 특가: 상단과 독립된 카테고리(cc)·정렬(cs) 드롭다운. 검색·인기딜만 제외 */}
-      {!q && !hot && (
-        <CuratedSection cc={cc} cs={cs} catOptions={catOptions} params={allParams} />
-      )}
-      {isDefaultHome && <GoldboxSection />}
     </div>
   );
 }
