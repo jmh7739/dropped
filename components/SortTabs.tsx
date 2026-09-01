@@ -9,6 +9,7 @@ export default function SortTabs({
   hot,
   q,
   showEnded,
+  ps,
   cc,
   cs,
 }: {
@@ -17,6 +18,7 @@ export default function SortTabs({
   hot: boolean;
   q?: string;
   showEnded: boolean;
+  ps?: string;
   cc?: string;
   cs?: string;
 }) {
@@ -26,6 +28,7 @@ export default function SortTabs({
   if (hot) keep.hot = "1";
   if (q) keep.q = q;
   if (showEnded) keep.se = "1";
+  if (ps) keep.ps = ps;
   if (cc) keep.cc = cc;
   if (cs && cs !== "popular") keep.cs = cs;
 
@@ -33,7 +36,7 @@ export default function SortTabs({
     <div className="flex items-center gap-2">
       {/* 인기딜만 필터 토글 */}
       <Link
-        href={homeHref({ category, sort, hot: !hot, q, showEnded, cc, cs })}
+        href={homeHref({ category, sort, hot: !hot, q, showEnded, ps, cc, cs })}
         className={`flex-shrink-0 rounded-full px-2.5 py-1.5 text-xs font-bold transition ${
           hot
             ? "bg-brand text-white"
@@ -44,7 +47,7 @@ export default function SortTabs({
       </Link>
       {/* 종료딜 숨기기 토글 (기본 ON) */}
       <Link
-        href={homeHref({ category, sort, hot, q, showEnded: !showEnded, cc, cs })}
+        href={homeHref({ category, sort, hot, q, showEnded: !showEnded, ps, cc, cs })}
         className={`flex-shrink-0 rounded-full px-2.5 py-1.5 text-xs font-bold transition ${
           !showEnded
             ? "bg-brand text-white"

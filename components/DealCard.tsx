@@ -29,7 +29,7 @@ export default function DealCard({
       : 0;
   const curatedBadge =
     curatedDisc > 0 ? (
-      <span className="rounded-md bg-brand px-2 py-1 text-[11px] font-extrabold text-white shadow-md ring-1 ring-white/80">
+      <span className="rounded-md bg-brand px-2 py-1 text-[11px] font-extrabold text-white shadow-sm">
         🔻{curatedDisc}%
       </span>
     ) : null;

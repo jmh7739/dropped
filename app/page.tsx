@@ -1,6 +1,7 @@
-import { getDeals, SortKey } from "@/lib/deals";
+import { getDeals, SortKey, PriceStatusKey, PRICE_STATUS } from "@/lib/deals";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import DealGrid from "@/components/DealGrid";
+import PriceStatusChips from "@/components/PriceStatusChips";
 import SortDropdown from "@/components/SortDropdown";
 import SortTabs from "@/components/SortTabs";
 import TravelView, { TravelTab } from "@/components/TravelView";
@@ -34,6 +35,7 @@ export default async function Home({
     as?: string;
     q?: string;
     se?: string;
+    ps?: string; // 가격 상태 필터 (급락/최근최저/많이하락/방금)
     cc?: string; // 국내몰 추천 특가 카테고리 (독립)
     cs?: string; // 국내몰 추천 특가 정렬 (독립)
     page?: string;
@@ -58,6 +60,10 @@ export default async function Home({
   const hot = searchParams.hot === "1";
   const showEnded = searchParams.se === "1"; // 기본은 종료딜 숨김
   const q = (searchParams.q ?? "").slice(0, 100);
+  const validPs = new Set<PriceStatusKey>(["plunge", "lowest", "bigdrop", "fresh"]);
+  const ps = validPs.has(searchParams.ps as PriceStatusKey)
+    ? (searchParams.ps as PriceStatusKey)
+    : undefined;
   // 국내몰 추천 특가(하단) 독립 카테고리·정렬
   const cc = validSlugs.has(searchParams.cc ?? "") ? searchParams.cc : undefined;
   const cs: SortKey = validDealSorts.includes(searchParams.cs as SortKey)
@@ -118,7 +124,7 @@ export default async function Home({
   }
 
   // ── 쇼핑 딜 ──
-  const fetched = await getDeals({ category, sort, hotOnly: hot, q });
+  const fetched = await getDeals({ category, sort, hotOnly: hot, q, priceStatus: ps });
   // 기본: 종료딜 숨김. 'se=1'(종료딜 보기)일 때만 포함
   const visible = showEnded ? fetched : fetched.filter((d) => d.status !== "ended");
   // 같은 브랜드(제목 첫 단어) 도배 방지 — 최대 2개 (알리 유사상품 반복 완화)
@@ -137,7 +143,7 @@ export default async function Home({
 
   // 필터 없는 기본 홈 1페이지에서만 상단 TOP 순위 노출 (종료딜 제외)
   //   순위 = 하락률 + 인기(클릭·좋아요) 종합 점수. 트래픽 쌓이면 인기 반영↑
-  const isDefaultHome = !category && !hot && !q;
+  const isDefaultHome = !category && !hot && !q && !ps;
   const popScore = (d: (typeof allDeals)[number]) =>
     (d.discountVsAvg ?? d.discountVsList) + d.clickCount * 2 + d.likeCount * 5;
   const topDrops =
@@ -148,13 +154,16 @@ export default async function Home({
           .slice(0, 8)
       : [];
 
+  const psLabel = ps ? PRICE_STATUS.find((s) => s.key === ps)?.label : undefined;
   const heading = q
     ? `"${q}" 검색 결과`
     : hot
       ? "🔥 인기딜"
-      : activeCat
-        ? activeCat.name
-        : "🔥 오늘의 급락 특가";
+      : psLabel
+        ? psLabel
+        : activeCat
+          ? activeCat.name
+          : "🔥 오늘의 급락 특가";
 
   // 드롭다운이 유지할 현재 전체 쿼리(각 드롭다운은 자기 param만 덮어씀 → 위/아래 독립)
   const allParams: Record<string, string> = {};
@@ -163,6 +172,7 @@ export default async function Home({
   if (hot) allParams.hot = "1";
   if (q) allParams.q = q;
   if (showEnded) allParams.se = "1";
+  if (ps) allParams.ps = ps;
   if (cc) allParams.cc = cc;
   if (cs !== "popular") allParams.cs = cs;
   // 상단 카테고리 드롭다운 옵션 (전체 + 쇼핑 카테고리)
@@ -187,6 +197,14 @@ export default async function Home({
       {/* 쿠팡 골드박스 배너: 상단 TOP 바로 아래(잘 보이는 자리) */}
       {isDefaultHome && <GoldboxBanner />}
 
+      {/* 가격 상태 필터 — 상품종류보다 앞. "얼마나 싼가"로 거른다 */}
+      {!q && !hot && (
+        <PriceStatusChips
+          active={ps}
+          base={{ category, sort, hot, q, showEnded, cc, cs }}
+        />
+      )}
+
       <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <h1 className="flex items-baseline text-xl font-extrabold">
           <span>{heading}</span>
@@ -207,6 +225,7 @@ export default async function Home({
             hot={hot}
             q={q}
             showEnded={showEnded}
+            ps={ps}
             cc={cc}
             cs={cs}
           />
@@ -223,7 +242,7 @@ export default async function Home({
           <Pagination
             page={safePage}
             totalPages={totalPages}
-            base={{ category, sort, hot, q, ...(showEnded ? { se: "1" } : {}) }}
+            base={{ category, sort, hot, q, ...(showEnded ? { se: "1" } : {}), ...(ps ? { ps } : {}) }}
           />
         </>
       )}

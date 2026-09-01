@@ -90,16 +90,40 @@ function sortActive(deals: Deal[], sort: SortKey): Deal[] {
   }
 }
 
+// 가격 '상태' 필터 — 상품종류가 아니라 "얼마나 싼가"로 거른다(떨어졌다의 핵심).
+export type PriceStatusKey = "plunge" | "lowest" | "bigdrop" | "fresh";
+export const PRICE_STATUS: { key: PriceStatusKey; label: string }[] = [
+  { key: "plunge", label: "🔥 지금 급락" },
+  { key: "lowest", label: "🏆 최근 최저" },
+  { key: "bigdrop", label: "💸 많이 하락" },
+  { key: "fresh", label: "⏱ 방금 떨어짐" },
+];
+
+function matchesPriceStatus(d: Deal, ps: PriceStatusKey): boolean {
+  const r = headlineRate(d);
+  switch (ps) {
+    case "plunge":
+      return r >= 25;
+    case "lowest":
+      return d.isLowestEver;
+    case "bigdrop":
+      return r >= 15;
+    case "fresh":
+      return Date.now() - new Date(d.detectedAt).getTime() <= 6 * 3600 * 1000;
+  }
+}
+
 export interface GetDealsOpts {
   category?: string; // slug
   sort?: SortKey;
   hotOnly?: boolean; // 인기딜(좋아요 임계값 이상)만
   q?: string; // 상품명 검색어
+  priceStatus?: PriceStatusKey; // 가격 상태 필터
 }
 
 /** 홈/카테고리 리스트용 딜 목록 (그래프 이력은 상세에서만 로드) */
 export async function getDeals(opts: GetDealsOpts = {}): Promise<Deal[]> {
-  const { category, sort = "discount", hotOnly = false, q } = opts;
+  const { category, sort = "discount", hotOnly = false, q, priceStatus } = opts;
   const term = q?.trim().toLowerCase();
 
   // Supabase 미연결 시 빈 목록 (가짜 데이터 없음)
@@ -117,7 +141,12 @@ export async function getDeals(opts: GetDealsOpts = {}): Promise<Deal[]> {
     console.error("getDeals error:", error?.message);
     return [];
   }
-  const deals = data.map((row) => rowToDeal(row, []));
+  let deals = data.map((row) => rowToDeal(row, []));
+  // 가격 상태 필터는 종료딜엔 의미없음 → 활성만 대상으로 거른다.
+  if (priceStatus)
+    deals = deals.filter(
+      (d) => d.status !== "ended" && matchesPriceStatus(d, priceStatus)
+    );
   return sortDeals(deals, sort);
 }
 

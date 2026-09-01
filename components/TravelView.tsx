@@ -119,7 +119,7 @@ export default function TravelView({
       {tab === "stay" && (
         <div>
           <SectionTitle>🏨 여행지별 숙소 — 그 도시 실제 호텔·요금 바로 보기</SectionTitle>
-          <StayDestinations />
+          <StayDestinations region={region} />
           <SectionTitle>🔎 숙소 가격비교 사이트</SectionTitle>
           <PartnerGrid partners={STAY_PARTNERS} />
         </div>

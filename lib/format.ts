@@ -63,10 +63,10 @@ export function dealStatus(
   isLowestEver: boolean
 ): { label: string; cls: string } {
   if (rate >= 25)
-    return { label: `🔥 급락 ${Math.round(rate)}%`, cls: "bg-red-500 text-white" };
+    return { label: `🔥 급락 ${Math.round(rate)}%`, cls: "bg-red-600 text-white" };
   if (isLowestEver && rate >= 12)
     return { label: "🏆 최근 최저가", cls: "bg-amber-400 text-amber-950" };
   if (rate >= 8)
     return { label: `🟢 좋은 가격 ${Math.round(rate)}%`, cls: "bg-emerald-600 text-white" };
-  return { label: `📉 ${Math.round(rate)}%↓`, cls: "bg-slate-800 text-white" };
+  return { label: `📉 ${Math.round(rate)}% 하락`, cls: "bg-sky-500 text-white" };
 }
