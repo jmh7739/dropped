@@ -1,5 +1,6 @@
 import Link from "next/link";
 import FlightsView from "./FlightsView";
+import StayDestinations from "./StayDestinations";
 
 export type TravelTab = "flight" | "stay" | "deal";
 
@@ -117,7 +118,9 @@ export default function TravelView({
       )}
       {tab === "stay" && (
         <div>
-          <SectionTitle>🏨 국내외 숙소 예약</SectionTitle>
+          <SectionTitle>🏨 여행지별 숙소 — 그 도시 실제 호텔·요금 바로 보기</SectionTitle>
+          <StayDestinations />
+          <SectionTitle>🔎 숙소 가격비교 사이트</SectionTitle>
           <PartnerGrid partners={STAY_PARTNERS} />
         </div>
       )}

@@ -1,5 +1,6 @@
 import { FlightDeal } from "@/lib/types";
 import { formatWon, safeUrl, timeAgo } from "@/lib/format";
+import { stayUrl } from "@/lib/destinations";
 import ShareButton from "./ShareButton";
 
 const WEEK = ["일", "월", "화", "수", "목", "금", "토"];
@@ -11,21 +12,23 @@ function fmtDate(iso: string | null): string {
 
 export default function FlightCard({ flight }: { flight: FlightDeal }) {
   const roundTrip = Boolean(flight.returnDate);
+  const stayHref = stayUrl(flight.destination);
 
   return (
-    <a
-      href={safeUrl(flight.dealUrl)}
-      target="_blank"
-      rel="nofollow noopener noreferrer"
-      className="relative flex flex-col gap-2 rounded-xl border border-gray-200 bg-white p-4 transition hover:shadow-md"
-    >
-      <div className="absolute right-2 top-2">
+    <div className="relative flex flex-col rounded-xl border border-gray-200 bg-white transition hover:shadow-md">
+      <div className="absolute right-2 top-2 z-10">
         <ShareButton
           path="/?category=flight"
           title={`${flight.origin}→${flight.destination} 항공권 특가`}
           compact
         />
       </div>
+      <a
+        href={safeUrl(flight.dealUrl)}
+        target="_blank"
+        rel="nofollow noopener noreferrer"
+        className="flex flex-col gap-2 p-4"
+      >
       <div className="flex items-center gap-1.5 pr-9 text-[11px]">
         <span
           className={`rounded px-1.5 py-0.5 font-bold ${
@@ -78,6 +81,17 @@ export default function FlightCard({ flight }: { flight: FlightDeal }) {
           {flight.postedAt ? `${timeAgo(flight.postedAt)} 시세` : flight.source}
         </span>
       </div>
-    </a>
+      </a>
+      {stayHref && (
+        <a
+          href={stayHref}
+          target="_blank"
+          rel="nofollow sponsored noopener noreferrer"
+          className="flex items-center justify-center gap-1 border-t border-gray-100 px-4 py-2 text-xs font-bold text-gray-500 transition hover:bg-brand/5 hover:text-brand"
+        >
+          🏨 {flight.destination} 숙소 보기 →
+        </a>
+      )}
+    </div>
   );
 }
