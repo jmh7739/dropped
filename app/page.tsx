@@ -37,6 +37,7 @@ export default async function Home({
     q?: string;
     se?: string;
     ps?: string; // 가격 상태 필터 (급락/최근최저/많이하락/방금)
+    sec?: string; // 핫딜 세그먼트 (급락 drop | 베스트 best)
     cc?: string; // 국내몰 추천 특가 카테고리 (독립)
     cs?: string; // 국내몰 추천 특가 정렬 (독립)
     page?: string;

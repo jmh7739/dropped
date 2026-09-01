@@ -5,7 +5,8 @@ import { CATEGORIES } from "@/lib/types";
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL || "https://www.dropped.kr";
 
-export const revalidate = 600;
+// Supabase 읽기가 no-store라 요청 시 렌더(dynamic). 최신 딜을 항상 반영.
+export const dynamic = "force-dynamic";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const deals = await getDeals();
