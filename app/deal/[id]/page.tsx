@@ -3,15 +3,15 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { getDeal } from "@/lib/deals";
 import { formatWon, headlineDiscount, timeAgo } from "@/lib/format";
+import { priceStats, buyVerdict } from "@/lib/priceReport";
 import { mallLabel } from "@/lib/types";
 import PriceChart from "@/components/PriceChart";
+import PriceReport from "@/components/PriceReport";
 import LikeButton from "@/components/LikeButton";
 import BuyButton from "@/components/BuyButton";
 import ShareButton from "@/components/ShareButton";
 import SafeImage from "@/components/SafeImage";
 import {
-  DiscountBadge,
-  StatusBadge,
   PriceErrorBadge,
   ShippingBadge,
 } from "@/components/DiscountBadge";
@@ -48,20 +48,12 @@ export default async function DealDetail({
   const deal = await getDeal(Number(params.id));
   if (!deal) notFound();
 
-  const { rate, basis } = headlineDiscount(deal);
-  // 정직한 표시용: 실제 가격 추적 기간·횟수
-  const pts = deal.history.length;
-  const trackedDays =
-    pts > 1
-      ? Math.max(
-          1,
-          Math.round(
-            (new Date(deal.history[pts - 1].collectedAt).getTime() -
-              new Date(deal.history[0].collectedAt).getTime()) /
-              86400000
-          )
-        )
-      : 0;
+  const { rate } = headlineDiscount(deal);
+  // 가격 리포트: 이력에서 7일/30일 평균·최저, 역대최저, 추적기간 → 최종 판정.
+  const stats = priceStats(deal.history, deal.currentPrice);
+  const verdict = stats
+    ? buyVerdict(rate, stats.isLowest, stats.lowestLabel, stats.enoughData)
+    : null;
 
   // 구글 리치 결과용 Product 구조화 데이터
   const jsonLd = {
@@ -118,16 +110,15 @@ export default async function DealDetail({
           <h1 className="text-lg font-bold leading-snug">{deal.title}</h1>
 
           <div className="mt-3 flex flex-wrap items-center gap-1.5">
-            {deal.isCurated
-              ? rate > 0 && <DiscountBadge rate={rate} basis={basis} />
-              : <StatusBadge rate={rate} isLowestEver={deal.isLowestEver} />}
-            {deal.isPriceError && <PriceErrorBadge />}
-            <ShippingBadge fee={deal.shippingFee} />
-            {!deal.isCurated && pts > 0 && (
-              <span className="rounded border border-gray-200 bg-white px-1.5 py-0.5 text-[11px] text-gray-500">
-                📊 가격 추적 {trackedDays > 0 ? `${trackedDays}일` : "시작"} · {pts}회
+            {verdict && (
+              <span
+                className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-extrabold ${verdict.cls}`}
+              >
+                {verdict.icon} {verdict.title}
               </span>
             )}
+            {deal.isPriceError && <PriceErrorBadge />}
+            <ShippingBadge fee={deal.shippingFee} />
           </div>
 
           <div className="mt-4 rounded-xl bg-gray-50 p-4">
@@ -166,6 +157,14 @@ export default async function DealDetail({
           </p>
         </div>
       </div>
+
+      {/* 가격 리포트: 최종 판정 + 분석표 */}
+      {stats && verdict && (
+        <section className="mt-8">
+          <h2 className="mb-2 text-base font-bold">🧾 가격 리포트 — 지금 살까?</h2>
+          <PriceReport stats={stats} verdict={verdict} listPrice={deal.listPrice} />
+        </section>
+      )}
 
       {/* 가격 그래프 */}
       <section className="mt-8">
