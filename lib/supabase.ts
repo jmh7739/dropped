@@ -15,7 +15,16 @@ const anonKey =
  * 환경변수가 설정돼 있으면 Supabase 클라이언트를, 없으면 null을 반환.
  * null이면 데이터 계층은 빈 목록을 반환한다(가짜 데이터 없음).
  */
+// Next.js가 Supabase의 fetch 응답을 데이터 캐시에 넣어 '옛 딜'을 보여주는 문제 방지.
+//   모든 읽기를 no-store로 강제 → force-dynamic 페이지에서 항상 최신 딜 반영.
 export const supabase: SupabaseClient | null =
-  url && anonKey ? createClient(url, anonKey) : null;
+  url && anonKey
+    ? createClient(url, anonKey, {
+        global: {
+          fetch: (input: RequestInfo | URL, init?: RequestInit) =>
+            fetch(input, { ...init, cache: "no-store" }),
+        },
+      })
+    : null;
 
 export const isSupabaseConfigured = Boolean(url && anonKey);
