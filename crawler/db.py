@@ -78,6 +78,23 @@ def recent_prices(product_id: int) -> list[int]:
     return [r["price"] for r in rows]
 
 
+def latest_prices(product_id: int, k: int) -> list[int]:
+    """가장 최근 k개 가격(최신순). 종료 판정용 — 단일 blip에 안 흔들리게."""
+    if config.DRY_RUN:
+        return []
+    rows = (
+        client()
+        .table("price_history")
+        .select("price")
+        .eq("product_id", product_id)
+        .order("collected_at", desc=True)
+        .limit(k)
+        .execute()
+        .data
+    )
+    return [r["price"] for r in rows]
+
+
 def history_days(product_id: int) -> float:
     """가격 이력이 걸쳐있는 기간(일). 이력 없으면 0."""
     if config.DRY_RUN:

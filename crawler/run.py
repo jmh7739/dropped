@@ -107,10 +107,12 @@ def expire_stale_deals(flagged_ids: set[int]) -> int:
                 db.end_deal(d["id"])
                 ended += 1
             continue
-        prices = db.recent_prices(d["product_id"])
-        current = prices[-1] if prices else None
-        if current is None:
+        # 최근 K개 중 '최저가'로 판정 → 잠깐 고가로 튀는 단일 blip으론 종료 안 됨.
+        #   (최근에도 저가가 있으면 딜 유지, K개 전부 원복돼야 종료)
+        recent = db.latest_prices(d["product_id"], config.END_CONFIRM_READINGS)
+        if not recent:
             continue
+        current = min(recent)
         if detect.should_end_deal(current, d.get("baseline_price")):
             db.end_deal(d["id"])
             ended += 1
