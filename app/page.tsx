@@ -57,7 +57,7 @@ export default async function Home({
   ];
   const sort: SortKey = validDealSorts.includes(searchParams.sort as SortKey)
     ? (searchParams.sort as SortKey)
-    : "discount";
+    : "recent";
   const hot = searchParams.hot === "1";
   const showEnded = searchParams.se === "1"; // 기본은 종료딜 숨김
   const q = (searchParams.q ?? "").slice(0, 100);
@@ -71,7 +71,7 @@ export default async function Home({
   const cc = validSlugs.has(searchParams.cc ?? "") ? searchParams.cc : undefined;
   const cs: SortKey = validDealSorts.includes(searchParams.cs as SortKey)
     ? (searchParams.cs as SortKey)
-    : "discount";
+    : "recent";
   const page = Math.max(1, parseInt(searchParams.page ?? "1", 10) || 1);
   const activeCat = CATEGORIES.find((c) => c.slug === category);
   const isFlight = activeCat?.dealType === "flight";
@@ -171,14 +171,14 @@ export default async function Home({
   // 드롭다운이 유지할 현재 전체 쿼리(각 드롭다운은 자기 param만 덮어씀 → 위/아래 독립)
   const allParams: Record<string, string> = {};
   if (category) allParams.category = category;
-  if (sort !== "discount") allParams.sort = sort;
+  if (sort !== "recent") allParams.sort = sort;
   if (hot) allParams.hot = "1";
   if (q) allParams.q = q;
   if (showEnded) allParams.se = "1";
   if (ps) allParams.ps = ps;
   if (sec === "best") allParams.sec = "best";
   if (cc) allParams.cc = cc;
-  if (cs !== "popular") allParams.cs = cs;
+  if (cs !== "recent") allParams.cs = cs;
   // 상단 카테고리 드롭다운 옵션 (전체 + 쇼핑 카테고리)
   const catOptions = [
     { key: "", label: "전체 카테고리" },

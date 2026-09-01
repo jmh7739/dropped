@@ -123,7 +123,7 @@ export interface GetDealsOpts {
 
 /** 홈/카테고리 리스트용 딜 목록 (그래프 이력은 상세에서만 로드) */
 export async function getDeals(opts: GetDealsOpts = {}): Promise<Deal[]> {
-  const { category, sort = "discount", hotOnly = false, q, priceStatus } = opts;
+  const { category, sort = "recent", hotOnly = false, q, priceStatus } = opts;
   const term = q?.trim().toLowerCase();
 
   // Supabase 미연결 시 빈 목록 (가짜 데이터 없음)
@@ -152,7 +152,7 @@ export async function getDeals(opts: GetDealsOpts = {}): Promise<Deal[]> {
 
 /** 국내몰 추천 특가(MD 큐레이션 = baseline 없는 활성 딜). 카테고리 필터·정렬 지원. */
 export async function getCuratedDeals(
-  sort: SortKey = "popular",
+  sort: SortKey = "recent",
   category?: string
 ): Promise<Deal[]> {
   if (!supabase) return [];

@@ -30,7 +30,7 @@ export default function SortTabs({
   if (showEnded) keep.se = "1";
   if (ps) keep.ps = ps;
   if (cc) keep.cc = cc;
-  if (cs && cs !== "popular") keep.cs = cs;
+  if (cs && cs !== "recent") keep.cs = cs;
 
   return (
     <div className="flex items-center gap-2">

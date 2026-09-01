@@ -13,7 +13,7 @@ const CURATED_SORTS = [
 
 export default async function CuratedSection({
   cc,
-  cs = "discount",
+  cs = "recent",
   catOptions,
   params,
 }: {
