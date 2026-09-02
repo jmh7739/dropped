@@ -30,9 +30,10 @@ from sources import coupang, aliexpress, cps, hotdeal, popular, flights, auction
 SOURCES = [coupang, aliexpress, cps, hotdeal, popular]
 
 
-def collect_and_flag() -> tuple[int, int, set[int]]:
+def collect_and_flag() -> tuple[int, int, set[int], set[int]]:
     seen_product_ids: set[int] = set()
     flagged_ids: set[int] = set()
+    curated_ids: set[int] = set()  # 베스트딜(baseline null) — 이번 run에 잡힌 것
     flagged = 0
     scanned = 0
 
@@ -90,6 +91,7 @@ def collect_and_flag() -> tuple[int, int, set[int]]:
                 "is_price_error": False,
             })
             flagged_ids.add(product_id)  # expire가 즉시 종료 안 하게
+            curated_ids.add(product_id)
         return False
 
     for src in SOURCES:
@@ -109,18 +111,21 @@ def collect_and_flag() -> tuple[int, int, set[int]]:
             except Exception as e:
                 print(f"[{name}] 항목 처리 실패 → 건너뜀: {type(e).__name__}: {e}")
 
-    return flagged, scanned, flagged_ids
+    return flagged, scanned, flagged_ids, curated_ids
 
 
-def expire_stale_deals(flagged_ids: set[int]) -> int:
+def expire_stale_deals(flagged_ids: set[int], curated_ids: set[int]) -> int:
     """진행중 딜 종료 처리.
-    - 잠정딜(baseline 없음): 이번 수집에서 다시 딜로 안 잡히면 종료(누적 방지).
-    - 정식딜(baseline 있음): 가격이 평소가로 원복되면 종료.
+    - 베스트딜(baseline 없음): 이번 수집에서 다시 안 잡히면 종료(누적 방지).
+      단 이번 run에 베스트딜이 하나도 안 잡혔으면(소스 실패/스킵) 몰살 방지 위해 건너뜀.
+    - 급락딜(baseline 있음): 가격이 평소가로 원복되면 종료.
     """
+    # 큐레이션 소스가 통째로 실패한 run에서 베스트딜 전체가 종료되는 사고 방지.
+    curated_healthy = len(curated_ids) > 0
     ended = 0
     for d in db.active_deals():
         if d.get("baseline_price") is None:
-            if d["product_id"] not in flagged_ids:
+            if curated_healthy and d["product_id"] not in flagged_ids:
                 db.end_deal(d["id"])
                 ended += 1
             continue
@@ -149,12 +154,12 @@ def main() -> None:
     mode = "DRY_RUN(DB 미기록)" if config.DRY_RUN else "LIVE"
     print(f"=== 핫딜 수집 시작 [{mode}] ===")
 
-    flagged, scanned, flagged_ids = collect_and_flag()
-    print(f"\n스캔 {scanned}건 → 딜 {flagged}건 플래그")
+    flagged, scanned, flagged_ids, curated_ids = collect_and_flag()
+    print(f"\n스캔 {scanned}건 → 딜 {flagged}건 플래그 (베스트딜 {len(curated_ids)}건)")
 
     # 품절/원복 딜 정리(expire)는 반드시 돌아야 함 → 개별 격리.
     def _expire():
-        ended = expire_stale_deals(flagged_ids)
+        ended = expire_stale_deals(flagged_ids, curated_ids)
         if ended:
             print(f"종료 처리된 딜: {ended}건")
     _safe("expire", _expire)
