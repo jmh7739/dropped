@@ -112,3 +112,22 @@ export function buyVerdict(
     cls: WAIT,
   };
 }
+
+/**
+ * 베스트딜(국내몰 인기) 판정 — 이 상품은 '평소 시세 추적'이 아니라 제휴사 표기
+ *   할인(정가/원가 대비)이라, '평균보다'라고 하면 거짓이 된다. 정직하게 표기.
+ */
+export function curatedVerdict(listDiscount: number): Verdict {
+  const d = Math.round(listDiscount);
+  const OK = "border-amber-300 bg-amber-50 text-amber-900";
+  return {
+    tier: "ok",
+    icon: "🛒",
+    title: "베스트딜 · 인기 세일",
+    reason:
+      d >= 1
+        ? `정가/원가 대비 ${d}% 할인 · 평소 시세는 추적 중`
+        : "국내몰에서 지금 잘 팔리는 상품",
+    cls: OK,
+  };
+}

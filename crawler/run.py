@@ -10,6 +10,7 @@
 from __future__ import annotations
 
 import sys
+import traceback
 
 # Windows 콘솔(cp949)에서도 UTF-8 로그가 깨지지 않도록
 try:
@@ -35,62 +36,78 @@ def collect_and_flag() -> tuple[int, int, set[int]]:
     flagged = 0
     scanned = 0
 
+    def process(raw) -> bool:
+        """한 항목 처리 → is_deal이면 True. seen/flagged_ids 갱신은 여기서."""
+        product_id = db.upsert_product(raw)
+        if product_id is None:
+            return False
+        seen_product_ids.add(product_id)
+
+        history = db.recent_prices(product_id)
+        hdays = db.history_days(product_id)
+        db.insert_price(product_id, raw.current_price)
+
+        verdict = detect.classify(
+            current_price=raw.current_price,
+            list_price=raw.list_price,
+            history_prices=history,
+            history_days=hdays,
+            platform=raw.platform,
+        )
+
+        tag = "[DEAL]" if verdict.is_deal else "[skip]"
+        err = " (price-error?)" if verdict.is_price_error else ""
+        print(f"{tag}{err} | {raw.platform} | {raw.title[:30]} "
+              f"| {raw.current_price:,}원 | {verdict.reason}")
+
+        if verdict.is_deal:
+            db.upsert_active_deal(product_id, {
+                "current_price": raw.current_price,
+                "list_price": raw.list_price,
+                "baseline_price": verdict.baseline_price,
+                "discount_vs_list": verdict.discount_vs_list,
+                "discount_vs_avg": verdict.discount_vs_avg,
+                "is_lowest_ever": verdict.is_lowest_ever,
+                "is_price_error": verdict.is_price_error,
+            })
+            flagged_ids.add(product_id)
+            return True
+        if raw.curated:
+            # 베스트딜(국내몰 인기): 제휴사 실판매가 기준 할인(원가→할인가).
+            #   baseline_price=None 이 '베스트딜' 마커(프론트가 급락딜과 분리).
+            dvl = None
+            if raw.list_price and raw.list_price > raw.current_price:
+                dvl = round(
+                    (raw.list_price - raw.current_price) / raw.list_price * 100, 2
+                )
+            db.upsert_active_deal(product_id, {
+                "current_price": raw.current_price,
+                "list_price": raw.list_price,
+                "baseline_price": None,
+                "discount_vs_list": dvl,
+                "discount_vs_avg": None,
+                "is_lowest_ever": False,
+                "is_price_error": False,
+            })
+            flagged_ids.add(product_id)  # expire가 즉시 종료 안 하게
+        return False
+
     for src in SOURCES:
-        for raw in src.fetch():
+        name = getattr(src, "__name__", "src").rsplit(".", 1)[-1]
+        # 한 소스가 실패해도 나머지 소스와 expire(품절/스테일 정리)는 계속 돌아야 함.
+        try:
+            raws = list(src.fetch())
+        except Exception as e:
+            print(f"[{name}] 소스 실패 → 이 소스만 건너뜀: {type(e).__name__}: {e}")
+            traceback.print_exc()
+            continue
+        for raw in raws:
             scanned += 1
-            product_id = db.upsert_product(raw)
-            if product_id is None:
-                continue
-            seen_product_ids.add(product_id)
-
-            history = db.recent_prices(product_id)
-            hdays = db.history_days(product_id)
-            db.insert_price(product_id, raw.current_price)
-
-            verdict = detect.classify(
-                current_price=raw.current_price,
-                list_price=raw.list_price,
-                history_prices=history,
-                history_days=hdays,
-                platform=raw.platform,
-            )
-
-            tag = "[DEAL]" if verdict.is_deal else "[skip]"
-            err = " (price-error?)" if verdict.is_price_error else ""
-            print(f"{tag}{err} | {raw.platform} | {raw.title[:30]} "
-                  f"| {raw.current_price:,}원 | {verdict.reason}")
-
-            if verdict.is_deal:
-                db.upsert_active_deal(product_id, {
-                    "current_price": raw.current_price,
-                    "list_price": raw.list_price,
-                    "baseline_price": verdict.baseline_price,
-                    "discount_vs_list": verdict.discount_vs_list,
-                    "discount_vs_avg": verdict.discount_vs_avg,
-                    "is_lowest_ever": verdict.is_lowest_ever,
-                    "is_price_error": verdict.is_price_error,
-                })
-                flagged += 1
-                flagged_ids.add(product_id)
-            elif raw.curated:
-                # 국내몰 추천 특가: 제휴사 실판매가 기준 할인(원가→할인가).
-                #   baseline_price=None 이 '추천딜' 마커(프론트가 급락딜과 분리).
-                #   list_price(원가) 있으면 할인율 표시 (거짓정가 아님 — 국내몰 실판매가).
-                dvl = None
-                if raw.list_price and raw.list_price > raw.current_price:
-                    dvl = round(
-                        (raw.list_price - raw.current_price) / raw.list_price * 100, 2
-                    )
-                db.upsert_active_deal(product_id, {
-                    "current_price": raw.current_price,
-                    "list_price": raw.list_price,
-                    "baseline_price": None,
-                    "discount_vs_list": dvl,
-                    "discount_vs_avg": None,
-                    "is_lowest_ever": False,
-                    "is_price_error": False,
-                })
-                flagged_ids.add(product_id)  # expire가 즉시 종료 안 하게
+            try:
+                if process(raw):
+                    flagged += 1
+            except Exception as e:
+                print(f"[{name}] 항목 처리 실패 → 건너뜀: {type(e).__name__}: {e}")
 
     return flagged, scanned, flagged_ids
 
@@ -119,6 +136,15 @@ def expire_stale_deals(flagged_ids: set[int]) -> int:
     return ended
 
 
+def _safe(label: str, fn) -> None:
+    """한 단계가 실패해도 다음 단계는 계속 (전체 크롤이 exit 1로 죽지 않게)."""
+    try:
+        fn()
+    except Exception as e:
+        print(f"[{label}] 실패 → 건너뜀: {type(e).__name__}: {e}")
+        traceback.print_exc()
+
+
 def main() -> None:
     mode = "DRY_RUN(DB 미기록)" if config.DRY_RUN else "LIVE"
     print(f"=== 핫딜 수집 시작 [{mode}] ===")
@@ -126,22 +152,22 @@ def main() -> None:
     flagged, scanned, flagged_ids = collect_and_flag()
     print(f"\n스캔 {scanned}건 → 딜 {flagged}건 플래그")
 
-    ended = expire_stale_deals(flagged_ids)
-    if ended:
-        print(f"종료 처리된 딜: {ended}건")
-
-    db.prune_ended_deals()   # 24h 지난 종료 딜 제거
-    db.rollup_old_history()
+    # 품절/원복 딜 정리(expire)는 반드시 돌아야 함 → 개별 격리.
+    def _expire():
+        ended = expire_stale_deals(flagged_ids)
+        if ended:
+            print(f"종료 처리된 딜: {ended}건")
+    _safe("expire", _expire)
+    _safe("prune_ended", db.prune_ended_deals)       # 24h 지난 종료 딜 제거
+    _safe("rollup_history", db.rollup_old_history)
 
     print("\n--- 항공권 특가 ---")
-    fn = collect_flights()
-    print(f"항공권 {fn}건 수집")
+    _safe("flights", collect_flights)
 
     print("\n--- 경매 특가 ---")
-    an = collect_auction()
-    print(f"경매 {an}건 수집")
+    _safe("auction", collect_auction)
 
-    ping_indexnow()
+    _safe("indexnow", ping_indexnow)
 
     print("=== 완료 ===")
 

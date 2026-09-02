@@ -3,7 +3,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { getDeal } from "@/lib/deals";
 import { formatWon, headlineDiscount, timeAgo } from "@/lib/format";
-import { priceStats, buyVerdict } from "@/lib/priceReport";
+import { priceStats, buyVerdict, curatedVerdict } from "@/lib/priceReport";
 import { mallLabel } from "@/lib/types";
 import PriceChart from "@/components/PriceChart";
 import PriceReport from "@/components/PriceReport";
@@ -51,9 +51,13 @@ export default async function DealDetail({
   const { rate } = headlineDiscount(deal);
   // 가격 리포트: 이력에서 7일/30일 평균·최저, 역대최저, 추적기간 → 최종 판정.
   const stats = priceStats(deal.history, deal.currentPrice);
-  const verdict = stats
-    ? buyVerdict(rate, stats.isLowest, stats.lowestLabel, stats.enoughData)
-    : null;
+  // 베스트딜(국내몰 인기)은 정가 대비 표기 — '평균보다'라고 하면 거짓이라 분리.
+  //   급락딜(가격추적)만 '평소가 대비' 지금살까 판정.
+  const verdict = deal.isCurated
+    ? curatedVerdict(deal.discountVsList)
+    : stats
+      ? buyVerdict(rate, stats.isLowest, stats.lowestLabel, stats.enoughData)
+      : null;
 
   // 구글 리치 결과용 Product 구조화 데이터
   const jsonLd = {
