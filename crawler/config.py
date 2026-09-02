@@ -178,6 +178,9 @@ END_DISCOUNT = 0.03
 # 종료는 '최근 K개 수집이 모두 원복'됐을 때만 확정한다. (알리 bimodal이 잠깐 고가로
 #   튀는 단일 blip으로 영구 종료되던 버그 방지 — 최근 K개 중 최저가로 판정)
 END_CONFIRM_READINGS = 3
+# 베스트딜(큐레이션) 종료 TTL: 마지막으로 잡힌 지 이 시간 넘게 안 보이면 종료.
+#   단일/부분 소스 실패로 한두 run 빠져도(cron ~50분 간격) 종료 안 되게 여유를 둠.
+CURATED_STALE_HOURS = 3
 
 # 크롤링 매너 (직접 크롤링 시)
 REQUEST_DELAY_RANGE = (2, 5)    # 요청 간 랜덤 딜레이(초)

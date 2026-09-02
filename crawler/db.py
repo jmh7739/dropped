@@ -138,7 +138,14 @@ def upsert_active_deal(product_id: int, fields: dict) -> None:
         .execute()
         .data
     )
-    body = {"product_id": product_id, "status": "active", **fields}
+    # updated_at을 매 플래그마다 갱신 → expire의 TTL(마지막으로 본 시각) 판정 근거.
+    from datetime import datetime, timezone
+    body = {
+        "product_id": product_id,
+        "status": "active",
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+        **fields,
+    }
     if existing:
         client().table("hot_deals").update(body).eq(
             "id", existing[0]["id"]
@@ -154,7 +161,7 @@ def active_deals() -> list[dict]:
     return (
         client()
         .table("hot_deals")
-        .select("id, product_id, baseline_price")
+        .select("id, product_id, baseline_price, updated_at")
         .eq("status", "active")
         .execute()
         .data

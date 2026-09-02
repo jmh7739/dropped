@@ -120,12 +120,25 @@ def expire_stale_deals(flagged_ids: set[int], curated_ids: set[int]) -> int:
       단 이번 run에 베스트딜이 하나도 안 잡혔으면(소스 실패/스킵) 몰살 방지 위해 건너뜀.
     - 급락딜(baseline 있음): 가격이 평소가로 원복되면 종료.
     """
+    from datetime import datetime, timedelta, timezone
     # 큐레이션 소스가 통째로 실패한 run에서 베스트딜 전체가 종료되는 사고 방지.
     curated_healthy = len(curated_ids) > 0
+    stale_before = datetime.now(timezone.utc) - timedelta(
+        hours=config.CURATED_STALE_HOURS
+    )
     ended = 0
     for d in db.active_deals():
         if d.get("baseline_price") is None:
-            if curated_healthy and d["product_id"] not in flagged_ids:
+            # 베스트딜: 이번에 안 잡혔고 + TTL 넘게 안 보였을 때만 종료.
+            #   (한두 run 빠진 정도로는 안 끝냄 → 부분 소스 실패 깜빡임 방지)
+            if not (curated_healthy and d["product_id"] not in flagged_ids):
+                continue
+            ua = d.get("updated_at")
+            try:
+                seen = datetime.fromisoformat(ua.replace("Z", "+00:00")) if ua else None
+            except Exception:
+                seen = None
+            if seen is not None and seen < stale_before:
                 db.end_deal(d["id"])
                 ended += 1
             continue
