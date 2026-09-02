@@ -9,12 +9,8 @@
 """
 from __future__ import annotations
 
-import re
 import sys
 import traceback
-
-# 제목에 품절/완판 신호가 있으면 노출 제외(→ expire가 기존 딜도 정리).
-_SOLDOUT = re.compile(r"품\s*절|완\s*판|매\s*진|sold\s*out|재고\s*없", re.I)
 
 # Windows 콘솔(cp949)에서도 UTF-8 로그가 깨지지 않도록
 try:
@@ -42,9 +38,6 @@ def collect_and_flag() -> tuple[int, int, set[int]]:
 
     def process(raw) -> bool:
         """한 항목 처리 → is_deal이면 True. seen/flagged_ids 갱신은 여기서."""
-        # 품절/완판 상품은 스킵 → flagged_ids에 안 들어가 expire가 기존 딜도 종료.
-        if _SOLDOUT.search(raw.title or ""):
-            return False
         product_id = db.upsert_product(raw)
         if product_id is None:
             return False
