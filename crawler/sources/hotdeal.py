@@ -97,11 +97,12 @@ def fetch() -> list[RawDeal]:
         slug = _slug(name, category)
         if not slug:
             continue
-        # 할인가 있으면 그걸, 없으면 현재가. 정가는 안 믿음(뻥튀기).
+        # 리얼핫딜은 우리 등급엔 discount_price를 안 줌(항상 0) → normal_price(현재가)만.
+        #   즉 정가/할인가 없음 → 실이력으로만 판정(product API와 동일).
         disc = _to_int(p.get("discount_price"))
         normal = _to_int(p.get("normal_price"))
         price = disc if disc > 0 else normal
-        
+
         # 배송비 정보 추가
         shipping = p.get("shipping_charge", "")
         shipping_fee = 0 if shipping and "무료" in shipping else None
@@ -117,7 +118,7 @@ def fetch() -> list[RawDeal]:
             product_url=url,
             affiliate_url=url,   # 이미 우리 제휴ID 포함
             current_price=price,
-            list_price=None,     # 정가 안 믿음 → 실이력으로만 판정
+            list_price=None,     # 할인가 없음 → 실이력으로만 판정
             category_slug=slug,
             mall_name=affiliate.merchant_name(mcode),
             shipping_fee=shipping_fee,
