@@ -1,0 +1,39 @@
+name: CI (빌드·임포트 검증)
+
+# 푸시/PR마다 프론트 빌드(타입체크 포함)와 크롤러 임포트를 검증.
+#   타입에러(예: searchParams 필드 누락)·문법·임포트 오류를 배포 전에 잡는다.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  web-build:
+    name: Next 빌드 (타입체크 포함)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+      - run: npm ci
+      - run: npm run build
+        env:
+          # 빌드 시 Supabase 미연결이어도 통과(런타임 no-store로 동적 렌더).
+          NEXT_PUBLIC_SUPABASE_URL: ""
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ""
+
+  crawler-import:
+    name: 크롤러 임포트/문법 검증
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r crawler/requirements.txt
+      - name: import smoke test
+        working-directory: crawler
+        run: python -c "import run, db, detect, config; import sources.aliexpress, sources.cps, sources.popular, sources.hotdeal, sources.flights, sources.auction; print('crawler imports OK')"
