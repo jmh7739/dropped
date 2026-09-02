@@ -51,13 +51,23 @@ export default async function DealDetail({
   const { rate } = headlineDiscount(deal);
   // 가격 리포트: 이력에서 7일/30일 평균·최저, 역대최저, 추적기간 → 최종 판정.
   const stats = priceStats(deal.history, deal.currentPrice);
+  const ended = deal.status === "ended";
   // 베스트딜(국내몰 인기)은 정가 대비 표기 — '평균보다'라고 하면 거짓이라 분리.
   //   급락딜(가격추적)만 '평소가 대비' 지금살까 판정.
-  const verdict = deal.isCurated
-    ? curatedVerdict(deal.discountVsList)
-    : stats
-      ? buyVerdict(rate, stats.isLowest, stats.lowestLabel, stats.enoughData)
-      : null;
+  //   종료된 딜은 '지금 사도 좋음'이 아니라 종료 상태로 정직하게.
+  const verdict = ended
+    ? {
+        tier: "wait" as const,
+        icon: "⏱️",
+        title: "종료된 딜이에요",
+        reason: "품절되었거나 가격이 다시 올랐어요",
+        cls: "border-gray-300 bg-gray-100 text-gray-600",
+      }
+    : deal.isCurated
+      ? curatedVerdict(deal.discountVsList)
+      : stats
+        ? buyVerdict(rate, stats.isLowest, stats.lowestLabel, stats.enoughData)
+        : null;
 
   // 구글 리치 결과용 Product 구조화 데이터
   const jsonLd = {
@@ -150,9 +160,15 @@ export default async function DealDetail({
             <LikeButton productId={deal.productId} initialCount={deal.likeCount} />
             <ShareButton path={`/deal/${deal.id}`} title={deal.title} compact />
             <div className="flex-1">
-              <BuyButton productId={deal.productId} href={deal.affiliateUrl}>
-                최저가로 사러 가기 →
-              </BuyButton>
+              {ended ? (
+                <span className="block rounded-lg bg-gray-200 py-2.5 text-center text-sm font-bold text-gray-500">
+                  ⏱️ 종료된 딜
+                </span>
+              ) : (
+                <BuyButton productId={deal.productId} href={deal.affiliateUrl}>
+                  최저가로 사러 가기 →
+                </BuyButton>
+              )}
             </div>
           </div>
           <p className="mt-2 text-center text-[11px] text-gray-400">
