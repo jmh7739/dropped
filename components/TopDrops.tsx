@@ -36,7 +36,7 @@ export default function TopDrops({
           return (
             <Link
               key={d.id}
-              href={`/deal/${d.id}`}
+              href={`/price/${d.productId}`}
               className="group relative flex w-40 flex-shrink-0 flex-col overflow-hidden rounded-xl border border-gray-200 bg-white transition hover:shadow-md"
             >
               <span className="absolute left-2 top-2 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-gray-900/85 text-sm font-extrabold text-white">

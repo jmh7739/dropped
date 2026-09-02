@@ -49,7 +49,7 @@ export default function DealCard({
         }`}
       >
         <Link
-          href={`/deal/${deal.id}`}
+          href={`/price/${deal.productId}`}
           className="flex min-w-0 flex-1 items-center gap-3"
         >
           <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg bg-gray-100">
@@ -98,7 +98,7 @@ export default function DealCard({
         <div className="flex flex-shrink-0 flex-col items-stretch gap-1.5">
           <div className="flex gap-1.5">
             <LikeButton productId={deal.productId} initialCount={deal.likeCount} size="sm" />
-            <ShareButton path={`/deal/${deal.id}`} title={deal.title} compact />
+            <ShareButton path={`/price/${deal.productId}`} title={deal.title} compact />
           </div>
           {ended ? (
             <span className="block rounded-lg bg-gray-200 px-3 py-1 text-center text-xs font-bold text-gray-500">
@@ -121,7 +121,7 @@ export default function DealCard({
       }`}
     >
       {/* 클릭 → 상세(그래프) */}
-      <Link href={`/deal/${deal.id}`} className="flex flex-1 flex-col">
+      <Link href={`/price/${deal.productId}`} className="flex flex-1 flex-col">
         <div className="relative aspect-square overflow-hidden bg-gray-100">
           <SafeImage
             src={deal.imageUrl}
@@ -189,7 +189,7 @@ export default function DealCard({
           initialCount={deal.likeCount}
           size="sm"
         />
-        <ShareButton path={`/deal/${deal.id}`} title={deal.title} compact />
+        <ShareButton path={`/price/${deal.productId}`} title={deal.title} compact />
         <div className="flex-1">
           {ended ? (
             <span className="block rounded-lg bg-gray-200 py-1.5 text-center text-xs font-bold text-gray-500">

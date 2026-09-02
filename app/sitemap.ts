@@ -21,7 +21,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ];
 
   const dealRoutes: MetadataRoute.Sitemap = deals.map((d) => ({
-    url: `${SITE_URL}/deal/${d.id}`,
+    url: `${SITE_URL}/price/${d.productId}`,
     lastModified: d.detectedAt,
     changeFrequency: "daily",
     priority: 0.8,

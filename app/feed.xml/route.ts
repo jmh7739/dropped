@@ -24,8 +24,8 @@ export async function GET() {
       (d) => `
     <item>
       <title>${esc(d.title)} — ${formatWon(d.currentPrice)}</title>
-      <link>${SITE}/deal/${d.id}</link>
-      <guid isPermaLink="true">${SITE}/deal/${d.id}</guid>
+      <link>${SITE}/price/${d.productId}</link>
+      <guid isPermaLink="true">${SITE}/price/${d.productId}</guid>
       <category>${esc(d.categoryName)}</category>
       <description>${esc(d.categoryName)} · ${formatWon(d.currentPrice)}${d.mallName ? ` · ${esc(d.mallName)}` : ""}</description>
       <pubDate>${new Date(d.detectedAt).toUTCString()}</pubDate>
