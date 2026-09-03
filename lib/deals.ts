@@ -194,3 +194,14 @@ export async function getDeal(id: number): Promise<Deal | null> {
   }));
   return rowToDeal(row, history);
 }
+
+/** 가장 최근 가격 수집 시각(ISO) — "실시간 추적 중"을 보여주기 위함. */
+export async function getLastPriceUpdate(): Promise<string | null> {
+  if (!supabase) return null;
+  const { data } = await supabase
+    .from("price_history")
+    .select("collected_at")
+    .order("collected_at", { ascending: false })
+    .limit(1);
+  return data?.[0]?.collected_at ?? null;
+}

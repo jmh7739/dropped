@@ -1,4 +1,6 @@
-import { getDeals, SortKey, PriceStatusKey, PRICE_STATUS } from "@/lib/deals";
+import type { Metadata } from "next";
+import { getDeals, getLastPriceUpdate, SortKey, PriceStatusKey, PRICE_STATUS } from "@/lib/deals";
+import { timeAgo } from "@/lib/format";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import DealGrid from "@/components/DealGrid";
 import HotdealTabs from "@/components/HotdealTabs";
@@ -21,6 +23,38 @@ import { CATEGORIES } from "@/lib/types";
 // 딜은 매시간 바뀌므로 항상 최신 데이터로 렌더(정적캐시 스테일 방지).
 //   트래픽 늘면 revalidate로 되돌려 캐싱 최적화 가능.
 export const dynamic = "force-dynamic";
+
+// 카테고리·검색별로 검색 최적화된 제목/설명 (SEO). 기본 홈은 layout 메타 사용.
+export async function generateMetadata({
+  searchParams,
+}: {
+  searchParams: { category?: string; q?: string };
+}): Promise<Metadata> {
+  const cat = CATEGORIES.find((c) => c.slug === searchParams.category);
+  const q = (searchParams.q ?? "").slice(0, 50).trim();
+  if (q) return { title: `"${q}" 최저가·특가 검색` };
+  if (cat?.dealType === "flight")
+    return {
+      title: "여행 특가 — 항공권 최저가·숙소",
+      description:
+        "한국 출발 항공권 최저가를 노선·날짜별로. 평소보다 떨어진 여행 특가를 한눈에.",
+      alternates: { canonical: "/?category=flight" },
+    };
+  if (cat?.dealType === "auction")
+    return {
+      title: "경매 특가 — 법원경매 부동산·자동차",
+      description:
+        "법원경매(온비드) 부동산·자동차를 감정가 대비 하락률 순으로. 유찰로 싸진 물건만.",
+      alternates: { canonical: "/?category=auction" },
+    };
+  if (cat)
+    return {
+      title: `${cat.name} 최저가·특가·핫딜`,
+      description: `${cat.name} 카테고리에서 평소 판매가보다 진짜 싸진 것만 모았어요. 가격 추적으로 지금이 살 때인지 알려드립니다.`,
+      alternates: { canonical: `/?category=${cat.slug}` },
+    };
+  return {};
+}
 
 export default async function Home({
   searchParams,
@@ -130,6 +164,7 @@ export default async function Home({
 
   // ── 쇼핑 딜 ──
   const fetched = await getDeals({ category, sort, hotOnly: hot, q, priceStatus: ps });
+  const lastUpdate = await getLastPriceUpdate(); // "실시간 추적 중" 표시용
   // 종료딜은 항상 숨김 (토글 없음)
   const visible = fetched.filter((d) => d.status !== "ended");
   // 같은 브랜드(제목 첫 단어) 도배 방지 — 최대 2개 (알리 유사상품 반복 완화)
@@ -212,6 +247,21 @@ export default async function Home({
       ) : (
         /* ── 📉 급락: 가격 추적으로 평소보다 떨어진 것 ── */
         <>
+          {/* 실시간 추적 표시 + 홈 소개(SEO) */}
+          {lastUpdate && (
+            <p className="mb-1 text-[11px] text-gray-400" suppressHydrationWarning>
+              🕐 가격 {timeAgo(lastUpdate)} 갱신 · 매시간 자동 추적 중
+            </p>
+          )}
+          {isDefaultHome && (
+            <p className="mb-4 text-xs leading-relaxed text-gray-500">
+              <b className="text-gray-700">떨어졌다</b>는 판매자가 써둔 할인율을 믿지
+              않고, 실제 가격 이력으로 <b>평소보다 진짜 싸진 것</b>만 골라줍니다.
+              쿠팡·알리익스프레스 급락 특가, 항공권 최저가, 법원경매까지 — 가격
+              그래프로 지금이 살 때인지 확인하세요.
+            </p>
+          )}
+
           {topDrops.length > 0 && <TopDrops deals={topDrops} />}
 
           <div className="mb-1 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
