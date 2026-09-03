@@ -3,6 +3,7 @@ import { isSupabaseConfigured } from "@/lib/supabase";
 import DealGrid from "@/components/DealGrid";
 import HotdealTabs from "@/components/HotdealTabs";
 import CoupangWidget from "@/components/CoupangWidget";
+import CoupangPicks from "@/components/CoupangPicks";
 import SortDropdown from "@/components/SortDropdown";
 import SortTabs from "@/components/SortTabs";
 import TravelView, { TravelTab } from "@/components/TravelView";
@@ -260,6 +261,9 @@ export default async function Home({
 
           {/* 쿠팡 다이나믹 배너 (env에 위젯 id 넣으면 노출) — 15만원 실적용 진입점 */}
           <CoupangWidget id={process.env.NEXT_PUBLIC_COUPANG_DYNAMIC_ID} />
+
+          {/* 손으로 고른 쿠팡 추천 (lib/coupangPicks.ts 채우면 노출) */}
+          <CoupangPicks />
 
           {isDefaultHome && <GoldboxSection />}
         </>
