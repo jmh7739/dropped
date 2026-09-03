@@ -30,6 +30,15 @@ export default function TermsPage() {
         정책과 약정에 따릅니다. 여행 정보도 예약 전 원문 조건과 판매 조건을 확인해야 합니다.
       </p>
 
+      <h2 className="mb-1 mt-6 text-base font-bold text-gray-900">문의</h2>
+      <p>
+        서비스 문의는{" "}
+        <a href="mailto:aimarket7329@gmail.com" className="font-semibold text-brand">
+          aimarket7329@gmail.com
+        </a>
+        으로 연락해 주세요.
+      </p>
+
       <p className="mt-6 text-xs text-gray-400">시행일: 2026년 9월 2일</p>
     </article>
   );

@@ -16,11 +16,32 @@ select
   coalesce(s.like_count, 0)  as like_count,
   coalesce(s.click_count, 0) as click_count,
   p.unit_price,
-  d.updated_at     as checked_at
+  d.updated_at     as checked_at,
+  ph.avg30_price,
+  ph.min90_price,
+  ph.max90_price,
+  ph.tracked_days,
+  ph.history_points
 from hot_deals d
 join products p    on p.id = d.product_id
 left join categories c on c.id = p.category_id
 left join deal_stats s on s.product_id = p.id
+left join lateral (
+  select
+    round(avg(price) filter (where collected_at >= now() - interval '30 days'))::bigint as avg30_price,
+    min(price) filter (where collected_at >= now() - interval '90 days')::bigint as min90_price,
+    max(price) filter (where collected_at >= now() - interval '90 days')::bigint as max90_price,
+    case
+      when count(*) = 0 then null
+      else greatest(
+        1,
+        ceil(extract(epoch from (max(collected_at) - min(collected_at))) / 86400.0)::int
+      )
+    end as tracked_days,
+    count(*)::int as history_points
+  from price_history h
+  where h.product_id = p.id
+) ph on true
 where d.status = 'active'
    or (d.status = 'ended' and d.ended_at > now() - interval '24 hours');
 

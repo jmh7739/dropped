@@ -1,25 +1,17 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { getDeals, getLastPriceUpdate, SortKey, PriceStatusKey, PRICE_STATUS } from "@/lib/deals";
 import { timeAgo } from "@/lib/format";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import DealGrid from "@/components/DealGrid";
-import HotdealTabs from "@/components/HotdealTabs";
-import CoupangWidget from "@/components/CoupangWidget";
-import CoupangPicks from "@/components/CoupangPicks";
 import SortDropdown from "@/components/SortDropdown";
-import SortTabs from "@/components/SortTabs";
 import TravelView, { TravelTab } from "@/components/TravelView";
 import AuctionView from "@/components/AuctionView";
-import GoldboxSection from "@/components/GoldboxSection";
-import CuratedSection from "@/components/CuratedSection";
-import GoldboxBanner from "@/components/GoldboxBanner";
-import TopDrops from "@/components/TopDrops";
 import SearchBar from "@/components/SearchBar";
 import Pagination from "@/components/Pagination";
 import { AuctionScope, AuctionSort } from "@/lib/auction";
 import { PAGE_SIZE } from "@/lib/nav";
 import { CATEGORIES } from "@/lib/types";
-import { headlineDropRate, hotDealScore, limitHealthDeals } from "@/lib/dropMetrics";
 
 // 딜은 매시간 바뀌므로 항상 최신 데이터로 렌더(정적캐시 스테일 방지).
 //   트래픽 늘면 revalidate로 되돌려 캐싱 최적화 가능.
@@ -76,6 +68,7 @@ export default async function Home({
     sec?: string; // 핫딜 세그먼트 (급락 drop | 베스트 best)
     cc?: string; // 국내몰 추천 특가 카테고리 (독립)
     cs?: string; // 국내몰 추천 특가 정렬 (독립)
+    scope?: string; // 전체 | 국내딜 | 해외딜
     page?: string;
   };
 }) {
@@ -94,7 +87,7 @@ export default async function Home({
   ];
   const sort: SortKey = validDealSorts.includes(searchParams.sort as SortKey)
     ? (searchParams.sort as SortKey)
-    : "recent";
+    : "discount";
   const hot = searchParams.hot === "1";
   const showEnded = searchParams.se === "1"; // 기본은 종료딜 숨김
   const q = (searchParams.q ?? "").slice(0, 100);
@@ -102,6 +95,10 @@ export default async function Home({
   const ps = validPs.has(searchParams.ps as PriceStatusKey)
     ? (searchParams.ps as PriceStatusKey)
     : undefined;
+  const scope =
+    searchParams.scope === "domestic" || searchParams.scope === "overseas"
+      ? searchParams.scope
+      : undefined;
   // 핫딜 세그먼트: 급락(기본) | 베스트(국내몰 인기)
   const sec: "drop" | "best" = searchParams.sec === "best" ? "best" : "drop";
   // 베스트(국내몰) 독립 카테고리·정렬
@@ -164,7 +161,14 @@ export default async function Home({
   }
 
   // ── 쇼핑 딜 ──
-  const fetched = await getDeals({ category, sort, hotOnly: hot, q, priceStatus: ps });
+  const fetched = await getDeals({
+    category,
+    sort,
+    hotOnly: hot,
+    q,
+    priceStatus: ps,
+    scope,
+  });
   const lastUpdate = await getLastPriceUpdate(); // "실시간 추적 중" 표시용
   // 종료딜은 항상 숨김 (토글 없음)
   const visible = fetched.filter((d) => d.status !== "ended");
@@ -182,38 +186,6 @@ export default async function Home({
   const deals = allDeals.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
   const activeCount = allDeals.filter((d) => d.status !== "ended").length;
 
-  // 필터 없는 기본 홈 1페이지에서만 상단 판단형 랭킹 노출.
-  //   순위 = 평균 대비 하락 + 판매처 신뢰 + 가격 데이터 + 클릭/좋아요.
-  const isDefaultHome = !category && !hot && !q && !ps;
-  const rankable = [...allDeals].filter((d) => d.status !== "ended");
-  const topDrops =
-    isDefaultHome && safePage === 1
-      ? limitHealthDeals(
-          [...rankable].sort((a, b) => hotDealScore(b) - hotDealScore(a)),
-          1
-        ).slice(0, 8)
-      : [];
-  const lowestDeals =
-    isDefaultHome && safePage === 1
-      ? limitHealthDeals(
-          [...rankable]
-            .filter((d) => d.isLowestEver)
-            .sort((a, b) => hotDealScore(b) - hotDealScore(a)),
-          1
-        ).slice(0, 8)
-      : [];
-  const todayDrops =
-    isDefaultHome && safePage === 1
-      ? limitHealthDeals(
-          [...rankable]
-            .filter(
-              (d) => Date.now() - new Date(d.detectedAt).getTime() <= 24 * 3600 * 1000
-            )
-            .sort((a, b) => headlineDropRate(b) - headlineDropRate(a)),
-          1
-        ).slice(0, 8)
-      : [];
-
   const psLabel = ps ? PRICE_STATUS.find((s) => s.key === ps)?.label : undefined;
   const heading = q
     ? `"${q}" 검색 결과`
@@ -223,7 +195,7 @@ export default async function Home({
         ? psLabel
         : activeCat
           ? activeCat.name
-          : "🔥 오늘의 특가";
+          : "베스트딜";
 
   // 드롭다운이 유지할 현재 전체 쿼리(각 드롭다운은 자기 param만 덮어씀 → 위/아래 독립)
   const allParams: Record<string, string> = {};
@@ -233,6 +205,7 @@ export default async function Home({
   if (q) allParams.q = q;
   if (showEnded) allParams.se = "1";
   if (ps) allParams.ps = ps;
+  if (scope) allParams.scope = scope;
   if (sec === "best") allParams.sec = "best";
   if (cc) allParams.cc = cc;
   if (cs !== "recent") allParams.cs = cs;
@@ -244,37 +217,98 @@ export default async function Home({
       label: c.name,
     })),
   ];
+  const reasonOptions = [
+    { key: "", label: "전체" },
+    { key: "plunge", label: "급락" },
+    { key: "lowest", label: "최저가" },
+  ];
+  const sortOptions = [
+    { key: "discount", label: "할인율" },
+    { key: "popular", label: "인기" },
+    { key: "recent", label: "최신" },
+    { key: "price_asc", label: "낮은 가격" },
+  ];
+  const scopeTabs = [
+    { key: "", label: "전체" },
+    { key: "domestic", label: "국내딜" },
+    { key: "overseas", label: "해외딜" },
+  ];
+  const hrefFor = (next: Record<string, string | undefined>) => {
+    const sp = new URLSearchParams();
+    const merged = { ...allParams, ...next };
+    Object.entries(merged).forEach(([key, value]) => {
+      if (value) sp.set(key, value);
+    });
+    const qs = sp.toString();
+    return qs ? `/?${qs}` : "/";
+  };
 
   return (
     <div>
       {demoBanner}
 
-      {/* 핫딜 세그먼트: 📉 급락(가격 하락 증명) | 🛒 베스트(국내몰 인기) */}
-      <HotdealTabs
-        sec={sec}
-        drop={{ category, sort, hot, q, showEnded, ps }}
-        best={{ cc, cs }}
-      />
-
-      {sec === "best" ? (
-        /* ── 🛒 베스트: 국내몰 인기 세일 (원가 대비 할인율) ── */
-        <CuratedSection cc={cc} cs={cs} catOptions={catOptions} params={allParams} />
-      ) : (
-        /* ── 📉 급락: 가격 추적으로 평소보다 떨어진 것 ── */
-        <>
+      <>
           <div className="mb-5">
             <SearchBar initial={q} />
           </div>
 
-          {topDrops.length > 0 && <TopDrops deals={topDrops} title="🔥 지금 진짜 싼 상품" />}
-          {lowestDeals.length > 0 && <TopDrops deals={lowestDeals} title="🏆 추적기간 최저가" />}
-          {todayDrops.length > 0 && <TopDrops deals={todayDrops} title="📉 오늘 가장 많이 떨어짐" />}
+          <div className="mb-4 flex flex-wrap gap-2">
+            {scopeTabs.map((tab) => (
+              <Link
+                key={tab.key}
+                href={hrefFor({ scope: tab.key || undefined })}
+                className={`rounded-full px-3.5 py-1.5 text-sm font-bold transition ${
+                  (scope ?? "") === tab.key
+                    ? "bg-brand text-white"
+                    : "border border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
+                }`}
+              >
+                {tab.label}
+              </Link>
+            ))}
+          </div>
 
-          {isDefaultHome && (
-            <div className="mb-6">
-              <GoldboxBanner />
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+            <div className="flex flex-wrap gap-1.5">
+              {reasonOptions.map((option) => (
+                <Link
+                  key={option.key}
+                  href={hrefFor({ ps: option.key || undefined, page: undefined })}
+                  className={`rounded-md px-2.5 py-1.5 text-xs font-bold transition ${
+                    (ps ?? "") === option.key
+                      ? "bg-gray-900 text-white"
+                      : "border border-gray-200 bg-white text-gray-500 hover:bg-gray-50"
+                  }`}
+                >
+                  {option.label}
+                </Link>
+              ))}
+              <Link
+                href={hrefFor({ hot: hot ? undefined : "1", page: undefined })}
+                className={`rounded-md px-2.5 py-1.5 text-xs font-bold transition ${
+                  hot
+                    ? "bg-gray-900 text-white"
+                    : "border border-gray-200 bg-white text-gray-500 hover:bg-gray-50"
+                }`}
+              >
+                인기
+              </Link>
             </div>
-          )}
+            <div className="flex flex-wrap items-center gap-2">
+              <SortDropdown
+                options={catOptions}
+                value={category ?? ""}
+                param="category"
+                params={allParams}
+              />
+              <SortDropdown
+                options={sortOptions}
+                value={sort}
+                param="sort"
+                params={allParams}
+              />
+            </div>
+          </div>
 
           <div className="mb-1 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
             <h1 className="flex items-baseline text-xl font-extrabold">
@@ -283,24 +317,6 @@ export default async function Home({
                 {activeCount}개
               </span>
             </h1>
-            <div className="flex flex-wrap items-center gap-2">
-              <SortDropdown
-                options={catOptions}
-                value={category ?? ""}
-                param="category"
-                params={allParams}
-              />
-              <SortTabs
-                category={category}
-                sort={sort}
-                hot={hot}
-                q={q}
-                showEnded={showEnded}
-                ps={ps}
-                cc={cc}
-                cs={cs}
-              />
-            </div>
           </div>
           <div className="mb-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-xs text-gray-400">
             <p>가격을 추적해 평소보다 진짜 떨어진 것만</p>
@@ -322,20 +338,19 @@ export default async function Home({
               <Pagination
                 page={safePage}
                 totalPages={totalPages}
-                base={{ category, sort, hot, q, ...(showEnded ? { se: "1" } : {}), ...(ps ? { ps } : {}) }}
+                base={{
+                  category,
+                  sort,
+                  hot,
+                  q,
+                  ...(showEnded ? { se: "1" } : {}),
+                  ...(ps ? { ps } : {}),
+                  ...(scope ? { scope } : {}),
+                }}
               />
             </>
           )}
-
-          {/* 쿠팡 다이나믹 배너 (env에 위젯 id 넣으면 노출) — 15만원 실적용 진입점 */}
-          <CoupangWidget id={process.env.NEXT_PUBLIC_COUPANG_DYNAMIC_ID} />
-
-          {/* 손으로 고른 쿠팡 추천 (lib/coupangPicks.ts 채우면 노출) */}
-          <CoupangPicks />
-
-          {isDefaultHome && <GoldboxSection />}
         </>
-      )}
     </div>
   );
 }

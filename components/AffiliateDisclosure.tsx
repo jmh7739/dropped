@@ -50,6 +50,12 @@ export default function AffiliateDisclosure() {
             <p className="mt-4 max-w-sm text-sm leading-6 text-gray-400">
               판매자가 표시한 할인율 대신 실제 가격 이력으로 지금이 정말 싼지 확인합니다.
             </p>
+            <p className="mt-3 text-sm text-gray-400">
+              문의:{" "}
+              <a href="mailto:aimarket7329@gmail.com" className="text-gray-300 hover:text-white">
+                aimarket7329@gmail.com
+              </a>
+            </p>
           </div>
 
           <nav aria-label="떨어졌다 서비스">
@@ -100,6 +106,7 @@ export default function AffiliateDisclosure() {
             <nav aria-label="정책 및 정보" className="flex flex-wrap gap-x-4 gap-y-2">
               <Link href="/privacy" className="transition-colors hover:text-gray-300">개인정보처리방침</Link>
               <Link href="/terms" className="transition-colors hover:text-gray-300">이용안내·면책</Link>
+              <a href="mailto:aimarket7329@gmail.com" className="transition-colors hover:text-gray-300">문의</a>
               <a href="/feed.xml" className="transition-colors hover:text-gray-300">RSS</a>
             </nav>
           </div>

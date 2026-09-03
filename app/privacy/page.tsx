@@ -28,8 +28,16 @@ export default function PrivacyPage() {
         좋아요 여부와 익명 방문자 식별자가 초기화됩니다.
       </p>
 
+      <h2 className="mb-1 mt-6 text-base font-bold text-gray-900">문의</h2>
+      <p>
+        개인정보 관련 문의는{" "}
+        <a href="mailto:aimarket7329@gmail.com" className="font-semibold text-brand">
+          aimarket7329@gmail.com
+        </a>
+        으로 연락해 주세요.
+      </p>
+
       <p className="mt-6 text-xs text-gray-400">시행일: 2026년 9월 2일</p>
     </article>
   );
 }
-

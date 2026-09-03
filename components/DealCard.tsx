@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Deal, mallLabel } from "@/lib/types";
 import { formatWon, headlineDiscount, timeAgo } from "@/lib/format";
-import { dropBasis, dropScore, reliabilityLabel } from "@/lib/dropMetrics";
+import { dropScore, reliabilityLabel } from "@/lib/dropMetrics";
 import {
   StatusBadge,
   PriceErrorBadge,
@@ -24,9 +24,13 @@ export default function DealCard({
   const ended = deal.status === "ended";
   const isCurated = deal.isCurated;
   const score = dropScore(deal);
-  const basis = dropBasis(deal);
-  const basisText = basis === "average" ? "평소보다" : "정가보다";
-  const referencePrice = deal.baselinePrice || deal.listPrice;
+  const avg30 = deal.avg30Price ?? (deal.baselinePrice || null);
+  const min90 = deal.min90Price;
+  const trackedDays = deal.trackedDays;
+  const avg30Rate =
+    avg30 && avg30 > deal.currentPrice
+      ? Math.round(((avg30 - deal.currentPrice) / avg30) * 100)
+      : Math.round(rate);
   // 국내몰 추천: 제휴사 실판매가 기준 할인(원가→할인가). 있으면 할인율·원가 표시.
   const curatedDisc =
     isCurated && deal.listPrice > deal.currentPrice
@@ -99,18 +103,14 @@ export default function DealCard({
               )}
             </div>
             {!isCurated && (
-              <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px]">
-                {score.score !== null ? (
-                  <span className="font-extrabold text-red-600">
-                    DROP {score.score}
-                  </span>
-                ) : (
-                  <span className="font-semibold text-gray-400">데이터 부족</span>
+              <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-gray-500">
+                {avg30Rate > 0 && (
+                  <span className="font-bold text-red-600">30일 평균 대비 -{avg30Rate}%</span>
                 )}
-                {rate > 0 && (
-                  <span className="font-semibold text-gray-600">
-                    {basisText} {Math.round(rate)}%↓
-                  </span>
+                <span>90일 최저 {min90 ? formatWon(min90) : "수집 중"}</span>
+                <span>가격 추적 {trackedDays ? `${trackedDays}일` : "수집 중"}</span>
+                {score.score !== null && (
+                  <span className="font-extrabold text-gray-700">DROP {score.score}</span>
                 )}
                 {deal.checkedAt && (
                   <span className="text-gray-400" suppressHydrationWarning>
@@ -188,24 +188,19 @@ export default function DealCard({
           <div className="mt-auto pt-1">
             {!isCurated && (
               <div className="mb-1 flex flex-wrap items-center gap-1.5">
-                <span
-                  className={`rounded-md px-2 py-1 text-[11px] font-extrabold ${
-                    score.tone === "hot"
-                      ? "bg-red-600 text-white"
-                      : score.tone === "good"
-                        ? "bg-emerald-600 text-white"
-                        : score.tone === "ok"
-                          ? "bg-amber-100 text-amber-800"
-                          : "bg-gray-100 text-gray-600"
-                  }`}
-                >
-                  {score.score !== null ? `DROP ${score.score}` : "데이터 부족"}
-                </span>
-                {rate > 0 && (
-                  <span className="text-[11px] font-bold text-gray-700">
-                    {basisText} {Math.round(rate)}%↓
+                {avg30Rate > 0 && (
+                  <span className="rounded-md bg-red-600 px-2 py-1 text-[11px] font-extrabold text-white">
+                    30일 평균 대비 -{avg30Rate}%
                   </span>
                 )}
+                {min90 && (
+                  <span className="rounded-md bg-amber-100 px-2 py-1 text-[11px] font-bold text-amber-800">
+                    90일 최저가
+                  </span>
+                )}
+                <span className="rounded-md bg-gray-100 px-2 py-1 text-[11px] font-bold text-gray-600">
+                  가격 추적 {trackedDays ? `${trackedDays}일` : "수집 중"}
+                </span>
               </div>
             )}
             {strikePrice > deal.currentPrice && (
@@ -228,12 +223,16 @@ export default function DealCard({
             )}
             {!isCurated && (
               <div className="mt-1 text-[11px] leading-4 text-gray-400">
-                {referencePrice > 0 && (
-                  <span>{basis === "average" ? "30일 기준가" : "표시 원가"} {formatWon(referencePrice)}</span>
+                {avg30 && (
+                  <span>30일 평균 {formatWon(avg30)}</span>
                 )}
-                <span className={referencePrice > 0 ? "ml-1" : ""}>
-                  {reliabilityLabel(deal)}
-                </span>
+                <span className={avg30 ? "ml-1" : ""}>90일 최저 {min90 ? formatWon(min90) : "수집 중"}</span>
+                <span className={avg30 || min90 ? "ml-1" : ""}>{reliabilityLabel(deal)}</span>
+                {score.score !== null && (
+                  <span className="ml-1 font-extrabold text-gray-600">
+                    DROP {score.score} · {score.label}
+                  </span>
+                )}
               </div>
             )}
           </div>

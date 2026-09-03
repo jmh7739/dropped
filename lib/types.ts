@@ -41,6 +41,11 @@ export interface Deal {
   detectedAt: string;
   endedAt: string | null;
   checkedAt: string | null;
+  avg30Price: number | null;
+  min90Price: number | null;
+  max90Price: number | null;
+  trackedDays: number | null;
+  historyPointCount: number | null;
   history: PricePoint[];
   likeCount: number;
   clickCount: number;

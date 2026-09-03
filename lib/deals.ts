@@ -3,7 +3,7 @@ import { Deal, PricePoint, HOT_LIKE_THRESHOLD } from "./types";
 import { headlineDropRate, hotDealScore } from "./dropMetrics";
 
 export type SortKey =
-  | "discount" // 할인률 높은순 (기본)
+  | "discount" // 하락률 높은순 (기본)
   | "popular" // 인기순 (클릭·좋아요)
   | "discount_asc" // 할인률 낮은순
   | "price_asc" // 가격 낮은순
@@ -11,7 +11,7 @@ export type SortKey =
   | "recent"; // 최신순
 
 export const DEAL_SORTS: { key: SortKey; label: string }[] = [
-  { key: "discount", label: "할인률 높은순" },
+  { key: "discount", label: "할인율 높은순" },
   { key: "popular", label: "인기순" },
   { key: "discount_asc", label: "할인률 낮은순" },
   { key: "price_asc", label: "가격 낮은순" },
@@ -46,6 +46,12 @@ function rowToDeal(row: any, history: PricePoint[]): Deal {
     detectedAt: row.detected_at,
     endedAt: row.ended_at,
     checkedAt: row.checked_at ?? row.updated_at ?? null,
+    avg30Price: row.avg30_price != null ? Number(row.avg30_price) : null,
+    min90Price: row.min90_price != null ? Number(row.min90_price) : null,
+    max90Price: row.max90_price != null ? Number(row.max90_price) : null,
+    trackedDays: row.tracked_days != null ? Number(row.tracked_days) : null,
+    historyPointCount:
+      row.history_points != null ? Number(row.history_points) : null,
     history,
     likeCount: Number(row.like_count ?? 0),
     clickCount: Number(row.click_count ?? 0),
@@ -94,8 +100,8 @@ function sortActive(deals: Deal[], sort: SortKey): Deal[] {
 // 가격 '상태' 필터 — 상품종류가 아니라 "얼마나 싼가"로 거른다(떨어졌다의 핵심).
 export type PriceStatusKey = "plunge" | "lowest" | "bigdrop" | "fresh";
 export const PRICE_STATUS: { key: PriceStatusKey; label: string }[] = [
-  { key: "plunge", label: "🔥 지금 급락" },
-  { key: "lowest", label: "🏆 최근 최저" },
+  { key: "plunge", label: "오늘 급락" },
+  { key: "lowest", label: "90일 최저가" },
   { key: "bigdrop", label: "💸 많이 하락" },
   { key: "fresh", label: "⏱ 방금 떨어짐" },
 ];
@@ -106,7 +112,7 @@ function matchesPriceStatus(d: Deal, ps: PriceStatusKey): boolean {
     case "plunge":
       return r >= 25;
     case "lowest":
-      return d.isLowestEver;
+      return d.isLowestEver || Boolean(d.min90Price && d.currentPrice <= d.min90Price);
     case "bigdrop":
       return r >= 15;
     case "fresh":
@@ -120,11 +126,12 @@ export interface GetDealsOpts {
   hotOnly?: boolean; // 인기딜(좋아요 임계값 이상)만
   q?: string; // 상품명 검색어
   priceStatus?: PriceStatusKey; // 가격 상태 필터
+  scope?: "domestic" | "overseas";
 }
 
 /** 홈/카테고리 리스트용 딜 목록 (그래프 이력은 상세에서만 로드) */
 export async function getDeals(opts: GetDealsOpts = {}): Promise<Deal[]> {
-  const { category, sort = "recent", hotOnly = false, q, priceStatus } = opts;
+  const { category, sort = "discount", hotOnly = false, q, priceStatus, scope } = opts;
   const term = q?.trim().toLowerCase();
 
   // Supabase 미연결 시 빈 목록 (가짜 데이터 없음)
@@ -143,6 +150,8 @@ export async function getDeals(opts: GetDealsOpts = {}): Promise<Deal[]> {
     return [];
   }
   let deals = data.map((row) => rowToDeal(row, []));
+  if (scope === "domestic") deals = deals.filter((d) => d.platform !== "aliexpress");
+  if (scope === "overseas") deals = deals.filter((d) => d.platform === "aliexpress");
   // 가격 상태 필터는 종료딜엔 의미없음 → 활성만 대상으로 거른다.
   if (priceStatus)
     deals = deals.filter(

@@ -49,8 +49,12 @@ export function isHealthDeal(d: Pick<Deal, "categorySlug" | "title">): boolean {
 export function reliabilityLabel(d: {
   discountVsAvg: number | null;
   checkedAt?: string | null;
+  trackedDays?: number | null;
+  historyPointCount?: number | null;
 }): string {
   if (d.discountVsAvg === null || d.discountVsAvg <= 0) return "데이터 부족";
+  if (d.trackedDays) return `가격 추적 ${d.trackedDays}일`;
+  if (d.historyPointCount) return `${d.historyPointCount}회 가격 확인`;
   return d.checkedAt ? "가격 확인됨" : "평균가 기준";
 }
 
