@@ -8,10 +8,14 @@ export type PriceStats = {
   current: number;
   avg7: number | null;
   avg30: number | null;
+  avg90: number | null;
   min30: number | null;
+  min90: number | null;
+  max90: number | null;
   minAll: number;
   points: number;
   trackedDays: number;
+  percentile: number;
   isLowest: boolean; // 현재가가 추적기간 내 최저
   /** '역대 최저'는 충분히 오래 추적(≥60일)했을 때만. 아니면 '최근 N일 최저'. */
   lowestLabel: string;
@@ -35,7 +39,10 @@ export function priceStats(
     a.length ? Math.round(a.reduce((s, v) => s + v, 0) / a.length) : null;
 
   const p30 = within(30);
+  const p90 = within(90);
   const minAll = Math.min(...prices, current);
+  const sorted = [...prices, current].sort((a, b) => a - b);
+  const rank = sorted.filter((p) => p <= current).length;
   const trackedDays = Math.max(
     1,
     Math.round((now - Math.min(...pts.map((x) => x.t))) / 86400000)
@@ -45,10 +52,14 @@ export function priceStats(
     current,
     avg7: avg(within(7)),
     avg30: avg(p30),
+    avg90: avg(p90),
     min30: p30.length ? Math.min(...p30) : null,
+    min90: p90.length ? Math.min(...p90) : null,
+    max90: p90.length ? Math.max(...p90) : null,
     minAll,
     points: prices.length,
     trackedDays,
+    percentile: Math.round((rank / sorted.length) * 100),
     isLowest: current <= minAll,
     lowestLabel: trackedDays >= 60 ? "역대 최저가" : `최근 ${trackedDays}일 최저가`,
     enoughData: prices.length >= 6 && trackedDays >= 1,

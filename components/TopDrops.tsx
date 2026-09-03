@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Deal, mallLabel } from "@/lib/types";
 import { formatWon, headlineDiscount } from "@/lib/format";
+import { dropBasis, dropScore, reliabilityLabel } from "@/lib/dropMetrics";
 import { StatusBadge } from "./DiscountBadge";
 import SafeImage from "./SafeImage";
 
@@ -10,7 +11,7 @@ import SafeImage from "./SafeImage";
  */
 export default function TopDrops({
   deals,
-  title = "🔥 지금 뜨는 특가 TOP",
+  title = "지금 진짜 싼 상품",
 }: {
   deals: Deal[];
   title?: string;
@@ -20,7 +21,7 @@ export default function TopDrops({
   const medal = ["🥇", "🥈", "🥉"];
 
   return (
-    <section className="mb-6 rounded-2xl border border-brand/20 bg-gradient-to-b from-brand/5 to-white p-4">
+    <section className="mb-6">
       <div className="mb-3 flex items-center gap-2">
         <h2 className="text-lg font-extrabold text-gray-900">{title}</h2>
       </div>
@@ -28,6 +29,8 @@ export default function TopDrops({
       <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-1">
         {deals.map((d, i) => {
           const { rate } = headlineDiscount(d);
+          const score = dropScore(d);
+          const basis = dropBasis(d);
           // 베스트딜(큐레이션)은 원가 대비 할인율(🔻%), 급락딜은 상태 뱃지.
           const curatedDisc =
             d.isCurated && d.listPrice > d.currentPrice
@@ -65,9 +68,26 @@ export default function TopDrops({
                 <h3 className="line-clamp-2 text-xs font-medium text-gray-800">
                   {d.title}
                 </h3>
+                {!d.isCurated && (
+                  <div className="mt-1 flex flex-wrap items-center gap-1">
+                    <span className="rounded bg-red-50 px-1.5 py-0.5 text-[10px] font-extrabold text-red-600">
+                      {score.score !== null ? `DROP ${score.score}` : "데이터 부족"}
+                    </span>
+                    {rate > 0 && (
+                      <span className="text-[10px] font-bold text-gray-600">
+                        {basis === "average" ? "평소" : "정가"} -{Math.round(rate)}%
+                      </span>
+                    )}
+                  </div>
+                )}
                 <span className="mt-auto pt-1 text-base font-extrabold text-brand">
                   {formatWon(d.currentPrice)}
                 </span>
+                {!d.isCurated && (
+                  <span className="text-[10px] text-gray-400">
+                    {reliabilityLabel(d)}
+                  </span>
+                )}
               </div>
             </Link>
           );

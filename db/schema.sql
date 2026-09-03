@@ -134,11 +134,12 @@ on conflict (slug) do nothing;
 --  30일 지난 가격 이력 롤업(일 1건 요약) — 무료티어 용량 방지
 --  크롤러가 주기적으로 SELECT rollup_old_price_history(); 호출
 -- ============================================================
--- 24시간 지난 종료 딜 제거 (크롤러가 주기 호출)
+-- 종료 딜은 검색/공유 URL 자산이라 삭제하지 않는다.
 create or replace function prune_ended_deals()
-returns void language sql as $$
-  delete from hot_deals
-  where status = 'ended' and ended_at < now() - interval '24 hours';
+returns void language plpgsql as $$
+begin
+  return;
+end;
 $$;
 
 create or replace function rollup_old_price_history()

@@ -15,17 +15,17 @@ export const metadata: Metadata = {
     template: "%s | 떨어졌다",
   },
   description:
-    "평소보다 진짜 싸진 것만 자동으로 골라주는 특가·핫딜 사이트. 쿠팡·알리익스프레스 급락 특가부터 항공권 최저가, 법원경매까지 한 곳에서. 정가 뻥튀기 말고 '평소 판매가 대비' 얼마나 싼지 가격 그래프로 확인하세요.",
+    "평소보다 진짜 싸진 것만 자동으로 골라주는 가격 판단 사이트. 쿠팡·알리익스프레스 급락 특가와 항공권 최저가를 실제 가격 이력, DROP SCORE, 가격 그래프로 확인하세요.",
   keywords: [
     "핫딜", "특가", "가격비교", "최저가", "할인", "떨어졌다",
     "알리익스프레스 특가", "쿠팡 특가", "오늘의 특가", "항공권 특가",
-    "항공권 최저가", "법원경매", "부동산 경매", "핫딜 모음",
+    "항공권 최저가", "가격 그래프", "가격 이력", "DROP SCORE", "핫딜 모음",
   ],
   alternates: { canonical: "/" },
   openGraph: {
     title: "떨어졌다 — 진짜 싸진 것만 모으는 특가·핫딜",
     description:
-      "평소 판매가보다 진짜 싸진 것만. 쿠팡·알리 급락 특가, 항공권 최저가, 경매까지. 정가 뻥튀기 아닌 진짜 특가를 가격 그래프로.",
+      "평소 판매가보다 진짜 싸진 것만. 쿠팡·알리 급락 특가와 항공권 최저가를 가격 이력과 DROP SCORE로 확인하세요.",
     type: "website",
     locale: "ko_KR",
     siteName: "떨어졌다",
@@ -34,7 +34,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "떨어졌다 — 진짜 싸진 것만 모으는 특가·핫딜",
-    description: "평소 판매가보다 진짜 싸진 것만. 쿠팡·알리·항공권·경매 특가를 한 곳에서.",
+    description: "평소 판매가보다 진짜 싸진 것만. 쿠팡·알리·항공권 특가를 가격 이력으로 판단합니다.",
   },
   verification: {
     google: "_M4_jKpnBbDWBSw5xH5hqFFVcH8Eh8BuvWV8EPk-X3I",

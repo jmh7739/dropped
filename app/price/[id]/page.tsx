@@ -5,6 +5,7 @@ import { getProductReport } from "@/lib/products";
 import { formatWon } from "@/lib/format";
 import { priceStats, buyVerdict } from "@/lib/priceReport";
 import { PLATFORM_LABEL, Platform } from "@/lib/types";
+import { dropScore } from "@/lib/dropMetrics";
 import PriceChart from "@/components/PriceChart";
 import PriceReport from "@/components/PriceReport";
 import LikeButton from "@/components/LikeButton";
@@ -59,6 +60,20 @@ export default async function ProductPricePage({
   const verdict = stats
     ? buyVerdict(realRate, stats.isLowest, stats.lowestLabel, stats.enoughData)
     : null;
+  const score =
+    stats && verdict
+      ? dropScore({
+          platform: r.platform as Platform,
+          categorySlug: r.categorySlug,
+          discountVsAvg: realRate > 0 ? realRate : null,
+          discountVsList: 0,
+          isLowestEver: stats.isLowest,
+          likeCount: 0,
+          clickCount: 0,
+          baselinePrice: stats.avg30 ?? 0,
+          currentPrice: r.currentPrice,
+        })
+      : null;
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -109,6 +124,11 @@ export default async function ProductPricePage({
           </div>
 
           <h1 className="text-lg font-bold leading-snug">{r.title}</h1>
+          {!r.hasActiveDeal && (
+            <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-900">
+              이 특가는 종료되었거나 판매 페이지 가격이 바뀌었을 수 있습니다. 마지막 수집 가격 기준으로 비슷한 현재 특가를 확인해 주세요.
+            </div>
+          )}
 
           <div className="mt-3 flex flex-wrap items-center gap-1.5">
             {verdict && (
@@ -153,7 +173,12 @@ export default async function ProductPricePage({
       {stats && verdict && (
         <section className="mt-8">
           <h2 className="mb-2 text-base font-bold">🧾 가격 리포트 — 지금 살까?</h2>
-          <PriceReport stats={stats} verdict={verdict} listPrice={r.listPrice} />
+          <PriceReport
+            stats={stats}
+            verdict={verdict}
+            listPrice={r.listPrice}
+            dropScore={score ?? undefined}
+          />
         </section>
       )}
 

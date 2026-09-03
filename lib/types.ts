@@ -40,6 +40,7 @@ export interface Deal {
   status: DealStatus;
   detectedAt: string;
   endedAt: string | null;
+  checkedAt: string | null;
   history: PricePoint[];
   likeCount: number;
   clickCount: number;

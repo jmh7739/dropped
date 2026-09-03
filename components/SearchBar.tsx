@@ -19,7 +19,7 @@ export default function SearchBar({ initial = "" }: { initial?: string }) {
         type="search"
         value={q}
         onChange={(e) => setQ(e.target.value)}
-        placeholder="상품명으로 검색 (예: SSD, 기저귀)"
+        placeholder="SSD, 에어팟, 쌀, 기저귀 검색"
         aria-label="상품 검색"
         className="w-full rounded-lg border border-gray-200 bg-white py-2 pl-9 pr-3 text-sm outline-none focus:border-brand"
       />

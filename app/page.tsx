@@ -19,6 +19,7 @@ import Pagination from "@/components/Pagination";
 import { AuctionScope, AuctionSort } from "@/lib/auction";
 import { PAGE_SIZE } from "@/lib/nav";
 import { CATEGORIES } from "@/lib/types";
+import { headlineDropRate, hotDealScore, limitHealthDeals } from "@/lib/dropMetrics";
 
 // 딜은 매시간 바뀌므로 항상 최신 데이터로 렌더(정적캐시 스테일 방지).
 //   트래픽 늘면 revalidate로 되돌려 캐싱 최적화 가능.
@@ -181,17 +182,36 @@ export default async function Home({
   const deals = allDeals.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
   const activeCount = allDeals.filter((d) => d.status !== "ended").length;
 
-  // 필터 없는 기본 홈 1페이지에서만 상단 TOP 순위 노출 (종료딜 제외)
-  //   순위 = 하락률 + 인기(클릭·좋아요) 종합 점수. 트래픽 쌓이면 인기 반영↑
+  // 필터 없는 기본 홈 1페이지에서만 상단 판단형 랭킹 노출.
+  //   순위 = 평균 대비 하락 + 판매처 신뢰 + 가격 데이터 + 클릭/좋아요.
   const isDefaultHome = !category && !hot && !q && !ps;
-  const popScore = (d: (typeof allDeals)[number]) =>
-    (d.discountVsAvg ?? d.discountVsList) + d.clickCount * 2 + d.likeCount * 5;
+  const rankable = [...allDeals].filter((d) => d.status !== "ended");
   const topDrops =
     isDefaultHome && safePage === 1
-      ? [...allDeals]
-          .filter((d) => d.status !== "ended")
-          .sort((a, b) => popScore(b) - popScore(a))
-          .slice(0, 8)
+      ? limitHealthDeals(
+          [...rankable].sort((a, b) => hotDealScore(b) - hotDealScore(a)),
+          1
+        ).slice(0, 8)
+      : [];
+  const lowestDeals =
+    isDefaultHome && safePage === 1
+      ? limitHealthDeals(
+          [...rankable]
+            .filter((d) => d.isLowestEver)
+            .sort((a, b) => hotDealScore(b) - hotDealScore(a)),
+          1
+        ).slice(0, 8)
+      : [];
+  const todayDrops =
+    isDefaultHome && safePage === 1
+      ? limitHealthDeals(
+          [...rankable]
+            .filter(
+              (d) => Date.now() - new Date(d.detectedAt).getTime() <= 24 * 3600 * 1000
+            )
+            .sort((a, b) => headlineDropRate(b) - headlineDropRate(a)),
+          1
+        ).slice(0, 8)
       : [];
 
   const psLabel = ps ? PRICE_STATUS.find((s) => s.key === ps)?.label : undefined;
@@ -229,11 +249,6 @@ export default async function Home({
     <div>
       {demoBanner}
 
-      {/* 맨 위: 쿠팡 골드박스 배너 */}
-      <div className="mb-3">
-        <GoldboxBanner />
-      </div>
-
       {/* 핫딜 세그먼트: 📉 급락(가격 하락 증명) | 🛒 베스트(국내몰 인기) */}
       <HotdealTabs
         sec={sec}
@@ -247,22 +262,19 @@ export default async function Home({
       ) : (
         /* ── 📉 급락: 가격 추적으로 평소보다 떨어진 것 ── */
         <>
-          {/* 실시간 추적 표시 + 홈 소개(SEO) */}
-          {lastUpdate && (
-            <p className="mb-1 text-[11px] text-gray-400" suppressHydrationWarning>
-              🕐 가격 {timeAgo(lastUpdate)} 갱신 · 매시간 자동 추적 중
-            </p>
-          )}
-          {isDefaultHome && (
-            <p className="mb-4 text-xs leading-relaxed text-gray-500">
-              <b className="text-gray-700">떨어졌다</b>는 판매자가 써둔 할인율을 믿지
-              않고, 실제 가격 이력으로 <b>평소보다 진짜 싸진 것</b>만 골라줍니다.
-              쿠팡·알리익스프레스 급락 특가, 항공권 최저가, 법원경매까지 — 가격
-              그래프로 지금이 살 때인지 확인하세요.
-            </p>
-          )}
+          <div className="mb-5">
+            <SearchBar initial={q} />
+          </div>
 
-          {topDrops.length > 0 && <TopDrops deals={topDrops} />}
+          {topDrops.length > 0 && <TopDrops deals={topDrops} title="🔥 지금 진짜 싼 상품" />}
+          {lowestDeals.length > 0 && <TopDrops deals={lowestDeals} title="🏆 추적기간 최저가" />}
+          {todayDrops.length > 0 && <TopDrops deals={todayDrops} title="📉 오늘 가장 많이 떨어짐" />}
+
+          {isDefaultHome && (
+            <div className="mb-6">
+              <GoldboxBanner />
+            </div>
+          )}
 
           <div className="mb-1 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
             <h1 className="flex items-baseline text-xl font-extrabold">
@@ -290,9 +302,15 @@ export default async function Home({
               />
             </div>
           </div>
-          <p className="mb-3 text-xs text-gray-400">
-            가격을 추적해 평소보다 진짜 떨어진 것만
-          </p>
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-xs text-gray-400">
+            <p>가격을 추적해 평소보다 진짜 떨어진 것만</p>
+            {lastUpdate && (
+              <p className="flex items-center gap-1.5 whitespace-nowrap" suppressHydrationWarning>
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" aria-hidden="true" />
+                가격 확인 {timeAgo(lastUpdate)}
+              </p>
+            )}
+          </div>
 
           {deals.length === 0 ? (
             <div className="rounded-xl border border-dashed border-gray-300 bg-white p-12 text-center text-gray-400">
@@ -318,11 +336,6 @@ export default async function Home({
           {isDefaultHome && <GoldboxSection />}
         </>
       )}
-
-      {/* 맨 아래: 상품 검색 */}
-      <div className="mt-10">
-        <SearchBar initial={q} />
-      </div>
     </div>
   );
 }

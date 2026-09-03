@@ -178,10 +178,8 @@ def end_deal(deal_id: int) -> None:
 
 
 def prune_ended_deals() -> None:
-    """24시간 지난 종료 딜 제거."""
-    if config.DRY_RUN:
-        return
-    client().rpc("prune_ended_deals").execute()
+    """종료 딜은 검색/공유 URL 자산이라 삭제하지 않는다."""
+    return
 
 
 def rollup_old_history() -> None:

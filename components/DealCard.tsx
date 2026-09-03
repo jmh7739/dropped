@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Deal, mallLabel } from "@/lib/types";
 import { formatWon, headlineDiscount, timeAgo } from "@/lib/format";
+import { dropBasis, dropScore, reliabilityLabel } from "@/lib/dropMetrics";
 import {
   StatusBadge,
   PriceErrorBadge,
@@ -22,6 +23,10 @@ export default function DealCard({
   const saving = (deal.baselinePrice || deal.listPrice) - deal.currentPrice;
   const ended = deal.status === "ended";
   const isCurated = deal.isCurated;
+  const score = dropScore(deal);
+  const basis = dropBasis(deal);
+  const basisText = basis === "average" ? "평소보다" : "정가보다";
+  const referencePrice = deal.baselinePrice || deal.listPrice;
   // 국내몰 추천: 제휴사 실판매가 기준 할인(원가→할인가). 있으면 할인율·원가 표시.
   const curatedDisc =
     isCurated && deal.listPrice > deal.currentPrice
@@ -93,6 +98,27 @@ export default function DealCard({
                 </span>
               )}
             </div>
+            {!isCurated && (
+              <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px]">
+                {score.score !== null ? (
+                  <span className="font-extrabold text-red-600">
+                    DROP {score.score}
+                  </span>
+                ) : (
+                  <span className="font-semibold text-gray-400">데이터 부족</span>
+                )}
+                {rate > 0 && (
+                  <span className="font-semibold text-gray-600">
+                    {basisText} {Math.round(rate)}%↓
+                  </span>
+                )}
+                {deal.checkedAt && (
+                  <span className="text-gray-400" suppressHydrationWarning>
+                    확인 {timeAgo(deal.checkedAt)}
+                  </span>
+                )}
+              </div>
+            )}
           </div>
         </Link>
         <div className="flex flex-shrink-0 flex-col items-stretch gap-1.5">
@@ -151,7 +177,7 @@ export default function DealCard({
             <span>{deal.categoryName}</span>
             <ShippingBadge fee={deal.shippingFee} />
             <span className="ml-auto whitespace-nowrap" suppressHydrationWarning>
-              {timeAgo(deal.detectedAt)}
+              {deal.checkedAt ? `확인 ${timeAgo(deal.checkedAt)}` : timeAgo(deal.detectedAt)}
             </span>
           </div>
 
@@ -160,6 +186,28 @@ export default function DealCard({
           </h3>
 
           <div className="mt-auto pt-1">
+            {!isCurated && (
+              <div className="mb-1 flex flex-wrap items-center gap-1.5">
+                <span
+                  className={`rounded-md px-2 py-1 text-[11px] font-extrabold ${
+                    score.tone === "hot"
+                      ? "bg-red-600 text-white"
+                      : score.tone === "good"
+                        ? "bg-emerald-600 text-white"
+                        : score.tone === "ok"
+                          ? "bg-amber-100 text-amber-800"
+                          : "bg-gray-100 text-gray-600"
+                  }`}
+                >
+                  {score.score !== null ? `DROP ${score.score}` : "데이터 부족"}
+                </span>
+                {rate > 0 && (
+                  <span className="text-[11px] font-bold text-gray-700">
+                    {basisText} {Math.round(rate)}%↓
+                  </span>
+                )}
+              </div>
+            )}
             {strikePrice > deal.currentPrice && (
               <div className="text-xs text-gray-400 line-through">
                 {formatWon(strikePrice)}
@@ -177,6 +225,16 @@ export default function DealCard({
             </div>
             {deal.unitPrice && (
               <div className="text-[11px] text-gray-400">{deal.unitPrice}</div>
+            )}
+            {!isCurated && (
+              <div className="mt-1 text-[11px] leading-4 text-gray-400">
+                {referencePrice > 0 && (
+                  <span>{basis === "average" ? "30일 기준가" : "표시 원가"} {formatWon(referencePrice)}</span>
+                )}
+                <span className={referencePrice > 0 ? "ml-1" : ""}>
+                  {reliabilityLabel(deal)}
+                </span>
+              </div>
             )}
           </div>
         </div>
