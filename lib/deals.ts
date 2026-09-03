@@ -97,6 +97,34 @@ function sortActive(deals: Deal[], sort: SortKey): Deal[] {
   }
 }
 
+function stableAliDedup(deals: Deal[]): Deal[] {
+  const groups = new Map<string, Deal[]>();
+  const direct: Deal[] = [];
+
+  deals.forEach((deal) => {
+    if (deal.platform !== "aliexpress") {
+      direct.push(deal);
+      return;
+    }
+    const key = (deal.title.trim().split(/[\s,\[\]()·]+/)[0] || "")
+      .toLowerCase();
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key)!.push(deal);
+  });
+
+  const picked = Array.from(groups.values()).flatMap((group) =>
+    group
+      .sort((a, b) => {
+        const scoreDiff = hotDealScore(b) - hotDealScore(a);
+        if (scoreDiff !== 0) return scoreDiff;
+        return new Date(b.detectedAt).getTime() - new Date(a.detectedAt).getTime();
+      })
+      .slice(0, 2)
+  );
+
+  return [...direct, ...picked];
+}
+
 // 가격 '상태' 필터 — 상품종류가 아니라 "얼마나 싼가"로 거른다(떨어졌다의 핵심).
 export type PriceStatusKey = "plunge" | "lowest" | "bigdrop" | "fresh";
 export const PRICE_STATUS: { key: PriceStatusKey; label: string }[] = [
@@ -157,6 +185,7 @@ export async function getDeals(opts: GetDealsOpts = {}): Promise<Deal[]> {
     deals = deals.filter(
       (d) => d.status !== "ended" && matchesPriceStatus(d, priceStatus)
     );
+  if (scope !== "domestic") deals = stableAliDedup(deals);
   return sortDeals(deals, sort);
 }
 

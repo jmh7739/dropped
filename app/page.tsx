@@ -171,16 +171,7 @@ export default async function Home({
   });
   const lastUpdate = await getLastPriceUpdate(); // "실시간 추적 중" 표시용
   // 종료딜은 항상 숨김 (토글 없음)
-  const visible = fetched.filter((d) => d.status !== "ended");
-  // 같은 브랜드(제목 첫 단어) 도배 방지 — 최대 2개 (알리 유사상품 반복 완화)
-  const brandSeen = new Map<string, number>();
-  const allDeals = visible.filter((d) => {
-    const key = (d.title.trim().split(/[\s,\[\]()·]+/)[0] || "").toLowerCase();
-    const n = brandSeen.get(key) ?? 0;
-    if (n >= 2) return false;
-    brandSeen.set(key, n + 1);
-    return true;
-  });
+  const allDeals = fetched.filter((d) => d.status !== "ended");
   const totalPages = Math.max(1, Math.ceil(allDeals.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
   const deals = allDeals.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
