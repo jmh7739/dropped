@@ -81,10 +81,13 @@ function sortActive(deals: Deal[], sort: SortKey): Deal[] {
     case "popular":
       return arr.sort((a, b) => popScore(b) - popScore(a));
     case "recent":
-      return arr.sort(
-        (a, b) =>
-          new Date(b.detectedAt).getTime() - new Date(a.detectedAt).getTime()
-      );
+      // 동점(초기 대량 수집으로 detected_at이 거의 같은 경우)은 하락률로 정렬해
+      // 같은 시각대 안에서도 더 많이 떨어진 게 위로 오게 한다.
+      return arr.sort((a, b) => {
+        const t =
+          new Date(b.detectedAt).getTime() - new Date(a.detectedAt).getTime();
+        return t !== 0 ? t : headlineRate(b) - headlineRate(a);
+      });
     case "discount_asc":
       return arr.sort((a, b) => headlineRate(a) - headlineRate(b));
     case "price_asc":

@@ -274,16 +274,6 @@ export default async function Home({
                   {option.label}
                 </Link>
               ))}
-              <Link
-                href={hrefFor({ hot: hot ? undefined : "1", page: undefined })}
-                className={`rounded-md px-2.5 py-1.5 text-xs font-bold transition ${
-                  hot
-                    ? "bg-gray-900 text-white"
-                    : "border border-gray-200 bg-white text-gray-500 hover:bg-gray-50"
-                }`}
-              >
-                인기
-              </Link>
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <SortDropdown

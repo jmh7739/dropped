@@ -67,6 +67,14 @@ export default function RootLayout({
           strategy="afterInteractive"
           data-cmp-ab="2"
         />
+        {/* Google AdSense (자동 광고 / 사이트 소유 확인) */}
+        <Script
+          id="adsbygoogle-init"
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8157291840297932"
+          strategy="afterInteractive"
+          crossOrigin="anonymous"
+          async
+        />
       </head>
       <body className="min-h-screen flex flex-col">
         <Header />

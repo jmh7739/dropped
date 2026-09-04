@@ -132,7 +132,7 @@ def upsert_active_deal(product_id: int, fields: dict) -> None:
     existing = (
         client()
         .table("hot_deals")
-        .select("id")
+        .select("id, current_price")
         .eq("product_id", product_id)
         .eq("status", "active")
         .execute()
@@ -140,16 +140,27 @@ def upsert_active_deal(product_id: int, fields: dict) -> None:
     )
     # updated_at을 매 플래그마다 갱신 → expire의 TTL(마지막으로 본 시각) 판정 근거.
     from datetime import datetime, timezone
+    now = datetime.now(timezone.utc).isoformat()
     body = {
         "product_id": product_id,
         "status": "active",
-        "updated_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": now,
         **fields,
     }
     if existing:
-        client().table("hot_deals").update(body).eq(
-            "id", existing[0]["id"]
-        ).execute()
+        prev = existing[0]
+        # 지난번보다 가격이 더 떨어졌으면(REDROP_REFRESH 이상) '방금 다시 급락'으로
+        #   보고 detected_at을 갱신 → 최신순에서 상단으로 재부상시킨다.
+        #   (진행 중 딜의 detected_at이 최초값에 고정돼 최신순이 무의미해지던 문제 보정)
+        new_price = fields.get("current_price")
+        old_price = prev.get("current_price")
+        if (
+            new_price is not None
+            and old_price
+            and new_price <= old_price * (1 - config.REDROP_REFRESH)
+        ):
+            body["detected_at"] = now
+        client().table("hot_deals").update(body).eq("id", prev["id"]).execute()
     else:
         client().table("hot_deals").insert(body).execute()
 
