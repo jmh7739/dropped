@@ -4,9 +4,7 @@ import { Analytics } from "@vercel/analytics/react";
 import "./globals.css";
 import Header from "@/components/Header";
 import AffiliateDisclosure from "@/components/AffiliateDisclosure";
-
-const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL || "https://dropped.kr";
+import { SITE_URL } from "@/lib/site";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),

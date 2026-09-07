@@ -2,7 +2,8 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { getProductReport } from "@/lib/products";
-import { formatWon } from "@/lib/format";
+import { getRelatedDeals } from "@/lib/deals";
+import { formatWon, timeAgo } from "@/lib/format";
 import { priceStats, buyVerdict } from "@/lib/priceReport";
 import { PLATFORM_LABEL, Platform } from "@/lib/types";
 import { dropScore } from "@/lib/dropMetrics";
@@ -12,12 +13,12 @@ import LikeButton from "@/components/LikeButton";
 import BuyButton from "@/components/BuyButton";
 import ShareButton from "@/components/ShareButton";
 import SafeImage from "@/components/SafeImage";
+import DealCard from "@/components/DealCard";
+import Breadcrumb from "@/components/Breadcrumb";
 import { ShippingBadge } from "@/components/DiscountBadge";
+import { SITE_URL as SITE } from "@/lib/site";
 
-// Supabase 읽기가 no-store라 동적 렌더. (딜이 끝나도 유지되는 영구 상품 리포트)
 export const dynamic = "force-dynamic";
-
-const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://dropped.kr";
 
 function mall(r: { mallName: string | null; platform: string }): string {
   return r.mallName || PLATFORM_LABEL[r.platform as Platform] || r.platform;
@@ -51,8 +52,11 @@ export default async function ProductPricePage({
   const r = await getProductReport(Number(params.id));
   if (!r) notFound();
 
+  const [relatedDeals] = await Promise.all([
+    getRelatedDeals(r.categorySlug, r.id, 6),
+  ]);
+
   const stats = priceStats(r.history, r.currentPrice);
-  // 판정은 '평소가(30일 평균) 대비'로만 — 정가는 안 믿음(참고 표시만).
   const realRate =
     stats && stats.avg30 && stats.avg30 > r.currentPrice
       ? Math.round(((stats.avg30 - r.currentPrice) / stats.avg30) * 100)
@@ -68,7 +72,7 @@ export default async function ProductPricePage({
           discountVsAvg: realRate > 0 ? realRate : null,
           discountVsList: 0,
           isLowestEver: stats.isLowest,
-          likeCount: 0,
+          likeCount: r.likeCount,
           clickCount: 0,
           baselinePrice: stats.avg30 ?? 0,
           currentPrice: r.currentPrice,
@@ -93,24 +97,30 @@ export default async function ProductPricePage({
     },
   };
 
+  const categoryHref = `/?category=${r.categorySlug}`;
+
   return (
     <div>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c").replace(/>/g, "\\u003e"),
+        }}
       />
-      <Link
-        href="/"
-        className="mb-4 inline-block text-sm text-gray-500 hover:text-gray-800"
-      >
-        ← 목록으로
-      </Link>
+
+      <Breadcrumb
+        items={[
+          { label: "홈", href: "/" },
+          { label: r.categoryName, href: categoryHref },
+          { label: r.title },
+        ]}
+      />
 
       <div className="grid gap-6 md:grid-cols-2">
         <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
           <SafeImage
             src={r.imageUrl}
-            alt={r.title}
+            alt={`${r.title} ${r.categoryName} 최저가`}
             className="aspect-square w-full object-cover"
           />
         </div>
@@ -120,7 +130,9 @@ export default async function ProductPricePage({
             <span className="rounded bg-gray-100 px-1.5 py-0.5 text-gray-600">
               {mall(r)}
             </span>
-            <span>{r.categoryName}</span>
+            <Link href={categoryHref} className="hover:text-gray-600">
+              {r.categoryName}
+            </Link>
           </div>
 
           <h1 className="text-lg font-bold leading-snug">{r.title}</h1>
@@ -153,10 +165,15 @@ export default async function ProductPricePage({
             {r.unitPrice && (
               <div className="mt-0.5 text-sm text-gray-400">{r.unitPrice}</div>
             )}
+            {r.lastCheckedAt && (
+              <div className="mt-2 text-xs text-gray-400" suppressHydrationWarning>
+                마지막 가격 확인: {timeAgo(r.lastCheckedAt)}
+              </div>
+            )}
           </div>
 
           <div className="mt-4 flex items-center gap-2">
-            <LikeButton productId={r.id} initialCount={0} />
+            <LikeButton productId={r.id} initialCount={r.likeCount} />
             <ShareButton path={`/price/${r.id}`} title={r.title} compact />
             <div className="flex-1">
               <BuyButton productId={r.id} href={r.affiliateUrl}>
@@ -188,6 +205,25 @@ export default async function ProductPricePage({
           <PriceChart history={r.history} />
         </div>
       </section>
+
+      {relatedDeals.length > 0 && (
+        <section className="mt-10">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-base font-bold">📦 {r.categoryName} 카테고리 특가</h2>
+            <Link
+              href={categoryHref}
+              className="text-sm text-gray-500 hover:text-gray-800"
+            >
+              더보기 →
+            </Link>
+          </div>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {relatedDeals.map((deal) => (
+              <DealCard key={deal.id} deal={deal} />
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

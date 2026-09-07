@@ -122,7 +122,7 @@ export default function PriceChart({
         {/* 역대 최저 점 */}
         <circle cx={x(minIdx)} cy={y(min)} r={4} fill="#16a34a" />
         {/* 현재가 점 */}
-        <circle cx={x(lastIdx)} cy={y(history[lastIdx].price)} r={4} fill="#ef4444" />
+        <circle cx={x(lastIdx)} cy={y(chartHistory[lastIdx].price)} r={4} fill="#ef4444" />
 
         {/* 축 라벨 (처음/끝 날짜) */}
         <text x={padX} y={h - 6} fontSize="10" fill="#9ca3af">

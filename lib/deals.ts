@@ -278,6 +278,27 @@ async function getPriceHistory(productId: number): Promise<PricePoint[]> {
   }));
 }
 
+/** 같은 카테고리 관련 딜 (상품 상세 페이지 내부링크용) */
+export async function getRelatedDeals(
+  categorySlug: string,
+  excludeProductId: number,
+  limit = 6
+): Promise<Deal[]> {
+  if (!supabase || !categorySlug) return [];
+  const { data } = await supabase
+    .from("v_active_deals")
+    .select("*")
+    .eq("category_slug", categorySlug)
+    .eq("status", "active")
+    .neq("product_id", excludeProductId)
+    .limit(limit);
+  if (!data) return [];
+  return sortDeals(
+    data.map((row) => rowToDeal(row, [])),
+    "discount"
+  );
+}
+
 /** 가장 최근 가격 수집 시각(ISO) — "실시간 추적 중"을 보여주기 위함. */
 export async function getLastPriceUpdate(): Promise<string | null> {
   if (!supabase) return null;

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { SITE_URL } from "@/lib/site";
 
 // 사슬(링크) 아이콘 — 공유/링크복사에 흔히 쓰는 모양
 function LinkIcon({ className = "h-4 w-4" }: { className?: string }) {
@@ -40,7 +41,7 @@ export default function ShareButton({
   async function onShare(e: React.MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
-    const url = path.startsWith("http") ? path : `https://dropped.kr${path}`;
+    const url = path.startsWith("http") ? path : `${SITE_URL}${path}`;
     const data = { title: "떨어졌다 특가", text: title, url };
     // 모바일 등 네이티브 공유 지원 시
     if (typeof navigator !== "undefined" && navigator.share) {

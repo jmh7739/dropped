@@ -200,8 +200,9 @@ def ping_indexnow() -> None:
             f"{indexnow.SITE}/?category=flight",
             f"{indexnow.SITE}/?category=auction",
         ]
+        # canonical/사이트맵과 동일한 영구 URL(/price/[productId])로 통보.
         for d in db.active_deals():
-            urls.append(f"{indexnow.SITE}/deal/{d['id']}")
+            urls.append(f"{indexnow.SITE}/price/{d['product_id']}")
         indexnow.submit(urls)
     except Exception as e:
         print(f"[indexnow] 건너뜀: {e}")

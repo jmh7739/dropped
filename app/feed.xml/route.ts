@@ -1,7 +1,6 @@
 import { getDeals } from "@/lib/deals";
 import { formatWon } from "@/lib/format";
-
-const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://www.dropped.kr";
+import { SITE_URL as SITE } from "@/lib/site";
 
 // Supabase 읽기가 no-store라 요청 시 렌더(dynamic). 최신 딜을 항상 반영.
 export const dynamic = "force-dynamic";

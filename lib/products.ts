@@ -21,6 +21,8 @@ export interface ProductReport {
   currentPrice: number;
   history: PricePoint[];
   hasActiveDeal: boolean;
+  likeCount: number;
+  lastCheckedAt: string | null;
 }
 
 export async function getProductReport(
@@ -54,6 +56,13 @@ export async function getProductReport(
     .eq("status", "active")
     .limit(1);
 
+  const { data: stats } = await supabase
+    .from("deal_stats")
+    .select("like_count")
+    .eq("product_id", id)
+    .single();
+
+  const lastHistory = hist?.[hist.length - 1];
   const cat = (p as any).categories;
   return {
     id: p.id,
@@ -71,5 +80,7 @@ export async function getProductReport(
     currentPrice: history[history.length - 1].price,
     history,
     hasActiveDeal: (hd?.length ?? 0) > 0,
+    likeCount: stats?.like_count ?? 0,
+    lastCheckedAt: lastHistory?.collected_at ?? null,
   };
 }

@@ -3,6 +3,7 @@ import Link from "next/link";
 const NAV = [
   { href: "/", label: "핫딜" },
   { href: "/?category=flight", label: "✈️ 여행" },
+  { href: "/?category=auction", label: "⚖️ 경매" },
 ];
 
 export default function Header() {

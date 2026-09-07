@@ -1,31 +1,65 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { getDeals, getLastPriceUpdate, SortKey, PriceStatusKey, PRICE_STATUS } from "@/lib/deals";
+import { getDeals, getCuratedDeals, getLastPriceUpdate, SortKey, PriceStatusKey, PRICE_STATUS } from "@/lib/deals";
 import { timeAgo } from "@/lib/format";
 import { isSupabaseConfigured } from "@/lib/supabase";
+import { hotDealScore, limitHealthDeals } from "@/lib/dropMetrics";
 import DealGrid from "@/components/DealGrid";
 import SortDropdown from "@/components/SortDropdown";
 import TravelView, { TravelTab } from "@/components/TravelView";
 import AuctionView from "@/components/AuctionView";
 import SearchBar from "@/components/SearchBar";
 import Pagination from "@/components/Pagination";
+import HotdealTabs from "@/components/HotdealTabs";
+import TopDrops from "@/components/TopDrops";
+import CuratedSection from "@/components/CuratedSection";
+import GoldboxBanner from "@/components/GoldboxBanner";
 import { AuctionScope, AuctionSort } from "@/lib/auction";
 import { PAGE_SIZE } from "@/lib/nav";
 import { CATEGORIES } from "@/lib/types";
 
-// 딜은 매시간 바뀌므로 항상 최신 데이터로 렌더(정적캐시 스테일 방지).
-//   트래픽 늘면 revalidate로 되돌려 캐싱 최적화 가능.
 export const dynamic = "force-dynamic";
 
-// 카테고리·검색별로 검색 최적화된 제목/설명 (SEO). 기본 홈은 layout 메타 사용.
 export async function generateMetadata({
   searchParams,
 }: {
-  searchParams: { category?: string; q?: string };
+  searchParams: {
+    category?: string;
+    q?: string;
+    sort?: string;
+    ps?: string;
+    scope?: string;
+    page?: string;
+    hot?: string;
+    sec?: string;
+    cc?: string;
+    cs?: string;
+  };
 }): Promise<Metadata> {
   const cat = CATEGORIES.find((c) => c.slug === searchParams.category);
   const q = (searchParams.q ?? "").slice(0, 50).trim();
-  if (q) return { title: `"${q}" 최저가·특가 검색` };
+  const hasFilter =
+    searchParams.sort !== undefined ||
+    searchParams.ps !== undefined ||
+    searchParams.scope !== undefined ||
+    searchParams.page !== undefined ||
+    searchParams.hot !== undefined ||
+    searchParams.cc !== undefined ||
+    searchParams.cs !== undefined;
+  if (q)
+    return {
+      title: `"${q}" 최저가·특가 검색`,
+      robots: { index: false, follow: true },
+    };
+  if (hasFilter)
+    return { robots: { index: false, follow: true } };
+  if (searchParams.sec === "best")
+    return {
+      title: "베스트딜 — 국내몰 인기 할인",
+      description:
+        "국내 온라인몰에서 지금 잘 팔리는 할인 상품을 모았습니다. 원가 대비 실질 할인율로 비교하세요.",
+      alternates: { canonical: "/?sec=best" },
+    };
   if (cat?.dealType === "flight")
     return {
       title: "여행 특가 — 항공권 최저가·숙소",
@@ -64,15 +98,14 @@ export default async function Home({
     as?: string;
     q?: string;
     se?: string;
-    ps?: string; // 가격 상태 필터 (급락/최근최저/많이하락/방금)
-    sec?: string; // 핫딜 세그먼트 (급락 drop | 베스트 best)
-    cc?: string; // 국내몰 추천 특가 카테고리 (독립)
-    cs?: string; // 국내몰 추천 특가 정렬 (독립)
-    scope?: string; // 전체 | 국내딜 | 해외딜
+    ps?: string;
+    scope?: string;
     page?: string;
+    sec?: string;
+    cc?: string;
+    cs?: string;
   };
 }) {
-  // URL 파라미터는 신뢰하지 않고 화이트리스트로 검증
   const validSlugs = new Set(CATEGORIES.map((c) => c.slug));
   const category = validSlugs.has(searchParams.category ?? "")
     ? searchParams.category
@@ -89,7 +122,7 @@ export default async function Home({
     ? (searchParams.sort as SortKey)
     : "discount";
   const hot = searchParams.hot === "1";
-  const showEnded = searchParams.se === "1"; // 기본은 종료딜 숨김
+  const showEnded = searchParams.se === "1";
   const q = (searchParams.q ?? "").slice(0, 100);
   const validPs = new Set<PriceStatusKey>(["plunge", "lowest", "bigdrop", "fresh"]);
   const ps = validPs.has(searchParams.ps as PriceStatusKey)
@@ -99,17 +132,15 @@ export default async function Home({
     searchParams.scope === "domestic" || searchParams.scope === "overseas"
       ? searchParams.scope
       : undefined;
-  // 핫딜 세그먼트: 급락(기본) | 베스트(국내몰 인기)
-  const sec: "drop" | "best" = searchParams.sec === "best" ? "best" : "drop";
-  // 베스트(국내몰) 독립 카테고리·정렬
-  const cc = validSlugs.has(searchParams.cc ?? "") ? searchParams.cc : undefined;
-  const cs: SortKey = validDealSorts.includes(searchParams.cs as SortKey)
-    ? (searchParams.cs as SortKey)
-    : "recent";
   const page = Math.max(1, parseInt(searchParams.page ?? "1", 10) || 1);
   const activeCat = CATEGORIES.find((c) => c.slug === category);
   const isFlight = activeCat?.dealType === "flight";
   const isAuction = activeCat?.dealType === "auction";
+  const sec = searchParams.sec === "best" ? ("best" as const) : ("drop" as const);
+  const cc = validSlugs.has(searchParams.cc ?? "") ? searchParams.cc : undefined;
+  const cs: SortKey = validDealSorts.includes(searchParams.cs as SortKey)
+    ? (searchParams.cs as SortKey)
+    : "recent";
 
   const demoBanner = !isSupabaseConfigured && (
     <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
@@ -118,7 +149,7 @@ export default async function Home({
     </div>
   );
 
-  // ── 여행 탭: 항공권 / 숙소 / 여행딜 (항공권은 지역→노선→날짜 드릴다운) ──
+  // ── 여행 탭 ──
   if (isFlight) {
     const region = (searchParams.region ?? "").slice(0, 20) || undefined;
     const o = (searchParams.o ?? "").slice(0, 30) || undefined;
@@ -134,7 +165,7 @@ export default async function Home({
     );
   }
 
-  // ── 경매 탭: 부동산/자동차 필터 ──
+  // ── 경매 탭 ──
   if (isAuction) {
     const ascope: AuctionScope =
       searchParams.ac === "자동차" ? "자동차" : "부동산";
@@ -161,21 +192,49 @@ export default async function Home({
   }
 
   // ── 쇼핑 딜 ──
-  const fetched = await getDeals({
-    category,
-    sort,
-    hotOnly: hot,
-    q,
-    priceStatus: ps,
-    scope,
-  });
-  const lastUpdate = await getLastPriceUpdate(); // "실시간 추적 중" 표시용
-  // 종료딜은 항상 숨김 (토글 없음)
+  const catOptions = [
+    { key: "", label: "전체 카테고리" },
+    ...CATEGORIES.filter((c) => c.dealType === "shopping").map((c) => ({
+      key: c.slug,
+      label: c.name,
+    })),
+  ];
+
+  // 급락딜/베스트딜 탭 공통 파라미터
+  const allParams: Record<string, string> = {};
+  if (category) allParams.category = category;
+  if (sort !== "discount") allParams.sort = sort;
+  if (hot) allParams.hot = "1";
+  if (q) allParams.q = q;
+  if (showEnded) allParams.se = "1";
+  if (ps) allParams.ps = ps;
+  if (scope) allParams.scope = scope;
+
+  const bestParams: Record<string, string> = { sec: "best" };
+  if (cc) bestParams.cc = cc;
+  if (cs !== "recent") bestParams.cs = cs;
+
+  // sec=best일 때는 급락딜 fetch 불필요
+  const fetched =
+    sec === "drop"
+      ? await getDeals({ category, sort, hotOnly: hot, q, priceStatus: ps, scope })
+      : [];
+  const lastUpdate = sec === "drop" ? await getLastPriceUpdate() : null;
+
   const allDeals = fetched.filter((d) => d.status !== "ended");
   const totalPages = Math.max(1, Math.ceil(allDeals.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
   const deals = allDeals.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
-  const activeCount = allDeals.filter((d) => d.status !== "ended").length;
+  const activeCount = allDeals.length;
+
+  // TopDrops: 종합 점수 상위 (검색/필터 없을 때만)
+  const topDeals =
+    sec === "drop" && !q && !ps
+      ? limitHealthDeals(
+          [...allDeals].sort((a, b) => hotDealScore(b) - hotDealScore(a)),
+          1
+        ).slice(0, 8)
+      : [];
 
   const psLabel = ps ? PRICE_STATUS.find((s) => s.key === ps)?.label : undefined;
   const heading = q
@@ -186,28 +245,8 @@ export default async function Home({
         ? psLabel
         : activeCat
           ? activeCat.name
-          : "베스트딜";
+          : "급락딜";
 
-  // 드롭다운이 유지할 현재 전체 쿼리(각 드롭다운은 자기 param만 덮어씀 → 위/아래 독립)
-  const allParams: Record<string, string> = {};
-  if (category) allParams.category = category;
-  if (sort !== "recent") allParams.sort = sort;
-  if (hot) allParams.hot = "1";
-  if (q) allParams.q = q;
-  if (showEnded) allParams.se = "1";
-  if (ps) allParams.ps = ps;
-  if (scope) allParams.scope = scope;
-  if (sec === "best") allParams.sec = "best";
-  if (cc) allParams.cc = cc;
-  if (cs !== "recent") allParams.cs = cs;
-  // 상단 카테고리 드롭다운 옵션 (전체 + 쇼핑 카테고리)
-  const catOptions = [
-    { key: "", label: "전체 카테고리" },
-    ...CATEGORIES.filter((c) => c.dealType === "shopping").map((c) => ({
-      key: c.slug,
-      label: c.name,
-    })),
-  ];
   const reasonOptions = [
     { key: "", label: "전체" },
     { key: "plunge", label: "급락" },
@@ -238,10 +277,21 @@ export default async function Home({
     <div>
       {demoBanner}
 
-      <>
-          <div className="mb-5">
-            <SearchBar initial={q} />
-          </div>
+      <div className="mb-5">
+        <SearchBar initial={q} />
+      </div>
+
+      <HotdealTabs
+        sec={sec}
+        drop={{ category, sort, hot, q, showEnded, ps }}
+        best={{ cc, cs: cs !== "recent" ? cs : undefined }}
+      />
+
+      {sec === "drop" ? (
+        <>
+          {topDeals.length >= 3 && <TopDrops deals={topDeals} />}
+
+          <GoldboxBanner />
 
           <div className="mb-4 flex flex-wrap gap-2">
             {scopeTabs.map((tab) => (
@@ -332,6 +382,14 @@ export default async function Home({
             </>
           )}
         </>
+      ) : (
+        <CuratedSection
+          cc={cc}
+          cs={cs}
+          catOptions={catOptions}
+          params={bestParams}
+        />
+      )}
     </div>
   );
 }
