@@ -5,12 +5,16 @@ export default function Pagination({
   page,
   totalPages,
   base,
+  hrefFn,
 }: {
   page: number;
   totalPages: number;
   base: { category?: string; sort?: string; hot?: boolean; q?: string };
+  hrefFn?: (page: number) => string;
 }) {
   if (totalPages <= 1) return null;
+
+  const href = hrefFn ?? ((p: number) => homeHref({ ...base, page: p }));
 
   const pages = Array.from({ length: totalPages }, (_, i) => i + 1).filter(
     (p) => p === 1 || p === totalPages || Math.abs(p - page) <= 2
@@ -26,7 +30,7 @@ export default function Pagination({
   return (
     <nav className="mt-6 flex items-center justify-center gap-1.5">
       {page > 1 && (
-        <Link href={homeHref({ ...base, page: page - 1 })} className={cls(false)}>
+        <Link href={href(page - 1)} className={cls(false)}>
           이전
         </Link>
       )}
@@ -35,13 +39,13 @@ export default function Pagination({
           {i > 0 && pages[i - 1] !== p - 1 && (
             <span className="text-gray-300">…</span>
           )}
-          <Link href={homeHref({ ...base, page: p })} className={cls(p === page)}>
+          <Link href={href(p)} className={cls(p === page)}>
             {p}
           </Link>
         </span>
       ))}
       {page < totalPages && (
-        <Link href={homeHref({ ...base, page: page + 1 })} className={cls(false)}>
+        <Link href={href(page + 1)} className={cls(false)}>
           다음
         </Link>
       )}

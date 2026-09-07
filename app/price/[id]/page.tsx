@@ -97,7 +97,7 @@ export default async function ProductPricePage({
     },
   };
 
-  const categoryHref = `/?category=${r.categorySlug}`;
+  const categoryHref = `/category/${r.categorySlug}`;
 
   return (
     <div>

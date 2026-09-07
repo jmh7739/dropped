@@ -20,6 +20,11 @@ const securityHeaders = [
   },
 ];
 
+const shoppingSlugs = [
+  "digital", "mobile", "appliance", "living", "food",
+  "health", "fashion", "beauty", "baby", "sports", "books",
+];
+
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false, // X-Powered-By 숨김
@@ -28,6 +33,14 @@ const nextConfig = {
   },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
+  },
+  async redirects() {
+    return shoppingSlugs.map((slug) => ({
+      source: "/",
+      has: [{ type: "query", key: "category", value: slug }],
+      destination: `/category/${slug}`,
+      permanent: true,
+    }));
   },
 };
 

@@ -27,3 +27,17 @@ export function homeHref(params: {
 }
 
 export const PAGE_SIZE = 24;
+
+/** 카테고리 페이지 URL 생성 */
+export function categoryHref(
+  slug: string,
+  params?: { sort?: string; page?: number; ps?: string; scope?: string }
+): string {
+  const sp = new URLSearchParams();
+  if (params?.sort && params.sort !== "discount") sp.set("sort", params.sort);
+  if (params?.ps) sp.set("ps", params.ps);
+  if (params?.scope) sp.set("scope", params.scope);
+  if (params?.page && params.page > 1) sp.set("page", String(params.page));
+  const q = sp.toString();
+  return q ? `/category/${slug}?${q}` : `/category/${slug}`;
+}

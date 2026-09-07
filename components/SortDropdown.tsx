@@ -11,12 +11,14 @@ export default function SortDropdown({
   value,
   param,
   params,
+  basePath = "/",
   className = "",
 }: {
   options: { key: string; label: string }[];
   value: string;
   param: string;
   params: Record<string, string>;
+  basePath?: string;
   className?: string;
 }) {
   const router = useRouter();
@@ -29,7 +31,7 @@ export default function SortDropdown({
         onChange={(e) => {
           const sp = new URLSearchParams(params);
           sp.set(param, e.target.value);
-          router.push(`/?${sp.toString()}`);
+          router.push(`${basePath}?${sp.toString()}`);
         }}
         className="cursor-pointer appearance-none rounded-lg border border-gray-200 bg-white py-1.5 pl-3 pr-8 text-sm font-medium text-gray-700 shadow-sm transition hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand/30"
       >

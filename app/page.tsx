@@ -74,11 +74,11 @@ export async function generateMetadata({
         "법원경매(온비드) 부동산·자동차를 감정가 대비 하락률 순으로. 유찰로 싸진 물건만.",
       alternates: { canonical: "/?category=auction" },
     };
-  if (cat)
+  if (cat && cat.dealType === "shopping")
     return {
       title: `${cat.name} 최저가·특가·핫딜`,
       description: `${cat.name} 카테고리에서 평소 판매가보다 진짜 싸진 것만 모았어요. 가격 추적으로 지금이 살 때인지 알려드립니다.`,
-      alternates: { canonical: `/?category=${cat.slug}` },
+      alternates: { canonical: `/category/${cat.slug}` },
     };
   return {};
 }

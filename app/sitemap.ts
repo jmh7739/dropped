@@ -16,7 +16,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${SITE_URL}/?category=flight`, changeFrequency: "hourly", priority: 0.7 },
     { url: `${SITE_URL}/?category=auction`, changeFrequency: "daily", priority: 0.7 },
     ...CATEGORIES.filter((c) => c.dealType === "shopping").map((c) => ({
-      url: `${SITE_URL}/?category=${c.slug}`,
+      url: `${SITE_URL}/category/${c.slug}`,
       changeFrequency: "hourly" as const,
       priority: 0.7,
     })),
