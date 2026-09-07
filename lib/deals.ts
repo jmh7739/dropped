@@ -171,18 +171,19 @@ export async function getDeals(opts: GetDealsOpts = {}): Promise<Deal[]> {
   let query = supabase
     .from("v_active_deals")
     .select("*")
-    .not("baseline_price", "is", null); // 급락딜만(추천딜=baseline null은 제외)
+    .not("baseline_price", "is", null) // 급락딜만(추천딜=baseline null은 제외)
+    .eq("status", "active");
   if (category) query = query.eq("category_slug", category);
   if (hotOnly) query = query.gte("like_count", HOT_LIKE_THRESHOLD);
   if (term) query = query.ilike("title", `%${term}%`);
+  if (scope === "domestic") query = query.neq("platform", "aliexpress");
+  if (scope === "overseas") query = query.eq("platform", "aliexpress");
   const { data, error } = await query;
   if (error || !data) {
     console.error("getDeals error:", error?.message);
     return [];
   }
   let deals = data.map((row) => rowToDeal(row, []));
-  if (scope === "domestic") deals = deals.filter((d) => d.platform !== "aliexpress");
-  if (scope === "overseas") deals = deals.filter((d) => d.platform === "aliexpress");
   // 가격 상태 필터는 종료딜엔 의미없음 → 활성만 대상으로 거른다.
   if (priceStatus)
     deals = deals.filter(

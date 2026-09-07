@@ -221,7 +221,7 @@ export default async function Home({
       : [];
   const lastUpdate = sec === "drop" ? await getLastPriceUpdate() : null;
 
-  const allDeals = fetched.filter((d) => d.status !== "ended");
+  const allDeals = fetched;
   const totalPages = Math.max(1, Math.ceil(allDeals.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
   const deals = allDeals.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);

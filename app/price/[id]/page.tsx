@@ -18,7 +18,7 @@ import Breadcrumb from "@/components/Breadcrumb";
 import { ShippingBadge } from "@/components/DiscountBadge";
 import { SITE_URL as SITE } from "@/lib/site";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 function mall(r: { mallName: string | null; platform: string }): string {
   return r.mallName || PLATFORM_LABEL[r.platform as Platform] || r.platform;
