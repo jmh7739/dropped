@@ -100,32 +100,53 @@ function sortActive(deals: Deal[], sort: SortKey): Deal[] {
   }
 }
 
+function titleWords(title: string): Set<string> {
+  return new Set(
+    title
+      .toLowerCase()
+      .replace(/[^\w가-힯ㄱ-ㅣ]/g, " ")
+      .split(/\s+/)
+      .filter((w) => w.length >= 2)
+  );
+}
+
+function wordSimilarity(a: Set<string>, b: Set<string>): number {
+  if (!a.size || !b.size) return 0;
+  let common = 0;
+  for (const w of a) if (b.has(w)) common++;
+  return common / Math.min(a.size, b.size);
+}
+
 function stableAliDedup(deals: Deal[]): Deal[] {
-  const groups = new Map<string, Deal[]>();
   const direct: Deal[] = [];
+  const ali: Deal[] = [];
 
   deals.forEach((deal) => {
     if (deal.platform !== "aliexpress") {
       direct.push(deal);
-      return;
+    } else {
+      ali.push(deal);
     }
-    const key = (deal.title.trim().split(/[\s,\[\]()·]+/)[0] || "")
-      .toLowerCase();
-    if (!groups.has(key)) groups.set(key, []);
-    groups.get(key)!.push(deal);
   });
 
-  const picked = Array.from(groups.values()).flatMap((group) =>
-    group
-      .sort((a, b) => {
-        const scoreDiff = hotDealScore(b) - hotDealScore(a);
-        if (scoreDiff !== 0) return scoreDiff;
-        return new Date(b.detectedAt).getTime() - new Date(a.detectedAt).getTime();
-      })
-      .slice(0, 2)
-  );
+  ali.sort((a, b) => {
+    const s = hotDealScore(b) - hotDealScore(a);
+    return s !== 0 ? s : new Date(b.detectedAt).getTime() - new Date(a.detectedAt).getTime();
+  });
 
-  return [...direct, ...picked];
+  const kept: Deal[] = [];
+  const keptWords: Set<string>[] = [];
+
+  for (const deal of ali) {
+    const words = titleWords(deal.title);
+    const isDup = keptWords.some((kw) => wordSimilarity(words, kw) >= 0.5);
+    if (!isDup) {
+      kept.push(deal);
+      keptWords.push(words);
+    }
+  }
+
+  return [...direct, ...kept];
 }
 
 // 가격 '상태' 필터 — 상품종류가 아니라 "얼마나 싼가"로 거른다(떨어졌다의 핵심).
