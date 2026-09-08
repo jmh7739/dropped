@@ -13,6 +13,7 @@ type ScoreInput = Pick<
   | "currentPrice"
   | "trackedDays"
   | "checkedAt"
+  | "avg30Price"
 >;
 
 export type DropScoreResult = {
@@ -31,13 +32,21 @@ const TRUSTED_PLATFORM_BONUS: Record<Platform, number> = {
 export function headlineDropRate(d: {
   discountVsAvg: number | null;
   discountVsList: number;
+  avg30Price?: number | null;
+  currentPrice?: number;
 }): number {
+  if (d.avg30Price && d.currentPrice && d.avg30Price > d.currentPrice) {
+    return Math.round(((d.avg30Price - d.currentPrice) / d.avg30Price) * 100);
+  }
   return Math.max(0, d.discountVsAvg ?? d.discountVsList ?? 0);
 }
 
 export function dropBasis(d: {
   discountVsAvg: number | null;
+  avg30Price?: number | null;
+  currentPrice?: number;
 }): "average" | "list" {
+  if (d.avg30Price && d.currentPrice && d.avg30Price > d.currentPrice) return "average";
   return d.discountVsAvg !== null && d.discountVsAvg > 0 ? "average" : "list";
 }
 
@@ -61,7 +70,10 @@ export function reliabilityLabel(d: {
 }
 
 export function dropScore(d: ScoreInput): DropScoreResult {
-  if (d.discountVsAvg === null || d.discountVsAvg <= 0 || !d.baselinePrice) {
+  const hasAvg =
+    (d.avg30Price != null && d.currentPrice > 0 && d.avg30Price > d.currentPrice) ||
+    (d.discountVsAvg !== null && d.discountVsAvg > 0);
+  if (!hasAvg && !d.baselinePrice) {
     return { score: null, label: "데이터 부족", tone: "weak" };
   }
 

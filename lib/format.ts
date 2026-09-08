@@ -41,17 +41,24 @@ export function safeUrl(url: string | null | undefined): string {
 }
 
 /**
- * 대표 하락률: 평균 대비가 있으면 그것을, 없으면 정가 대비를 사용.
- * (이력이 쌓이면 자동으로 "평균 대비"로 승격)
+ * 대표 하락률: 실제 가격 이력(avg30Price) 우선, 없으면 DB 평균 대비, 최후 정가 대비.
  */
 export function headlineDiscount(d: {
   discountVsAvg: number | null;
   discountVsList: number;
-}): { rate: number; basis: "최근 평균" | "정가" } {
-  if (d.discountVsAvg !== null && d.discountVsAvg > 0) {
-    return { rate: d.discountVsAvg, basis: "최근 평균" };
+  avg30Price?: number | null;
+  currentPrice?: number;
+}): { rate: number; basis: "평균" | "정가" } {
+  if (d.avg30Price && d.currentPrice && d.avg30Price > d.currentPrice) {
+    return {
+      rate: Math.round(((d.avg30Price - d.currentPrice) / d.avg30Price) * 100),
+      basis: "평균",
+    };
   }
-  return { rate: d.discountVsList, basis: "정가" };
+  if (d.discountVsAvg !== null && d.discountVsAvg > 0) {
+    return { rate: Math.round(d.discountVsAvg), basis: "평균" };
+  }
+  return { rate: Math.round(d.discountVsList), basis: "정가" };
 }
 
 /**
@@ -62,10 +69,12 @@ export function headlineDiscount(d: {
 export function dealStatus(
   rate: number,
   isLowestEver: boolean,
-  trackedDays?: number | null
+  trackedDays?: number | null,
+  basis?: "평균" | "정가"
 ): { label: string; cls: string } {
+  const tag = basis === "정가" ? "정가 대비" : "평소 대비";
   if (rate >= 25)
-    return { label: `🔥 급락 ${Math.round(rate)}%`, cls: "bg-red-600 text-white" };
+    return { label: `🔥 ${tag} -${Math.round(rate)}%`, cls: "bg-red-600 text-white" };
   if (isLowestEver && rate >= 12) {
     const days = trackedDays ?? 0;
     const label =
@@ -73,6 +82,22 @@ export function dealStatus(
     return { label, cls: "bg-amber-400 text-amber-950" };
   }
   if (rate >= 8)
-    return { label: `🟢 좋은 가격 ${Math.round(rate)}%`, cls: "bg-emerald-600 text-white" };
-  return { label: `📉 ${Math.round(rate)}% 하락`, cls: "bg-sky-500 text-white" };
+    return { label: `🟢 ${tag} -${Math.round(rate)}%`, cls: "bg-emerald-600 text-white" };
+  return { label: `📉 ${tag} -${Math.round(rate)}%`, cls: "bg-sky-500 text-white" };
+}
+
+const TITLE_NOISE =
+  /(?:무료\s*배송|해외\s*직구|국내\s*발송|당일\s*배송|사은품\s*증정|즉시\s*발송|빠른\s*배송)/gi;
+
+export function displayTitle(raw: string, maxLen = 60): string {
+  let t = raw
+    .replace(TITLE_NOISE, "")
+    .replace(/\([^)]{0,30}\)/g, " ")
+    .replace(/\[[^\]]{0,30}\]/g, " ")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+  if (t.length > maxLen) {
+    t = t.substring(0, maxLen - 1).replace(/\s+\S*$/, "") + "…";
+  }
+  return t || raw.substring(0, maxLen);
 }

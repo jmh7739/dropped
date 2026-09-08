@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Deal, mallLabel } from "@/lib/types";
-import { formatWon, headlineDiscount, timeAgo } from "@/lib/format";
+import { formatWon, headlineDiscount, timeAgo, displayTitle } from "@/lib/format";
 import { dropScore, reliabilityLabel } from "@/lib/dropMetrics";
 import {
   StatusBadge,
@@ -19,22 +19,18 @@ export default function DealCard({
   deal: Deal;
   variant?: "gallery" | "list";
 }) {
-  const { rate } = headlineDiscount(deal);
+  const { rate, basis } = headlineDiscount(deal);
   const saving = (deal.baselinePrice || deal.listPrice) - deal.currentPrice;
   const ended = deal.status === "ended";
   const isCurated = deal.isCurated;
   const score = dropScore(deal);
-  const avg30 = deal.avg30Price ?? (deal.baselinePrice || null);
+  const avg30 = deal.avg30Price;
   const min90 = deal.min90Price;
   const trackedDays = deal.trackedDays;
   const avgLabel =
     trackedDays && trackedDays >= 30 ? "30일 평균" : trackedDays ? `${trackedDays}일 평균` : "평균";
   const minLabel =
     trackedDays && trackedDays >= 60 ? "90일 최저" : trackedDays && trackedDays >= 14 ? "추적 최저" : "최저";
-  const avg30Rate =
-    avg30 && avg30 > deal.currentPrice
-      ? Math.round(((avg30 - deal.currentPrice) / avg30) * 100)
-      : Math.round(rate);
   // 국내몰 추천: 제휴사 실판매가 기준 할인(원가→할인가). 있으면 할인율·원가 표시.
   const curatedDisc =
     isCurated && deal.listPrice > deal.currentPrice
@@ -74,7 +70,7 @@ export default function DealCard({
           </div>
           <div className="min-w-0 flex-1">
             <div className="mb-0.5 flex flex-wrap items-center gap-1.5 text-[11px] text-gray-400">
-              {isCurated ? curatedBadge : <StatusBadge rate={rate} isLowestEver={deal.isLowestEver} trackedDays={trackedDays} />}
+              {isCurated ? curatedBadge : <StatusBadge rate={rate} isLowestEver={deal.isLowestEver} trackedDays={trackedDays} basis={basis} />}
               <span className="rounded bg-gray-100 px-1.5 py-0.5 text-gray-600">
                 {mallLabel(deal)}
               </span>
@@ -84,7 +80,7 @@ export default function DealCard({
               </span>
             </div>
             <h3 className="truncate text-sm font-medium text-gray-900">
-              {deal.title}
+              {displayTitle(deal.title)}
             </h3>
             <div className="flex items-baseline gap-1.5">
               <span className="text-base font-extrabold text-brand">
@@ -108,8 +104,8 @@ export default function DealCard({
             </div>
             {!isCurated && (
               <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-gray-500">
-                {avg30Rate > 0 && (
-                  <span className="font-bold text-red-600">{avgLabel} 대비 -{avg30Rate}%</span>
+                {rate > 0 && basis === "평균" && (
+                  <span className="font-bold text-red-600">{avgLabel} 대비 -{rate}%</span>
                 )}
                 <span>{minLabel} {min90 ? formatWon(min90) : "수집 중"}</span>
                 <span>가격 추적 {trackedDays ? `${trackedDays}일` : "수집 중"}</span>
@@ -168,7 +164,7 @@ export default function DealCard({
             </div>
           )}
           <div className="absolute left-2 top-2 flex flex-col items-start gap-1">
-            {isCurated ? curatedBadge : <StatusBadge rate={rate} isLowestEver={deal.isLowestEver} trackedDays={trackedDays} />}
+            {isCurated ? curatedBadge : <StatusBadge rate={rate} isLowestEver={deal.isLowestEver} trackedDays={trackedDays} basis={basis} />}
             {deal.isPriceError && <PriceErrorBadge />}
           </div>
         </div>
@@ -186,15 +182,15 @@ export default function DealCard({
           </div>
 
           <h3 className="line-clamp-2 text-sm font-medium text-gray-900">
-            {deal.title}
+            {displayTitle(deal.title)}
           </h3>
 
           <div className="mt-auto pt-1">
             {!isCurated && (
               <div className="mb-1 flex flex-wrap items-center gap-1.5">
-                {avg30Rate > 0 && (
+                {rate > 0 && basis === "평균" && (
                   <span className="rounded-md bg-red-600 px-2 py-1 text-[11px] font-extrabold text-white">
-                    {avgLabel} 대비 -{avg30Rate}%
+                    {avgLabel} 대비 -{rate}%
                   </span>
                 )}
                 {min90 && (

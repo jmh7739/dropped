@@ -52,7 +52,14 @@ export default async function CuratedSection({
   return (
     <section>
       {topBest.length > 0 && (
-        <TopDrops deals={topBest} title="🛒 지금 뜨는 베스트 TOP" />
+        <TopDrops
+          deals={topBest}
+          header={
+            <div className="mb-3">
+              <h2 className="text-lg font-extrabold text-gray-900">🛒 지금 뜨는 베스트 TOP</h2>
+            </div>
+          }
+        />
       )}
       <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-xl font-extrabold">🛒 베스트딜</h2>

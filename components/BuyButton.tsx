@@ -24,17 +24,18 @@ export default function BuyButton({
   track?: boolean; // 골드박스 등 products에 없는 항목은 false
   source?: string;
 }) {
+  const goHref = track ? `/go/${productId}` : safeUrl(href);
+
   function onClick(e: React.MouseEvent) {
     e.stopPropagation();
     if (track) {
-      void trackClick(productId);
       trackEvent("buy_click", { product_id: productId, source: source ?? "unknown" });
     }
   }
 
   return (
     <a
-      href={safeUrl(href)}
+      href={goHref}
       target="_blank"
       rel="nofollow sponsored noopener noreferrer"
       onClick={onClick}

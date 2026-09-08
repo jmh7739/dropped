@@ -1,16 +1,18 @@
 import { formatPercent, formatWon, dealStatus } from "@/lib/format";
 
-/** Deal 상태 뱃지 (🏆 최근최저 / 🔥 급락 / 🟢 좋은 가격 / 📉 소폭). */
+/** Deal 상태 뱃지 (🏆 최근최저 / 🔥 평소대비 / 🟢 좋은 가격 / 📉 소폭). */
 export function StatusBadge({
   rate,
   isLowestEver,
   trackedDays,
+  basis,
 }: {
   rate: number;
   isLowestEver: boolean;
   trackedDays?: number | null;
+  basis?: "평균" | "정가";
 }) {
-  const { label, cls } = dealStatus(rate, isLowestEver, trackedDays);
+  const { label, cls } = dealStatus(rate, isLowestEver, trackedDays, basis);
   return (
     <span
       className={`inline-flex items-center rounded-md px-2 py-1 text-[11px] font-extrabold shadow-sm ${cls}`}
@@ -25,7 +27,7 @@ export function DiscountBadge({
   basis,
 }: {
   rate: number;
-  basis: "최근 평균" | "정가";
+  basis: "평균" | "정가";
 }) {
   return (
     <span className="inline-flex items-center gap-0.5 rounded-md bg-brand px-1.5 py-0.5 text-xs font-bold text-white">

@@ -13,7 +13,7 @@ export default function HotdealTabs({
 }) {
   const tabs = [
     { key: "drop" as const, label: "📉 급락딜", desc: "평소보다 떨어진 가격", href: homeHref({ ...drop }) },
-    { key: "best" as const, label: "🛒 베스트딜", desc: "국내몰 인기 세일", href: homeHref({ sec: "best", ...best }) },
+    { key: "best" as const, label: "🛒 국내 추천", desc: "국내몰 인기 세일", href: homeHref({ sec: "best", ...best }) },
   ];
   return (
     <div className="mb-5 flex gap-2">

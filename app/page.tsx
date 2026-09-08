@@ -1,10 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { getDeals, getCuratedDeals, getLastPriceUpdate, diversifyTop, SortKey, PriceStatusKey, PRICE_STATUS } from "@/lib/deals";
+import { getDeals, getLastPriceUpdate, diversifyTop, SortKey, PriceStatusKey } from "@/lib/deals";
 import { timeAgo } from "@/lib/format";
 import { isSupabaseConfigured } from "@/lib/supabase";
-import { hotDealScore, limitHealthDeals } from "@/lib/dropMetrics";
-import DealCard from "@/components/DealCard";
+import { hotDealScore, limitHealthDeals, dropScore } from "@/lib/dropMetrics";
 import DealGrid from "@/components/DealGrid";
 import SortDropdown from "@/components/SortDropdown";
 import TravelView, { TravelTab } from "@/components/TravelView";
@@ -35,6 +34,7 @@ export async function generateMetadata({
     sec?: string;
     cc?: string;
     cs?: string;
+    bs?: string;
   };
 }): Promise<Metadata> {
   const cat = CATEGORIES.find((c) => c.slug === searchParams.category);
@@ -45,6 +45,7 @@ export async function generateMetadata({
     searchParams.scope !== undefined ||
     searchParams.page !== undefined ||
     searchParams.hot !== undefined ||
+    searchParams.bs !== undefined ||
     searchParams.cc !== undefined ||
     searchParams.cs !== undefined;
   if (q)
@@ -105,6 +106,7 @@ export default async function Home({
     sec?: string;
     cc?: string;
     cs?: string;
+    bs?: string;
   };
 }) {
   const validSlugs = new Set(CATEGORIES.map((c) => c.slug));
@@ -129,10 +131,6 @@ export default async function Home({
   const ps = validPs.has(searchParams.ps as PriceStatusKey)
     ? (searchParams.ps as PriceStatusKey)
     : undefined;
-  const scope =
-    searchParams.scope === "domestic" || searchParams.scope === "overseas"
-      ? searchParams.scope
-      : undefined;
   const page = Math.max(1, parseInt(searchParams.page ?? "1", 10) || 1);
   const activeCat = CATEGORIES.find((c) => c.slug === category);
   const isFlight = activeCat?.dealType === "flight";
@@ -142,6 +140,10 @@ export default async function Home({
   const cs: SortKey = validDealSorts.includes(searchParams.cs as SortKey)
     ? (searchParams.cs as SortKey)
     : "recent";
+  const bestScope =
+    searchParams.bs === "domestic" || searchParams.bs === "overseas"
+      ? searchParams.bs
+      : undefined;
 
   const demoBanner = !isSupabaseConfigured && (
     <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
@@ -209,80 +211,48 @@ export default async function Home({
   if (q) allParams.q = q;
   if (showEnded) allParams.se = "1";
   if (ps) allParams.ps = ps;
-  if (scope) allParams.scope = scope;
+  if (bestScope) allParams.bs = bestScope;
 
   const bestParams: Record<string, string> = { sec: "best" };
   if (cc) bestParams.cc = cc;
   if (cs !== "recent") bestParams.cs = cs;
 
-  // sec=best일 때는 급락딜 fetch 불필요
   const fetched =
     sec === "drop"
-      ? await getDeals({ category, sort, hotOnly: hot, q, priceStatus: ps, scope })
+      ? await getDeals({ category, sort, hotOnly: hot, q, priceStatus: ps })
       : [];
   const lastUpdate = sec === "drop" ? await getLastPriceUpdate() : null;
 
-  const allDeals = fetched;
-  const totalPages = Math.max(1, Math.ceil(allDeals.length / PAGE_SIZE));
-  const safePage = Math.min(page, totalPages);
-  const deals = allDeals.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
-  const activeCount = allDeals.length;
-
-  // TopDrops: 추적 7일 이상 + 다양성 확보 (검색/필터 없을 때만)
-  const topDeals =
+  // 베스트 딜: 충분한 추적 + confidence 통과 상품만 (검색/필터 없을 때)
+  let bestCandidates =
     sec === "drop" && !q && !ps
-      ? diversifyTop(
-          limitHealthDeals(
-            allDeals
-              .filter((d) => (d.trackedDays ?? 0) >= 7)
-              .sort((a, b) => hotDealScore(b) - hotDealScore(a)),
-            1
-          ),
-          8
-        )
-      : [];
-
-  // 국내 급락: TOP과 겹치지 않는 국내 딜
-  const topIds = new Set(topDeals.map((d) => d.id));
-  const domesticDropDeals =
-    sec === "drop" && !q && !ps && !scope
-      ? allDeals
-          .filter(
-            (d) =>
-              d.platform !== "aliexpress" &&
-              (d.trackedDays ?? 0) >= 7 &&
-              !topIds.has(d.id)
-          )
+      ? fetched
+          .filter((d) => {
+            if ((d.trackedDays ?? 0) < 10) return false;
+            const s = dropScore(d);
+            return s.tone === "hot" || s.tone === "good" || s.tone === "ok";
+          })
           .sort((a, b) => hotDealScore(b) - hotDealScore(a))
-          .slice(0, 4)
       : [];
+  if (bestScope === "domestic")
+    bestCandidates = bestCandidates.filter((d) => d.platform !== "aliexpress");
+  if (bestScope === "overseas")
+    bestCandidates = bestCandidates.filter((d) => d.platform === "aliexpress");
+  const bestDeals = diversifyTop(limitHealthDeals(bestCandidates, 1), 8);
+  const bestIds = new Set(bestDeals.map((d) => d.id));
 
-  const psLabel = ps ? PRICE_STATUS.find((s) => s.key === ps)?.label : undefined;
-  const heading = q
-    ? `"${q}" 검색 결과`
-    : hot
-      ? "🔥 인기딜"
-      : psLabel
-        ? psLabel
-        : activeCat
-          ? activeCat.name
-          : "급락딜";
+  // 최근 가격 변동: 베스트딜과 중복 제거
+  const listDeals = fetched.filter((d) => !bestIds.has(d.id));
+  const totalPages = Math.max(1, Math.ceil(listDeals.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const paginatedList = listDeals.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+  const listCount = listDeals.length;
 
-  const reasonOptions = [
-    { key: "", label: "전체" },
-    { key: "plunge", label: "급락" },
-    { key: "lowest", label: "최저가" },
-  ];
   const sortOptions = [
     { key: "discount", label: "할인율" },
     { key: "popular", label: "인기" },
     { key: "recent", label: "최신" },
     { key: "price_asc", label: "낮은 가격" },
-  ];
-  const scopeTabs = [
-    { key: "", label: "전체" },
-    { key: "domestic", label: "국내딜" },
-    { key: "overseas", label: "해외딜" },
   ];
   const hrefFor = (next: Record<string, string | undefined>) => {
     const sp = new URLSearchParams();
@@ -310,61 +280,45 @@ export default async function Home({
 
       {sec === "drop" ? (
         <>
-          {topDeals.length >= 3 && <TopDrops deals={topDeals} />}
-
-          {domesticDropDeals.length >= 2 && (
-            <section className="mb-6">
-              <div className="mb-3 flex items-center justify-between">
-                <h2 className="text-lg font-extrabold text-gray-900">🇰🇷 국내 급락</h2>
-                <Link
-                  href="/?scope=domestic"
-                  className="text-sm text-gray-500 hover:text-gray-800"
-                >
-                  더보기 →
-                </Link>
-              </div>
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                {domesticDropDeals.map((deal) => (
-                  <DealCard key={deal.id} deal={deal} />
-                ))}
-              </div>
-            </section>
+          {/* 베스트 딜 — 충분한 추적 + 신뢰도 통과 상품만 */}
+          {bestDeals.length > 0 && (
+            <TopDrops
+              deals={bestDeals}
+              header={
+                <div className="mb-3 flex items-center justify-between">
+                  <h2 className="text-lg font-extrabold text-gray-900">베스트 딜</h2>
+                  <div className="flex gap-1.5">
+                    {([
+                      { key: "", label: "전체" },
+                      { key: "domestic", label: "국내" },
+                      { key: "overseas", label: "해외" },
+                    ] as const).map((tab) => (
+                      <Link
+                        key={tab.key}
+                        href={hrefFor({ bs: tab.key || undefined })}
+                        className={`rounded-full px-3 py-1 text-xs font-bold transition ${
+                          (bestScope ?? "") === tab.key
+                            ? "bg-gray-900 text-white"
+                            : "border border-gray-200 text-gray-500 hover:bg-gray-50"
+                        }`}
+                      >
+                        {tab.label}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              }
+            />
           )}
 
           <GoldboxBanner />
 
-          <div className="mb-4 flex flex-wrap gap-2">
-            {scopeTabs.map((tab) => (
-              <Link
-                key={tab.key}
-                href={hrefFor({ scope: tab.key || undefined })}
-                className={`rounded-full px-3.5 py-1.5 text-sm font-bold transition ${
-                  (scope ?? "") === tab.key
-                    ? "bg-brand text-white"
-                    : "border border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
-                }`}
-              >
-                {tab.label}
-              </Link>
-            ))}
-          </div>
-
+          {/* 최근 가격 변동 — 전체 목록 */}
           <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-            <div className="flex flex-wrap gap-1.5">
-              {reasonOptions.map((option) => (
-                <Link
-                  key={option.key}
-                  href={hrefFor({ ps: option.key || undefined, page: undefined })}
-                  className={`rounded-md px-2.5 py-1.5 text-xs font-bold transition ${
-                    (ps ?? "") === option.key
-                      ? "bg-gray-900 text-white"
-                      : "border border-gray-200 bg-white text-gray-500 hover:bg-gray-50"
-                  }`}
-                >
-                  {option.label}
-                </Link>
-              ))}
-            </div>
+            <h2 className="flex items-baseline text-lg font-extrabold text-gray-900">
+              <span>{q ? `"${q}" 검색 결과` : activeCat ? activeCat.name : "최근 가격 변동"}</span>
+              <span className="ml-2 text-sm font-normal text-gray-400">{listCount}개</span>
+            </h2>
             <div className="flex flex-wrap items-center gap-2">
               <SortDropdown
                 options={catOptions}
@@ -380,16 +334,7 @@ export default async function Home({
               />
             </div>
           </div>
-
-          <div className="mb-1 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-            <h1 className="flex items-baseline text-xl font-extrabold">
-              <span>{heading}</span>
-              <span className="ml-2 text-sm font-normal text-gray-400">
-                {activeCount}개
-              </span>
-            </h1>
-          </div>
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-xs text-gray-400">
+          <div className="mb-3 flex items-center justify-between text-xs text-gray-400">
             <p>가격을 추적해 평소보다 진짜 떨어진 것만</p>
             {lastUpdate && (
               <p className="flex items-center gap-1.5 whitespace-nowrap" suppressHydrationWarning>
@@ -399,13 +344,13 @@ export default async function Home({
             )}
           </div>
 
-          {deals.length === 0 ? (
+          {paginatedList.length === 0 ? (
             <div className="rounded-xl border border-dashed border-gray-300 bg-white p-12 text-center text-gray-400">
               {q ? "검색 결과가 없습니다." : "아직 이 카테고리에 감지된 특가가 없습니다."}
             </div>
           ) : (
             <>
-              <DealGrid deals={deals} />
+              <DealGrid deals={paginatedList} />
               <Pagination
                 page={safePage}
                 totalPages={totalPages}
@@ -416,7 +361,7 @@ export default async function Home({
                   q,
                   ...(showEnded ? { se: "1" } : {}),
                   ...(ps ? { ps } : {}),
-                  ...(scope ? { scope } : {}),
+                  ...(bestScope ? { bs: bestScope } : {}),
                 }}
               />
             </>

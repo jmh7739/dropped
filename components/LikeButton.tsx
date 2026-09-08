@@ -49,7 +49,7 @@ export default function LikeButton({
       }`}
     >
       <span>{liked ? "❤️" : "🤍"}</span>
-      <span className="font-semibold tabular-nums">{count}</span>
+      {count > 0 && <span className="font-semibold tabular-nums">{count}</span>}
     </button>
   );
 }

@@ -1,37 +1,28 @@
 import Link from "next/link";
 import { Deal, mallLabel } from "@/lib/types";
-import { formatWon, headlineDiscount } from "@/lib/format";
+import { formatWon, headlineDiscount, displayTitle } from "@/lib/format";
 import { dropBasis, dropScore, reliabilityLabel } from "@/lib/dropMetrics";
 import { StatusBadge } from "./DiscountBadge";
 import SafeImage from "./SafeImage";
 
-/**
- * 상단 "지금 뜨는 특가 TOP N" — 하락률 + 인기(클릭·좋아요) 종합 순위.
- * 종료된 딜은 제외하고(진행중만), 수집(스캔)마다 갱신된다(ISR).
- */
 export default function TopDrops({
   deals,
-  title = "지금 진짜 싼 상품",
+  header,
 }: {
   deals: Deal[];
-  title?: string;
+  header?: React.ReactNode;
 }) {
-  if (deals.length < 3) return null; // 너무 적으면 순위 무의미 → 숨김
+  if (!deals.length) return null;
 
   const medal = ["🥇", "🥈", "🥉"];
 
   return (
     <section className="mb-6">
-      <div className="mb-3 flex items-center gap-2">
-        <h2 className="text-lg font-extrabold text-gray-900">{title}</h2>
-      </div>
-
+      {header}
       <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-1">
         {deals.map((d, i) => {
-          const { rate } = headlineDiscount(d);
+          const { rate, basis } = headlineDiscount(d);
           const score = dropScore(d);
-          const basis = dropBasis(d);
-          // 베스트딜(큐레이션)은 원가 대비 할인율(🔻%), 급락딜은 상태 뱃지.
           const curatedDisc =
             d.isCurated && d.listPrice > d.currentPrice
               ? Math.round(((d.listPrice - d.currentPrice) / d.listPrice) * 100)
@@ -59,14 +50,14 @@ export default function TopDrops({
                       </span>
                     )
                   ) : (
-                    <StatusBadge rate={rate} isLowestEver={d.isLowestEver} trackedDays={d.trackedDays} />
+                    <StatusBadge rate={rate} isLowestEver={d.isLowestEver} trackedDays={d.trackedDays} basis={basis} />
                   )}
                 </span>
               </div>
               <div className="flex flex-1 flex-col gap-0.5 p-2.5">
                 <span className="text-[10px] text-gray-400">{mallLabel(d)}</span>
                 <h3 className="line-clamp-2 text-xs font-medium text-gray-800">
-                  {d.title}
+                  {displayTitle(d.title, 40)}
                 </h3>
                 {!d.isCurated && (
                   <div className="mt-1 flex flex-wrap items-center gap-1">
@@ -75,7 +66,7 @@ export default function TopDrops({
                     </span>
                     {rate > 0 && (
                       <span className="text-[10px] font-bold text-gray-600">
-                        {basis === "average" ? "평소" : "정가"} -{Math.round(rate)}%
+                        {basis === "평균" ? "평소" : "정가"} -{Math.round(rate)}%
                       </span>
                     )}
                   </div>
