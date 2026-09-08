@@ -1,10 +1,29 @@
 """Supabase 읽기/쓰기 래퍼. DRY_RUN이면 메모리 딕셔너리로 시뮬레이션."""
 from __future__ import annotations
+import html
+import re
 from typing import Optional
 
 import config
 
 _client = None
+
+# 외부 피드 제목에 섞여 오는 제어문자(널·백스페이스 등). 표시·저장 전 제거.
+_CONTROL_CHARS = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
+
+
+def normalize_title(raw: str) -> str:
+    """외부 API 제목 세척 — HTML 엔티티 복원·제어문자 제거·공백 정리·길이 제한.
+
+    상품명은 신뢰불가한 외부 피드에서 오므로 저장 전에 정규화한다.
+    (예: '가방&amp;지갑\\n\\t특가\\x00' → '가방&지갑 특가')
+    """
+    if not raw:
+        return ""
+    text = html.unescape(str(raw))
+    text = _CONTROL_CHARS.sub("", text)
+    text = re.sub(r"\s+", " ", text).strip()
+    return text[:180]
 
 
 def client():
@@ -38,7 +57,7 @@ def upsert_product(raw) -> Optional[int]:
     payload = {
         "platform": raw.platform,
         "external_product_id": raw.external_product_id,
-        "title": raw.title,
+        "title": normalize_title(raw.title),
         "category_id": category_id(raw.category_slug),
         "image_url": raw.image_url,
         "product_url": raw.product_url,
@@ -304,7 +323,7 @@ def upsert_auction_deal(item) -> None:
         "external_id": item.external_id,
         "case_no": item.case_no,
         "asset_type": item.asset_type,
-        "title": item.title,
+        "title": normalize_title(item.title),
         "location": item.location,
         "appraisal_price": item.appraisal_price,
         "min_bid_price": item.min_bid_price,

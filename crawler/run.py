@@ -114,15 +114,26 @@ def collect_and_flag() -> tuple[int, int, set[int], set[int]]:
     return flagged, scanned, flagged_ids, curated_ids
 
 
-def expire_stale_deals(flagged_ids: set[int], curated_ids: set[int]) -> int:
+def expire_stale_deals(
+    flagged_ids: set[int],
+    curated_ids: set[int],
+    allow_curated_expire: bool | None = None,
+) -> int:
     """진행중 딜 종료 처리.
     - 베스트딜(baseline 없음): 이번 수집에서 다시 안 잡히면 종료(누적 방지).
       단 이번 run에 베스트딜이 하나도 안 잡혔으면(소스 실패/스킵) 몰살 방지 위해 건너뜀.
     - 급락딜(baseline 있음): 가격이 평소가로 원복되면 종료.
+
+    allow_curated_expire: 베스트딜(큐레이션) 종료를 허용할지. None이면 이번 run에
+      큐레이션이 하나라도 잡혔는지로 자동 판단(소스 통째 실패 시 몰살 방지).
     """
     from datetime import datetime, timedelta, timezone
     # 큐레이션 소스가 통째로 실패한 run에서 베스트딜 전체가 종료되는 사고 방지.
-    curated_healthy = len(curated_ids) > 0
+    curated_healthy = (
+        allow_curated_expire
+        if allow_curated_expire is not None
+        else len(curated_ids) > 0
+    )
     stale_before = datetime.now(timezone.utc) - timedelta(
         hours=config.CURATED_STALE_HOURS
     )
