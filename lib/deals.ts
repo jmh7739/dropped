@@ -138,39 +138,38 @@ function isSimilar(
   return wordSimilarity(wordsA, wordsB) >= 0.5 || bigramSimilarity(bigramsA, bigramsB) >= 0.4;
 }
 
-function stableAliDedup(deals: Deal[]): Deal[] {
-  const direct: Deal[] = [];
-  const ali: Deal[] = [];
+function dedupSimilar(deals: Deal[]): Deal[] {
+  // 같은 몰(플랫폼) 안에서만 유사중복(같은 상품 중복 리스팅)을 제거한다.
+  //   다른 몰의 같은 상품은 가격·링크가 다른 별개 딜이라 유지 → 교차몰 오병합 방지.
+  const byPlatform = new Map<string, Deal[]>();
+  for (const deal of deals) {
+    const arr = byPlatform.get(deal.platform);
+    if (arr) arr.push(deal);
+    else byPlatform.set(deal.platform, [deal]);
+  }
 
-  deals.forEach((deal) => {
-    if (deal.platform !== "aliexpress") {
-      direct.push(deal);
-    } else {
-      ali.push(deal);
-    }
-  });
-
-  ali.sort((a, b) => {
-    const s = hotDealScore(b) - hotDealScore(a);
-    return s !== 0 ? s : new Date(b.detectedAt).getTime() - new Date(a.detectedAt).getTime();
-  });
-
-  const kept: Deal[] = [];
-  const keptWords: Set<string>[] = [];
-  const keptBigrams: Set<string>[] = [];
-
-  for (const deal of ali) {
-    const words = titleWords(deal.title);
-    const bigrams = charBigrams(deal.title);
-    const isDup = keptWords.some((kw, i) => isSimilar(words, bigrams, kw, keptBigrams[i]));
-    if (!isDup) {
-      kept.push(deal);
+  const out: Deal[] = [];
+  for (const group of byPlatform.values()) {
+    // 중복 묶음에서 남길 대표: DROP 점수(하락률·신뢰도) 높은 것 우선.
+    group.sort((a, b) => {
+      const s = hotDealScore(b) - hotDealScore(a);
+      return s !== 0 ? s : new Date(b.detectedAt).getTime() - new Date(a.detectedAt).getTime();
+    });
+    const keptWords: Set<string>[] = [];
+    const keptBigrams: Set<string>[] = [];
+    for (const deal of group) {
+      const words = titleWords(deal.title);
+      const bigrams = charBigrams(deal.title);
+      const isDup = keptWords.some((kw, i) => isSimilar(words, bigrams, kw, keptBigrams[i]));
+      if (isDup) continue;
+      out.push(deal);
       keptWords.push(words);
       keptBigrams.push(bigrams);
     }
   }
 
-  return [...direct, ...kept];
+  // 최종 정렬은 호출부의 sortDeals/sortActive가 다시 하므로 순서는 그대로 반환.
+  return out;
 }
 
 export function diversifyTop(sorted: Deal[], limit: number, maxPerCat = 2): Deal[] {
@@ -258,7 +257,7 @@ export async function getDeals(opts: GetDealsOpts = {}): Promise<Deal[]> {
     deals = deals.filter(
       (d) => d.status !== "ended" && matchesPriceStatus(d, priceStatus)
     );
-  if (scope !== "domestic") deals = stableAliDedup(deals);
+  deals = dedupSimilar(deals);
   return sortDeals(deals, sort);
 }
 
@@ -279,7 +278,7 @@ export async function getCuratedDeals(
     console.error("getCuratedDeals error:", error?.message);
     return [];
   }
-  const deals = data.map((row) => rowToDeal(row, []));
+  const deals = dedupSimilar(data.map((row) => rowToDeal(row, [])));
   return sortActive(deals, sort);
 }
 
