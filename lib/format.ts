@@ -56,16 +56,22 @@ export function headlineDiscount(d: {
 
 /**
  * Deal 상태: 숫자 대신 한눈에 읽히는 상태로. (가격이력 대비 기준)
- *   🏆 90일 최저가 / 🔥 급락 / 🟢 좋은 가격 / 📉 소폭 하락
+ *   🏆 최저가 / 🔥 급락 / 🟢 좋은 가격 / 📉 소폭 하락
+ *   trackedDays가 짧으면 "90일 최저가"라고 단정하지 않는다.
  */
 export function dealStatus(
   rate: number,
-  isLowestEver: boolean
+  isLowestEver: boolean,
+  trackedDays?: number | null
 ): { label: string; cls: string } {
   if (rate >= 25)
     return { label: `🔥 급락 ${Math.round(rate)}%`, cls: "bg-red-600 text-white" };
-  if (isLowestEver && rate >= 12)
-    return { label: "🏆 90일 최저가", cls: "bg-amber-400 text-amber-950" };
+  if (isLowestEver && rate >= 12) {
+    const days = trackedDays ?? 0;
+    const label =
+      days >= 60 ? "🏆 역대 최저가" : days >= 14 ? "🏆 추적 최저가" : "🏆 최근 최저";
+    return { label, cls: "bg-amber-400 text-amber-950" };
+  }
   if (rate >= 8)
     return { label: `🟢 좋은 가격 ${Math.round(rate)}%`, cls: "bg-emerald-600 text-white" };
   return { label: `📉 ${Math.round(rate)}% 하락`, cls: "bg-sky-500 text-white" };

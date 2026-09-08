@@ -4,11 +4,13 @@ import { formatPercent, formatWon, dealStatus } from "@/lib/format";
 export function StatusBadge({
   rate,
   isLowestEver,
+  trackedDays,
 }: {
   rate: number;
   isLowestEver: boolean;
+  trackedDays?: number | null;
 }) {
-  const { label, cls } = dealStatus(rate, isLowestEver);
+  const { label, cls } = dealStatus(rate, isLowestEver, trackedDays);
   return (
     <span
       className={`inline-flex items-center rounded-md px-2 py-1 text-[11px] font-extrabold shadow-sm ${cls}`}

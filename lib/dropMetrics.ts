@@ -11,6 +11,8 @@ type ScoreInput = Pick<
   | "clickCount"
   | "baselinePrice"
   | "currentPrice"
+  | "trackedDays"
+  | "checkedAt"
 >;
 
 export type DropScoreResult = {
@@ -64,15 +66,24 @@ export function dropScore(d: ScoreInput): DropScoreResult {
   }
 
   const rate = headlineDropRate(d);
+  const days = d.trackedDays ?? 0;
   const dropComponent = Math.min(52, rate * 1.7);
   const trustComponent = TRUSTED_PLATFORM_BONUS[d.platform] ?? 4;
   const popularityComponent = Math.min(
     18,
     Math.log1p(d.clickCount) * 3 + Math.log1p(d.likeCount) * 4
   );
-  const lowestComponent = d.isLowestEver ? 14 : 0;
+  const lowestComponent = d.isLowestEver
+    ? days >= 30 ? 14 : days >= 14 ? 7 : 3
+    : 0;
   const priceSanityComponent = d.currentPrice >= 1000 ? 8 : 3;
   const healthPenalty = d.categorySlug === "health" ? 10 : 0;
+  const confidencePenalty =
+    days >= 30 ? 0 : days >= 14 ? 5 : days >= 7 ? 12 : 20;
+  const staleHours = d.checkedAt
+    ? (Date.now() - new Date(d.checkedAt).getTime()) / 3600000
+    : 48;
+  const stalePenalty = staleHours > 24 ? Math.min(15, Math.round((staleHours - 24) / 6)) : 0;
   const score = Math.max(
     0,
     Math.min(
@@ -83,11 +94,14 @@ export function dropScore(d: ScoreInput): DropScoreResult {
           popularityComponent +
           lowestComponent +
           priceSanityComponent -
-          healthPenalty
+          healthPenalty -
+          confidencePenalty -
+          stalePenalty
       )
     )
   );
 
+  if (days < 7) return { score, label: "데이터 수집 중", tone: "weak" };
   if (score >= 90) return { score, label: "역대급 가격", tone: "hot" };
   if (score >= 75) return { score, label: "지금 사기 좋음", tone: "good" };
   if (score >= 50) return { score, label: "괜찮은 가격", tone: "ok" };
@@ -101,7 +115,9 @@ export function hotDealScore(d: ScoreInput): number {
   const trusted = TRUSTED_PLATFORM_BONUS[d.platform] ?? 4;
   const engagement = Math.min(30, d.clickCount * 1.5 + d.likeCount * 4);
   const healthPenalty = d.categorySlug === "health" ? 30 : 0;
-  return score * 1.6 + rate * 2.2 + trusted + engagement - healthPenalty;
+  const days = d.trackedDays ?? 0;
+  const confidenceBonus = days >= 30 ? 10 : days >= 14 ? 4 : 0;
+  return score * 1.6 + rate * 2.2 + trusted + engagement + confidenceBonus - healthPenalty;
 }
 
 export function limitHealthDeals<T extends Pick<Deal, "categorySlug" | "title">>(

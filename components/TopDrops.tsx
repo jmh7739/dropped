@@ -59,7 +59,7 @@ export default function TopDrops({
                       </span>
                     )
                   ) : (
-                    <StatusBadge rate={rate} isLowestEver={d.isLowestEver} />
+                    <StatusBadge rate={rate} isLowestEver={d.isLowestEver} trackedDays={d.trackedDays} />
                   )}
                 </span>
               </div>

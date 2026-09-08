@@ -76,6 +76,8 @@ export default async function ProductPricePage({
           clickCount: 0,
           baselinePrice: stats.avg30 ?? 0,
           currentPrice: r.currentPrice,
+          trackedDays: stats.trackedDays,
+          checkedAt: r.lastCheckedAt ?? null,
         })
       : null;
 

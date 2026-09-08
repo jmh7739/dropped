@@ -61,8 +61,8 @@ export function priceStats(
     trackedDays,
     percentile: Math.round((rank / sorted.length) * 100),
     isLowest: current <= minAll,
-    lowestLabel: trackedDays >= 60 ? "역대 최저가" : `최근 ${trackedDays}일 최저가`,
-    enoughData: prices.length >= 6 && trackedDays >= 1,
+    lowestLabel: trackedDays >= 60 ? "역대 최저가" : `추적 ${trackedDays}일 중 최저`,
+    enoughData: prices.length >= 10 && trackedDays >= 7,
   };
 }
 
@@ -90,7 +90,24 @@ export function buyVerdict(
   const OK = "border-amber-300 bg-amber-50 text-amber-900";
   const WAIT = "border-rose-300 bg-rose-50 text-rose-900";
 
-  if (isLowest && enoughData && rate >= 4)
+  if (!enoughData) {
+    if (rate >= 10)
+      return {
+        tier: "ok",
+        icon: "🟡",
+        title: "가격 데이터 수집 중",
+        reason: `아직 추적 기간이 짧아 정확한 판정이 어렵습니다 (${d}% 하락 감지)`,
+        cls: OK,
+      };
+    return {
+      tier: "wait",
+      icon: "🔴",
+      title: "데이터 수집 중",
+      reason: "추적 기간이 짧아 가격 판정을 내리기 이릅니다",
+      cls: WAIT,
+    };
+  }
+  if (isLowest && rate >= 4)
     return {
       tier: "buy",
       icon: "🟢",

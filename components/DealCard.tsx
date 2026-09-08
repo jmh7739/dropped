@@ -27,6 +27,10 @@ export default function DealCard({
   const avg30 = deal.avg30Price ?? (deal.baselinePrice || null);
   const min90 = deal.min90Price;
   const trackedDays = deal.trackedDays;
+  const avgLabel =
+    trackedDays && trackedDays >= 30 ? "30일 평균" : trackedDays ? `${trackedDays}일 평균` : "평균";
+  const minLabel =
+    trackedDays && trackedDays >= 60 ? "90일 최저" : trackedDays && trackedDays >= 14 ? "추적 최저" : "최저";
   const avg30Rate =
     avg30 && avg30 > deal.currentPrice
       ? Math.round(((avg30 - deal.currentPrice) / avg30) * 100)
@@ -70,7 +74,7 @@ export default function DealCard({
           </div>
           <div className="min-w-0 flex-1">
             <div className="mb-0.5 flex flex-wrap items-center gap-1.5 text-[11px] text-gray-400">
-              {isCurated ? curatedBadge : <StatusBadge rate={rate} isLowestEver={deal.isLowestEver} />}
+              {isCurated ? curatedBadge : <StatusBadge rate={rate} isLowestEver={deal.isLowestEver} trackedDays={trackedDays} />}
               <span className="rounded bg-gray-100 px-1.5 py-0.5 text-gray-600">
                 {mallLabel(deal)}
               </span>
@@ -105,9 +109,9 @@ export default function DealCard({
             {!isCurated && (
               <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-gray-500">
                 {avg30Rate > 0 && (
-                  <span className="font-bold text-red-600">30일 평균 대비 -{avg30Rate}%</span>
+                  <span className="font-bold text-red-600">{avgLabel} 대비 -{avg30Rate}%</span>
                 )}
-                <span>90일 최저 {min90 ? formatWon(min90) : "수집 중"}</span>
+                <span>{minLabel} {min90 ? formatWon(min90) : "수집 중"}</span>
                 <span>가격 추적 {trackedDays ? `${trackedDays}일` : "수집 중"}</span>
                 {score.score !== null && (
                   <span className="font-extrabold text-gray-700">DROP {score.score}</span>
@@ -164,7 +168,7 @@ export default function DealCard({
             </div>
           )}
           <div className="absolute left-2 top-2 flex flex-col items-start gap-1">
-            {isCurated ? curatedBadge : <StatusBadge rate={rate} isLowestEver={deal.isLowestEver} />}
+            {isCurated ? curatedBadge : <StatusBadge rate={rate} isLowestEver={deal.isLowestEver} trackedDays={trackedDays} />}
             {deal.isPriceError && <PriceErrorBadge />}
           </div>
         </div>
@@ -190,12 +194,12 @@ export default function DealCard({
               <div className="mb-1 flex flex-wrap items-center gap-1.5">
                 {avg30Rate > 0 && (
                   <span className="rounded-md bg-red-600 px-2 py-1 text-[11px] font-extrabold text-white">
-                    30일 평균 대비 -{avg30Rate}%
+                    {avgLabel} 대비 -{avg30Rate}%
                   </span>
                 )}
                 {min90 && (
                   <span className="rounded-md bg-amber-100 px-2 py-1 text-[11px] font-bold text-amber-800">
-                    90일 최저가
+                    {minLabel}
                   </span>
                 )}
                 <span className="rounded-md bg-gray-100 px-2 py-1 text-[11px] font-bold text-gray-600">
@@ -224,9 +228,9 @@ export default function DealCard({
             {!isCurated && (
               <div className="mt-1 text-[11px] leading-4 text-gray-400">
                 {avg30 && (
-                  <span>30일 평균 {formatWon(avg30)}</span>
+                  <span>{avgLabel} {formatWon(avg30)}</span>
                 )}
-                <span className={avg30 ? "ml-1" : ""}>90일 최저 {min90 ? formatWon(min90) : "수집 중"}</span>
+                <span className={avg30 ? "ml-1" : ""}>{minLabel} {min90 ? formatWon(min90) : "수집 중"}</span>
                 <span className={avg30 || min90 ? "ml-1" : ""}>{reliabilityLabel(deal)}</span>
                 {score.score !== null && (
                   <span className="ml-1 font-extrabold text-gray-600">

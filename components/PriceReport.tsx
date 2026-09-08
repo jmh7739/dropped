@@ -14,14 +14,15 @@ export default function PriceReport({
   listPrice: number;
   dropScore?: DropScoreResult;
 }) {
+  const d = stats.trackedDays;
   const rows: { label: string; value: number | null; hi?: boolean }[] = [
     { label: "현재가", value: stats.current, hi: true },
-    { label: "7일 평균", value: stats.avg7 },
-    { label: "30일 평균", value: stats.avg30 },
-    { label: "90일 평균", value: stats.avg90 },
-    { label: "30일 최저", value: stats.min30 },
-    { label: "90일 최저", value: stats.min90 },
-    { label: "90일 최고", value: stats.max90 },
+    ...(d >= 7 ? [{ label: "7일 평균", value: stats.avg7 }] : []),
+    ...(d >= 14 ? [{ label: "30일 평균", value: stats.avg30 }] : []),
+    ...(d >= 30 ? [{ label: "90일 평균", value: stats.avg90 }] : []),
+    ...(d >= 14 ? [{ label: d >= 30 ? "30일 최저" : "추적 최저", value: stats.min30 }] : []),
+    ...(d >= 30 ? [{ label: d >= 60 ? "90일 최저" : "추적 최저", value: stats.min90 }] : []),
+    ...(d >= 30 ? [{ label: d >= 60 ? "90일 최고" : "추적 최고", value: stats.max90 }] : []),
     { label: stats.lowestLabel, value: stats.minAll },
   ];
   if (listPrice > 0) rows.push({ label: "정가/원가", value: listPrice });
