@@ -57,3 +57,13 @@ export async function trackClick(productId: number): Promise<void> {
     /* 집계 실패는 무시 */
   }
 }
+
+export function trackEvent(name: string, data: Record<string, string | number | boolean>): void {
+  try {
+    if (typeof window !== "undefined" && (window as any).gtag) {
+      (window as any).gtag("event", name, data);
+    }
+  } catch {
+    /* analytics 실패는 무시 */
+  }
+}

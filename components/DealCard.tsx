@@ -258,7 +258,7 @@ export default function DealCard({
             </span>
           ) : (
             <BuyButton productId={deal.productId} href={deal.affiliateUrl} compact>
-              바로구매 →
+              현재 가격 확인 →
             </BuyButton>
           )}
         </div>

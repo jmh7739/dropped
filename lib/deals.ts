@@ -117,6 +117,27 @@ function wordSimilarity(a: Set<string>, b: Set<string>): number {
   return common / Math.min(a.size, b.size);
 }
 
+function charBigrams(title: string): Set<string> {
+  const clean = title.toLowerCase().replace(/[^가-힯a-z0-9]/g, "");
+  const grams = new Set<string>();
+  for (let i = 0; i < clean.length - 1; i++) grams.add(clean.slice(i, i + 2));
+  return grams;
+}
+
+function bigramSimilarity(a: Set<string>, b: Set<string>): number {
+  if (a.size < 3 || b.size < 3) return 0;
+  let common = 0;
+  for (const g of a) if (b.has(g)) common++;
+  return common / Math.min(a.size, b.size);
+}
+
+function isSimilar(
+  wordsA: Set<string>, bigramsA: Set<string>,
+  wordsB: Set<string>, bigramsB: Set<string>,
+): boolean {
+  return wordSimilarity(wordsA, wordsB) >= 0.5 || bigramSimilarity(bigramsA, bigramsB) >= 0.4;
+}
+
 function stableAliDedup(deals: Deal[]): Deal[] {
   const direct: Deal[] = [];
   const ali: Deal[] = [];
@@ -136,24 +157,51 @@ function stableAliDedup(deals: Deal[]): Deal[] {
 
   const kept: Deal[] = [];
   const keptWords: Set<string>[] = [];
+  const keptBigrams: Set<string>[] = [];
 
   for (const deal of ali) {
     const words = titleWords(deal.title);
-    const isDup = keptWords.some((kw) => wordSimilarity(words, kw) >= 0.5);
+    const bigrams = charBigrams(deal.title);
+    const isDup = keptWords.some((kw, i) => isSimilar(words, bigrams, kw, keptBigrams[i]));
     if (!isDup) {
       kept.push(deal);
       keptWords.push(words);
+      keptBigrams.push(bigrams);
     }
   }
 
   return [...direct, ...kept];
 }
 
+export function diversifyTop(sorted: Deal[], limit: number, maxPerCat = 2): Deal[] {
+  const result: Deal[] = [];
+  const catCount: Record<string, number> = {};
+  const keptWords: Set<string>[] = [];
+  const keptBigrams: Set<string>[] = [];
+
+  for (const deal of sorted) {
+    if (result.length >= limit) break;
+    const cat = deal.categorySlug || "other";
+    if ((catCount[cat] || 0) >= maxPerCat) continue;
+
+    const words = titleWords(deal.title);
+    const bigrams = charBigrams(deal.title);
+    const isDup = keptWords.some((kw, i) => isSimilar(words, bigrams, kw, keptBigrams[i]));
+    if (isDup) continue;
+
+    result.push(deal);
+    catCount[cat] = (catCount[cat] || 0) + 1;
+    keptWords.push(words);
+    keptBigrams.push(bigrams);
+  }
+  return result;
+}
+
 // 가격 '상태' 필터 — 상품종류가 아니라 "얼마나 싼가"로 거른다(떨어졌다의 핵심).
 export type PriceStatusKey = "plunge" | "lowest" | "bigdrop" | "fresh";
 export const PRICE_STATUS: { key: PriceStatusKey; label: string }[] = [
   { key: "plunge", label: "오늘 급락" },
-  { key: "lowest", label: "90일 최저가" },
+  { key: "lowest", label: "추적 최저가" },
   { key: "bigdrop", label: "💸 많이 하락" },
   { key: "fresh", label: "⏱ 방금 떨어짐" },
 ];
@@ -300,7 +348,7 @@ async function getPriceHistory(productId: number): Promise<PricePoint[]> {
   }));
 }
 
-/** 같은 카테고리 관련 딜 (상품 상세 페이지 내부링크용) */
+/** 같은 카테고리 관련 딜 — 중복 제거 + DROP 점수 좋은 순 */
 export async function getRelatedDeals(
   categorySlug: string,
   excludeProductId: number,
@@ -313,11 +361,13 @@ export async function getRelatedDeals(
     .eq("category_slug", categorySlug)
     .eq("status", "active")
     .neq("product_id", excludeProductId)
-    .limit(limit);
+    .limit(limit * 3);
   if (!data) return [];
-  return sortDeals(
-    data.map((row) => rowToDeal(row, [])),
-    "discount"
+  const deals = data.map((row) => rowToDeal(row, []));
+  return diversifyTop(
+    deals.sort((a, b) => hotDealScore(b) - hotDealScore(a)),
+    limit,
+    limit,
   );
 }
 

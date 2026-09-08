@@ -41,7 +41,7 @@ export default function AboutPage() {
           <li className="flex gap-2">
             <span className="mt-0.5 text-brand">•</span>
             <span>
-              90일간의 실제 판매 가격 이력을 기반으로, 지금 가격이 평소 대비
+              실제 판매 가격 이력을 기반으로, 지금 가격이 평소 대비
               얼마나 떨어졌는지 계산합니다.
             </span>
           </li>
@@ -62,12 +62,12 @@ export default function AboutPage() {
             {
               icon: "📊",
               title: "DROP SCORE",
-              desc: "할인폭, 플랫폼 신뢰도, 인기도, 역대 최저 여부를 종합한 점수",
+              desc: "할인폭, 플랫폼 신뢰도, 인기도, 추적 최저 여부를 종합한 점수",
             },
             {
               icon: "📉",
               title: "가격 그래프",
-              desc: "7일/30일/90일/전체 기간의 실제 가격 변동 시각화",
+              desc: "추적 기간별 실제 가격 변동 시각화",
             },
             {
               icon: "✅",

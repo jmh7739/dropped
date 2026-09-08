@@ -109,15 +109,38 @@ export function dropScore(d: ScoreInput): DropScoreResult {
   return { score, label: "기다리기", tone: "wait" };
 }
 
+export function dataConfidence(d: Pick<Deal, "trackedDays" | "checkedAt" | "platform">): number {
+  const days = d.trackedDays ?? 0;
+  let score = 0;
+  if (days >= 30) score += 50;
+  else if (days >= 14) score += 35;
+  else if (days >= 7) score += 15 + Math.min(20, (days - 7) * 3);
+  else score += days * 2;
+
+  if (d.checkedAt) {
+    const hours = (Date.now() - new Date(d.checkedAt).getTime()) / 3600000;
+    if (hours <= 6) score += 30;
+    else if (hours <= 24) score += 22;
+    else if (hours <= 48) score += 12;
+    else score += 5;
+  }
+
+  const trust: Record<string, number> = { coupang: 20, cps: 18, naver: 16, aliexpress: 10 };
+  score += trust[d.platform] ?? 12;
+  return Math.min(100, score);
+}
+
 export function hotDealScore(d: ScoreInput): number {
   const score = dropScore(d).score ?? 0;
   const rate = headlineDropRate(d);
   const trusted = TRUSTED_PLATFORM_BONUS[d.platform] ?? 4;
   const engagement = Math.min(30, d.clickCount * 1.5 + d.likeCount * 4);
   const healthPenalty = d.categorySlug === "health" ? 30 : 0;
+  const base = score * 1.6 + rate * 2.2 + trusted + engagement - healthPenalty;
   const days = d.trackedDays ?? 0;
-  const confidenceBonus = days >= 30 ? 10 : days >= 14 ? 4 : 0;
-  return score * 1.6 + rate * 2.2 + trusted + engagement + confidenceBonus - healthPenalty;
+  const confMultiplier =
+    days >= 30 ? 1.15 : days >= 14 ? 1.05 : days >= 10 ? 1.0 : days >= 7 ? 0.9 : 0.6;
+  return base * confMultiplier;
 }
 
 export function limitHealthDeals<T extends Pick<Deal, "categorySlug" | "title">>(

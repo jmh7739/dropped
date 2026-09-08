@@ -1,6 +1,6 @@
 "use client";
 
-import { trackClick } from "@/lib/engagementClient";
+import { trackClick, trackEvent } from "@/lib/engagementClient";
 import { safeUrl } from "@/lib/format";
 
 /**
@@ -14,6 +14,7 @@ export default function BuyButton({
   className,
   compact = false,
   track = true,
+  source,
 }: {
   productId: number;
   href: string;
@@ -21,10 +22,14 @@ export default function BuyButton({
   className?: string;
   compact?: boolean;
   track?: boolean; // 골드박스 등 products에 없는 항목은 false
+  source?: string;
 }) {
   function onClick(e: React.MouseEvent) {
-    e.stopPropagation(); // 카드 클릭(상세 이동)과 분리
-    if (track) void trackClick(productId); // 집계는 fire-and-forget
+    e.stopPropagation();
+    if (track) {
+      void trackClick(productId);
+      trackEvent("buy_click", { product_id: productId, source: source ?? "unknown" });
+    }
   }
 
   return (

@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { getDeals, getCuratedDeals, getLastPriceUpdate, SortKey, PriceStatusKey, PRICE_STATUS } from "@/lib/deals";
+import { getDeals, getCuratedDeals, getLastPriceUpdate, diversifyTop, SortKey, PriceStatusKey, PRICE_STATUS } from "@/lib/deals";
 import { timeAgo } from "@/lib/format";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { hotDealScore, limitHealthDeals } from "@/lib/dropMetrics";
+import DealCard from "@/components/DealCard";
 import DealGrid from "@/components/DealGrid";
 import SortDropdown from "@/components/SortDropdown";
 import TravelView, { TravelTab } from "@/components/TravelView";
@@ -227,13 +228,33 @@ export default async function Home({
   const deals = allDeals.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
   const activeCount = allDeals.length;
 
-  // TopDrops: 종합 점수 상위 (검색/필터 없을 때만)
+  // TopDrops: 추적 7일 이상 + 다양성 확보 (검색/필터 없을 때만)
   const topDeals =
     sec === "drop" && !q && !ps
-      ? limitHealthDeals(
-          [...allDeals].sort((a, b) => hotDealScore(b) - hotDealScore(a)),
-          1
-        ).slice(0, 8)
+      ? diversifyTop(
+          limitHealthDeals(
+            allDeals
+              .filter((d) => (d.trackedDays ?? 0) >= 7)
+              .sort((a, b) => hotDealScore(b) - hotDealScore(a)),
+            1
+          ),
+          8
+        )
+      : [];
+
+  // 국내 급락: TOP과 겹치지 않는 국내 딜
+  const topIds = new Set(topDeals.map((d) => d.id));
+  const domesticDropDeals =
+    sec === "drop" && !q && !ps && !scope
+      ? allDeals
+          .filter(
+            (d) =>
+              d.platform !== "aliexpress" &&
+              (d.trackedDays ?? 0) >= 7 &&
+              !topIds.has(d.id)
+          )
+          .sort((a, b) => hotDealScore(b) - hotDealScore(a))
+          .slice(0, 4)
       : [];
 
   const psLabel = ps ? PRICE_STATUS.find((s) => s.key === ps)?.label : undefined;
@@ -290,6 +311,25 @@ export default async function Home({
       {sec === "drop" ? (
         <>
           {topDeals.length >= 3 && <TopDrops deals={topDeals} />}
+
+          {domesticDropDeals.length >= 2 && (
+            <section className="mb-6">
+              <div className="mb-3 flex items-center justify-between">
+                <h2 className="text-lg font-extrabold text-gray-900">🇰🇷 국내 급락</h2>
+                <Link
+                  href="/?scope=domestic"
+                  className="text-sm text-gray-500 hover:text-gray-800"
+                >
+                  더보기 →
+                </Link>
+              </div>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                {domesticDropDeals.map((deal) => (
+                  <DealCard key={deal.id} deal={deal} />
+                ))}
+              </div>
+            </section>
+          )}
 
           <GoldboxBanner />
 
