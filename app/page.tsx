@@ -256,6 +256,27 @@ export default async function Home({
         2
       )
     : [];
+
+  // 국내 베스트딜은 '평소가 이력'이 없어 위 '가격 이력 급락'엔 안 들어온다.
+  //   → 가격이력 급락 스트립이 없을 때(주로 국내딜 탭), 원가 대비 할인율 상위로
+  //     '국내 베스트딜 TOP' 스트립을 대신 보여준다. (스트립은 항상 최대 1개)
+  const topCurated =
+    showTopStrip && topDrops.length < 4
+      ? diversifyTop(
+          listDeals
+            .filter(
+              (d) =>
+                d.isCurated &&
+                d.status !== "ended" &&
+                d.listPrice > d.currentPrice &&
+                d.discountVsList >= 10
+            )
+            .sort((a, b) => b.discountVsList - a.discountVsList),
+          8,
+          2
+        )
+      : [];
+
   const hrefFor = (next: Record<string, string | undefined>) => {
     const sp = new URLSearchParams();
     const merged = { ...allParams, ...next };
@@ -278,7 +299,7 @@ export default async function Home({
         <ProductSearchResults rows={trackedMatches} query={q.trim()} />
       )}
 
-      {topDrops.length >= 4 && (
+      {topDrops.length >= 4 ? (
         <TopDrops
           deals={topDrops}
           header={
@@ -287,7 +308,16 @@ export default async function Home({
             </h2>
           }
         />
-      )}
+      ) : topCurated.length >= 4 ? (
+        <TopDrops
+          deals={topCurated}
+          header={
+            <h2 className="mb-3 text-lg font-extrabold text-gray-900">
+              🛒 국내 베스트딜 TOP
+            </h2>
+          }
+        />
+      ) : null}
 
       <section>
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
