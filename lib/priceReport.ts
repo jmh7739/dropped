@@ -142,6 +142,32 @@ export function buyVerdict(
 }
 
 /**
+ * Deal(홈/베스트딜 카드용) → 최종 구매 판정. 상세페이지와 '같은' buyVerdict를
+ *   써서 홈 카드와 상세의 판정이 모순되지 않게 한다(단일 source of truth).
+ *   카드엔 전체 이력이 없으므로 집계값(avg30/discountVsAvg/추적일/이력수)으로 계산.
+ *   ⚠️ 큐레이션(정가대비) 딜은 평소가 추적이 아니라 대상 아님 → 호출부에서 제외.
+ */
+export function dealVerdict(d: {
+  discountVsAvg: number | null;
+  avg30Price: number | null;
+  currentPrice: number;
+  isLowestEver: boolean;
+  trackedDays: number | null;
+  historyPointCount: number | null;
+}): Verdict {
+  const days = d.trackedDays ?? 0;
+  const points = d.historyPointCount ?? 0;
+  const rate =
+    d.avg30Price && d.avg30Price > d.currentPrice
+      ? Math.round(((d.avg30Price - d.currentPrice) / d.avg30Price) * 100)
+      : Math.max(0, Math.round(d.discountVsAvg ?? 0));
+  const enoughData = points >= 10 && days >= 7;
+  const lowestLabel =
+    days >= 60 ? "역대 최저가" : `추적 ${Math.max(days, 1)}일 중 최저`;
+  return buyVerdict(rate, d.isLowestEver, lowestLabel, enoughData);
+}
+
+/**
  * 베스트딜(국내몰 인기) 판정 — 이 상품은 '평소 시세 추적'이 아니라 제휴사 표기
  *   할인(정가/원가 대비)이라, '평균보다'라고 하면 거짓이 된다. 정직하게 표기.
  */

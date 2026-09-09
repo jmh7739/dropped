@@ -1,12 +1,9 @@
 import Link from "next/link";
 import { Deal, mallLabel } from "@/lib/types";
-import { formatWon, headlineDiscount, timeAgo, displayTitle } from "@/lib/format";
-import { dropScore, reliabilityLabel } from "@/lib/dropMetrics";
-import {
-  StatusBadge,
-  PriceErrorBadge,
-  ShippingBadge,
-} from "./DiscountBadge";
+import { formatWon, headlineDiscount, displayTitle, brandFrom } from "@/lib/format";
+import { dropScore } from "@/lib/dropMetrics";
+import { dealVerdict } from "@/lib/priceReport";
+import { StatusBadge, PriceErrorBadge, ShippingBadge } from "./DiscountBadge";
 import LikeButton from "./LikeButton";
 import BuyButton from "./BuyButton";
 import ShareButton from "./ShareButton";
@@ -24,13 +21,11 @@ export default function DealCard({
   const ended = deal.status === "ended";
   const isCurated = deal.isCurated;
   const score = dropScore(deal);
-  const avg30 = deal.avg30Price;
-  const min90 = deal.min90Price;
   const trackedDays = deal.trackedDays;
-  const avgLabel =
-    trackedDays && trackedDays >= 30 ? "30일 평균" : trackedDays ? `${trackedDays}일 평균` : "평균";
-  const minLabel =
-    trackedDays && trackedDays >= 60 ? "90일 최저" : trackedDays && trackedDays >= 14 ? "추적 최저" : "최저";
+  const brand = brandFrom(deal.title);
+  // 홈/상세 판정 일관성: 카드도 상세와 동일한 buyVerdict(단일 source)로 판정.
+  const verdict = !isCurated ? dealVerdict(deal) : null;
+
   // 국내몰 추천: 제휴사 실판매가 기준 할인(원가→할인가). 있으면 할인율·원가 표시.
   const curatedDisc =
     isCurated && deal.listPrice > deal.currentPrice
@@ -39,7 +34,7 @@ export default function DealCard({
   const curatedBadge =
     curatedDisc > 0 ? (
       <span className="rounded-md bg-brand px-2 py-1 text-[11px] font-extrabold text-white shadow-sm">
-        🔻{curatedDisc}%
+        정가 -{curatedDisc}%
       </span>
     ) : null;
   // 취소선 표시 가격: 큐레이션은 원가, 급락딜은 평소가
@@ -48,6 +43,12 @@ export default function DealCard({
       ? deal.listPrice
       : 0
     : deal.baselinePrice || deal.listPrice;
+
+  const brandChip = brand ? (
+    <span className="rounded bg-gray-900/85 px-1.5 py-0.5 font-bold text-white">
+      {brand}
+    </span>
+  ) : null;
 
   // ── 리스트형: 한 줄에 조밀하게 (한 화면에 더 많이) ──
   if (variant === "list") {
@@ -74,10 +75,8 @@ export default function DealCard({
               <span className="rounded bg-gray-100 px-1.5 py-0.5 text-gray-600">
                 {mallLabel(deal)}
               </span>
+              {brandChip}
               <ShippingBadge fee={deal.shippingFee} />
-              <span className="ml-auto whitespace-nowrap" suppressHydrationWarning>
-                확인 {timeAgo(deal.checkedAt ?? deal.detectedAt)}
-              </span>
             </div>
             <h3 className="truncate text-sm font-medium text-gray-900">
               {displayTitle(deal.title)}
@@ -97,26 +96,15 @@ export default function DealCard({
                 </span>
               )}
               {deal.unitPrice && (
-                <span className="text-[11px] text-gray-400">
-                  · {deal.unitPrice}
-                </span>
+                <span className="text-[11px] text-gray-400">· {deal.unitPrice}</span>
               )}
             </div>
-            {!isCurated && (
-              <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-gray-500">
-                {rate > 0 && basis === "평균" && (
-                  <span className="font-bold text-red-600">{avgLabel} 대비 -{rate}%</span>
-                )}
-                <span>{minLabel} {min90 ? formatWon(min90) : "수집 중"}</span>
-                <span>가격 추적 {trackedDays ? `${trackedDays}일` : "수집 중"}</span>
-                {score.score !== null && (
-                  <span className="font-extrabold text-gray-700">DROP {score.score}</span>
-                )}
-                {deal.checkedAt && (
-                  <span className="text-gray-400" suppressHydrationWarning>
-                    확인 {timeAgo(deal.checkedAt)}
-                  </span>
-                )}
+            {!isCurated && score.score !== null && verdict && (
+              <div className="mt-1 flex flex-wrap items-center gap-x-2 text-[11px]">
+                <span className="font-extrabold text-gray-700">DROP {score.score}</span>
+                <span className="text-gray-500">
+                  {verdict.icon} {verdict.title}
+                </span>
               </div>
             )}
           </div>
@@ -171,14 +159,11 @@ export default function DealCard({
 
         <div className="flex flex-1 flex-col gap-1 p-3 pb-2">
           <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-gray-400">
-            <span className="rounded bg-gray-100 px-1.5 py-0.5 text-gray-600">
+            <span className="rounded bg-gray-100 px-1.5 py-0.5 font-medium text-gray-600">
               {mallLabel(deal)}
             </span>
-            <span>{deal.categoryName}</span>
+            {brandChip}
             <ShippingBadge fee={deal.shippingFee} />
-            <span className="ml-auto whitespace-nowrap" suppressHydrationWarning>
-              {deal.checkedAt ? `확인 ${timeAgo(deal.checkedAt)}` : timeAgo(deal.detectedAt)}
-            </span>
           </div>
 
           <h3 className="line-clamp-2 text-sm font-medium text-gray-900">
@@ -186,29 +171,12 @@ export default function DealCard({
           </h3>
 
           <div className="mt-auto pt-1">
-            {!isCurated && (
-              <div className="mb-1 flex flex-wrap items-center gap-1.5">
-                {rate > 0 && basis === "평균" && (
-                  <span className="rounded-md bg-red-600 px-2 py-1 text-[11px] font-extrabold text-white">
-                    {avgLabel} 대비 -{rate}%
-                  </span>
-                )}
-                {min90 && (
-                  <span className="rounded-md bg-amber-100 px-2 py-1 text-[11px] font-bold text-amber-800">
-                    {minLabel}
-                  </span>
-                )}
-                <span className="rounded-md bg-gray-100 px-2 py-1 text-[11px] font-bold text-gray-600">
-                  가격 추적 {trackedDays ? `${trackedDays}일` : "수집 중"}
-                </span>
-              </div>
-            )}
             {strikePrice > deal.currentPrice && (
               <div className="text-xs text-gray-400 line-through">
                 {formatWon(strikePrice)}
               </div>
             )}
-            <div className="flex items-baseline gap-1">
+            <div className="flex items-baseline gap-1.5">
               <span className="text-lg font-extrabold text-brand">
                 {formatWon(deal.currentPrice)}
               </span>
@@ -221,18 +189,14 @@ export default function DealCard({
             {deal.unitPrice && (
               <div className="text-[11px] text-gray-400">{deal.unitPrice}</div>
             )}
-            {!isCurated && (
-              <div className="mt-1 text-[11px] leading-4 text-gray-400">
-                {avg30 && (
-                  <span>{avgLabel} {formatWon(avg30)}</span>
-                )}
-                <span className={avg30 ? "ml-1" : ""}>{minLabel} {min90 ? formatWon(min90) : "수집 중"}</span>
-                <span className={avg30 || min90 ? "ml-1" : ""}>{reliabilityLabel(deal)}</span>
-                {score.score !== null && (
-                  <span className="ml-1 font-extrabold text-gray-600">
-                    DROP {score.score} · {score.label}
-                  </span>
-                )}
+            {!isCurated && score.score !== null && verdict && (
+              <div className="mt-1.5 flex items-center gap-1 text-[11px]">
+                <span className="rounded bg-gray-900 px-1.5 py-0.5 font-extrabold text-white">
+                  DROP {score.score}
+                </span>
+                <span className="font-bold text-gray-600">
+                  {verdict.icon} {verdict.title}
+                </span>
               </div>
             )}
           </div>

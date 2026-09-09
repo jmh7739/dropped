@@ -112,6 +112,7 @@ export default async function Home({
   const validDealSorts: SortKey[] = [
     "discount",
     "popular",
+    "score",
     "discount_asc",
     "price_asc",
     "price_desc",
@@ -224,10 +225,10 @@ export default async function Home({
   const trackedMatches = productMatchesRaw.filter((r) => !dealProductIds.has(r.id));
 
   const sortOptions = [
+    { key: "popular", label: "추천" },
     { key: "recent", label: "최신" },
-    { key: "discount", label: "할인율" },
-    { key: "popular", label: "인기" },
-    { key: "price_asc", label: "낮은 가격" },
+    { key: "discount", label: "하락률" },
+    { key: "score", label: "DROP SCORE" },
   ];
 
   // 상단 추천 스트립 — 최신순 리스트에선 좋은 딜이 아래로 밀리므로
@@ -248,7 +249,13 @@ export default async function Home({
               ? d.listPrice > d.currentPrice
               : dropScore(d).score !== null;
           })
-          .sort((a, b) => headlineDropRate(b) - headlineDropRate(a)),
+          .sort((a, b) => {
+            // 실제 가격이력이 충분한(7일+) 상품을 우선, 그다음 하락률 큰 순.
+            const ea = (a.trackedDays ?? 0) >= 7 ? 1 : 0;
+            const eb = (b.trackedDays ?? 0) >= 7 ? 1 : 0;
+            if (ea !== eb) return eb - ea;
+            return headlineDropRate(b) - headlineDropRate(a);
+          }),
         8,
         2
       )
@@ -279,14 +286,9 @@ export default async function Home({
         <TopDrops
           deals={topDrops}
           header={
-            <div className="mb-3">
-              <h2 className="text-lg font-extrabold text-gray-900">
-                🔥 지금 가장 많이 떨어진
-              </h2>
-              <p className="mt-0.5 text-xs text-gray-400">
-                평소·정가 대비 하락률이 큰 순
-              </p>
-            </div>
+            <h2 className="mb-3 text-lg font-extrabold text-gray-900">
+              🔥 지금 가장 많이 떨어진
+            </h2>
           }
         />
       )}
@@ -298,9 +300,6 @@ export default async function Home({
               <span>{q ? `"${q}" 베스트딜` : activeCat ? `${activeCat.name} 베스트딜` : "베스트딜"}</span>
               <span className="ml-2 text-sm font-normal text-gray-400">{listCount}개</span>
             </h1>
-            <p className="mt-1 text-xs text-gray-400">
-              여러 종류의 좋은 딜을 하나로 모으고, 왜 좋은 가격인지는 배지로 표시합니다.
-            </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <SortDropdown

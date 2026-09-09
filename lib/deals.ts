@@ -1,10 +1,11 @@
 import { supabase } from "./supabase";
 import { Deal, PricePoint, HOT_LIKE_THRESHOLD } from "./types";
-import { headlineDropRate, hotDealScore } from "./dropMetrics";
+import { headlineDropRate, hotDealScore, dropScore } from "./dropMetrics";
 
 export type SortKey =
   | "discount" // 하락률 높은순 (기본)
-  | "popular" // 인기순 (클릭·좋아요)
+  | "popular" // 인기순 (클릭·좋아요) = '추천'
+  | "score" // DROP SCORE 높은순
   | "discount_asc" // 할인률 낮은순
   | "price_asc" // 가격 낮은순
   | "price_desc" // 가격 높은순
@@ -80,6 +81,10 @@ function sortActive(deals: Deal[], sort: SortKey): Deal[] {
   switch (sort) {
     case "popular":
       return arr.sort((a, b) => popScore(b) - popScore(a));
+    case "score":
+      return arr.sort(
+        (a, b) => (dropScore(b).score ?? -1) - (dropScore(a).score ?? -1)
+      );
     case "recent":
       // 사용자가 카드에서 보는 "확인" 시간 기준 최신순.
       // 감지 시간(detectedAt)만 쓰면 오래전에 감지된 딜이 방금 확인됐어도
