@@ -18,6 +18,7 @@ import requests
 
 import config
 import affiliate
+from classifier import classify_slug
 from .base import RawDeal
 
 API = "https://api.linkprice.com/ci/hotdeal/data/{aid}"
@@ -64,11 +65,7 @@ def _to_int(v) -> int:
 
 
 def _slug(name: str, category: str) -> str | None:
-    lower = name.lower()
-    for kws, slug in _KW_SLUG:
-        if any(kw.lower() in lower for kw in kws):
-            return slug
-    return _CAT_HINT.get(category)  # 폴백(없으면 None → 제외)
+    return classify_slug(name, _CAT_HINT.get(category))  # 폴백(없으면 living)
 
 
 def fetch() -> list[RawDeal]:

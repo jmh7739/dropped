@@ -227,7 +227,7 @@ export default async function Home({
   const sortOptions = [
     { key: "popular", label: "추천" },
     { key: "recent", label: "최신" },
-    { key: "discount", label: "하락률" },
+    { key: "discount", label: "할인/하락률" },
     { key: "score", label: "DROP SCORE" },
   ];
 
@@ -241,13 +241,9 @@ export default async function Home({
         listDeals
           .filter((d) => {
             if (d.status === "ended") return false;
+            if (d.isCurated) return false;
             if (headlineDropRate(d) < 10) return false;
-            // 큐레이션 베스트딜(baseline 없음=국내몰)은 avg 이력이 없어 dropScore가
-            // 항상 null → 원가 대비 하락률로 판단해야 국내딜 탭에서도 스트립이 뜬다.
-            // 가격추적 급락딜은 dropScore가 나와야(신뢰도) 노이즈를 컷.
-            return d.isCurated
-              ? d.listPrice > d.currentPrice
-              : dropScore(d).score !== null;
+            return dropScore(d).score !== null;
           })
           .sort((a, b) => {
             // 실제 가격이력이 충분한(7일+) 상품을 우선, 그다음 하락률 큰 순.
@@ -287,7 +283,7 @@ export default async function Home({
           deals={topDrops}
           header={
             <h2 className="mb-3 text-lg font-extrabold text-gray-900">
-              🔥 지금 가장 많이 떨어진
+              🔥 가격 이력 급락 TOP
             </h2>
           }
         />

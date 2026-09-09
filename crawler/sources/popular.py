@@ -17,7 +17,7 @@ import requests
 import affiliate
 import config
 from .base import RawDeal
-from .cps import _slug_by_name  # 상품명 → 우리 slug (공용)
+from classifier import classify_slug
 
 API = "https://api.linkprice.com/popularProducts/affiliateId/{aid}"
 
@@ -74,7 +74,7 @@ def fetch() -> list[RawDeal]:
             affiliate_url=url,          # 우리 제휴ID 포함
             current_price=sale,         # 할인가
             list_price=normal,          # 정가(원가) — 실제 판매가 기준(거짓정가 아님)
-            category_slug=_slug_by_name(title) or "living",
+            category_slug=classify_slug(title, "living"),
             mall_name=affiliate.merchant_name(mcode),
             curated=True,               # 국내몰 추천 특가로 노출(할인율 표시)
         ))

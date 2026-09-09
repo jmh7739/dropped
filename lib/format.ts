@@ -94,7 +94,7 @@ const MALL_SUFFIX =
   /[\s:·\-]*(?:롯데\s*ON|롯데온|G\s*마켓|지마켓|옥션|11번가|위메프|인터파크|SSG|쓱|오늘의집|하이마트|쿠팡)\s*$/gi;
 // 과도한 프로모션 접두/접미 토큰(정보가치 낮음) 제거용. 1+1 등 수량정보는 보존.
 const PROMO_TOKEN =
-  /(?:^|\s)(?:\[[^\]]*\]|NEW신상|NEW|BEST|HOT|깜짝\s*특가|초특가|단독\s*특가|한정\s*특가|오늘의\s*특가|균일가|기획\s*특가|_NEW|_?BEST)(?=\s|$)/gi;
+  /(?:^|\s)(?:\[[^\]]*\]|NEW\s*패턴|NEW신상|NEW|BEST|HOT|깜짝\s*특가|초특가|단독\s*특가|한정\s*특가|오늘의\s*특가|균일가|기획\s*특가|_NEW|_?BEST)(?=\s|$)/gi;
 
 export function displayTitle(raw: string, maxLen = 60): string {
   let t = raw
@@ -107,6 +107,10 @@ export function displayTitle(raw: string, maxLen = 60): string {
     .replace(/\s{2,}/g, " ")
     .replace(/^[\s:·\-]+/, "")
     .trim();
+  const brand = brandFrom(raw);
+  if (brand && !t.toLowerCase().includes(brand.toLowerCase())) {
+    t = `${brand} ${t}`;
+  }
   if (t.length > maxLen) {
     t = t.substring(0, maxLen - 1).replace(/\s+\S*$/, "") + "…";
   }
@@ -121,8 +125,8 @@ export function displayTitle(raw: string, maxLen = 60): string {
 const BRAND_DICT: { name: string; variants: string[] }[] = [
   { name: "노스페이스", variants: ["the north face", "northface", "north face", "노스페이스"] },
   { name: "뉴발란스", variants: ["new balance", "뉴발란스"] },
-  { name: "블랙야크", variants: ["blackyak", "black yak", "블랙야크"] },
-  { name: "나이키", variants: ["nike", "나이키"] },
+  { name: "블랙야크", variants: ["blackyak", "black yak", "블랙야크", "1bypaw"] },
+  { name: "나이키", variants: ["nike", "나이키", "p-6000", "cd6404"] },
   { name: "아디다스", variants: ["adidas", "아디다스"] },
   { name: "아식스", variants: ["asics", "아식스"] },
   { name: "퓨마", variants: ["puma", "푸마", "퓨마"] },
