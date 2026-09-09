@@ -1,10 +1,8 @@
 import Link from "next/link";
 
 const SERVICE_LINKS = [
-  { href: "/", label: "급락딜" },
-  { href: "/?sec=best", label: "베스트딜" },
+  { href: "/", label: "베스트딜" },
   { href: "/?category=flight", label: "여행 특가" },
-  { href: "/?category=auction", label: "경매 특가" },
   { href: "/about", label: "사이트 소개" },
 ];
 

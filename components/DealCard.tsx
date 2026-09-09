@@ -76,7 +76,7 @@ export default function DealCard({
               </span>
               <ShippingBadge fee={deal.shippingFee} />
               <span className="ml-auto whitespace-nowrap" suppressHydrationWarning>
-                {timeAgo(deal.detectedAt)}
+                확인 {timeAgo(deal.checkedAt ?? deal.detectedAt)}
               </span>
             </div>
             <h3 className="truncate text-sm font-medium text-gray-900">

@@ -60,7 +60,7 @@ function rowToDeal(row: any, history: PricePoint[]): Deal {
   };
 }
 
-function sortDeals(deals: Deal[], sort: SortKey): Deal[] {
+export function sortDealList(deals: Deal[], sort: SortKey): Deal[] {
   // 종료된 딜은 항상 맨 뒤로
   const active = deals.filter((d) => d.status !== "ended");
   const ended = deals.filter((d) => d.status === "ended");
@@ -81,12 +81,17 @@ function sortActive(deals: Deal[], sort: SortKey): Deal[] {
     case "popular":
       return arr.sort((a, b) => popScore(b) - popScore(a));
     case "recent":
-      // 동점(초기 대량 수집으로 detected_at이 거의 같은 경우)은 하락률로 정렬해
-      // 같은 시각대 안에서도 더 많이 떨어진 게 위로 오게 한다.
+      // 사용자가 카드에서 보는 "확인" 시간 기준 최신순.
+      // 감지 시간(detectedAt)만 쓰면 오래전에 감지된 딜이 방금 확인됐어도
+      // 아래로 밀려 "최신순이 아닌 것처럼" 보인다.
       return arr.sort((a, b) => {
         const t =
+          new Date(b.checkedAt ?? b.detectedAt).getTime() -
+          new Date(a.checkedAt ?? a.detectedAt).getTime();
+        if (t !== 0) return t;
+        const detected =
           new Date(b.detectedAt).getTime() - new Date(a.detectedAt).getTime();
-        return t !== 0 ? t : headlineRate(b) - headlineRate(a);
+        return detected !== 0 ? detected : headlineRate(b) - headlineRate(a);
       });
     case "discount_asc":
       return arr.sort((a, b) => headlineRate(a) - headlineRate(b));
@@ -138,7 +143,7 @@ function isSimilar(
   return wordSimilarity(wordsA, wordsB) >= 0.5 || bigramSimilarity(bigramsA, bigramsB) >= 0.4;
 }
 
-function dedupSimilar(deals: Deal[]): Deal[] {
+function dedupSimilar(deals: Deal[], sort: SortKey = "discount"): Deal[] {
   // 같은 몰(플랫폼) 안에서만 유사중복(같은 상품 중복 리스팅)을 제거한다.
   //   다른 몰의 같은 상품은 가격·링크가 다른 별개 딜이라 유지 → 교차몰 오병합 방지.
   const byPlatform = new Map<string, Deal[]>();
@@ -150,8 +155,16 @@ function dedupSimilar(deals: Deal[]): Deal[] {
 
   const out: Deal[] = [];
   for (const group of byPlatform.values()) {
-    // 중복 묶음에서 남길 대표: DROP 점수(하락률·신뢰도) 높은 것 우선.
+    // 중복 묶음에서 남길 대표:
+    // - 최신순에서는 가장 최근 확인된 상품을 남겨야 사용자가 기대하는 정렬과 맞다.
+    // - 그 외에는 DROP 점수(하락률·신뢰도) 높은 것 우선.
     group.sort((a, b) => {
+      if (sort === "recent") {
+        const t =
+          new Date(b.checkedAt ?? b.detectedAt).getTime() -
+          new Date(a.checkedAt ?? a.detectedAt).getTime();
+        if (t !== 0) return t;
+      }
       const s = hotDealScore(b) - hotDealScore(a);
       return s !== 0 ? s : new Date(b.detectedAt).getTime() - new Date(a.detectedAt).getTime();
     });
@@ -257,8 +270,8 @@ export async function getDeals(opts: GetDealsOpts = {}): Promise<Deal[]> {
     deals = deals.filter(
       (d) => d.status !== "ended" && matchesPriceStatus(d, priceStatus)
     );
-  deals = dedupSimilar(deals);
-  return sortDeals(deals, sort);
+  deals = dedupSimilar(deals, sort);
+  return sortDealList(deals, sort);
 }
 
 /** 국내몰 추천 특가(MD 큐레이션 = baseline 없는 활성 딜). 카테고리 필터·정렬 지원. */
@@ -278,7 +291,7 @@ export async function getCuratedDeals(
     console.error("getCuratedDeals error:", error?.message);
     return [];
   }
-  const deals = dedupSimilar(data.map((row) => rowToDeal(row, [])));
+  const deals = dedupSimilar(data.map((row) => rowToDeal(row, [])), sort);
   return sortActive(deals, sort);
 }
 

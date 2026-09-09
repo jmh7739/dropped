@@ -1,20 +1,15 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { getDeals, getLastPriceUpdate, diversifyTop, SortKey, PriceStatusKey } from "@/lib/deals";
+import { notFound } from "next/navigation";
+import { getDeals, getCuratedDeals, getLastPriceUpdate, sortDealList, SortKey, PriceStatusKey } from "@/lib/deals";
 import { timeAgo } from "@/lib/format";
 import { isSupabaseConfigured } from "@/lib/supabase";
-import { hotDealScore, limitHealthDeals, dropScore } from "@/lib/dropMetrics";
+import { isHealthDeal } from "@/lib/dropMetrics";
 import DealGrid from "@/components/DealGrid";
 import SortDropdown from "@/components/SortDropdown";
 import TravelView, { TravelTab } from "@/components/TravelView";
-import AuctionView from "@/components/AuctionView";
 import SearchBar from "@/components/SearchBar";
 import Pagination from "@/components/Pagination";
-import HotdealTabs from "@/components/HotdealTabs";
-import TopDrops from "@/components/TopDrops";
-import CuratedSection from "@/components/CuratedSection";
-import GoldboxBanner from "@/components/GoldboxBanner";
-import { AuctionScope, AuctionSort } from "@/lib/auction";
 import { PAGE_SIZE } from "@/lib/nav";
 import { CATEGORIES } from "@/lib/types";
 
@@ -57,10 +52,10 @@ export async function generateMetadata({
     return { robots: { index: false, follow: true } };
   if (searchParams.sec === "best")
     return {
-      title: "베스트딜 — 국내몰 인기 할인",
+      title: "베스트딜 — 가격 이력으로 검증한 할인",
       description:
-        "국내 온라인몰에서 지금 잘 팔리는 할인 상품을 모았습니다. 원가 대비 실질 할인율로 비교하세요.",
-      alternates: { canonical: "/?sec=best" },
+        "국내·해외 상품 중 가격 이력, 추적 최저가, 평균가 대비 하락률로 지금 볼 만한 딜만 모았습니다.",
+      alternates: { canonical: "/" },
     };
   if (cat?.dealType === "flight")
     return {
@@ -71,10 +66,8 @@ export async function generateMetadata({
     };
   if (cat?.dealType === "auction")
     return {
-      title: "경매 특가 — 법원경매 부동산·자동차",
-      description:
-        "법원경매(온비드) 부동산·자동차를 감정가 대비 하락률 순으로. 유찰로 싸진 물건만.",
-      alternates: { canonical: "/?category=auction" },
+      title: "페이지를 찾을 수 없음",
+      robots: { index: false, follow: false },
     };
   if (cat && cat.dealType === "shopping")
     return {
@@ -135,14 +128,10 @@ export default async function Home({
   const activeCat = CATEGORIES.find((c) => c.slug === category);
   const isFlight = activeCat?.dealType === "flight";
   const isAuction = activeCat?.dealType === "auction";
-  const sec = searchParams.sec === "best" ? ("best" as const) : ("drop" as const);
-  const cc = validSlugs.has(searchParams.cc ?? "") ? searchParams.cc : undefined;
-  const cs: SortKey = validDealSorts.includes(searchParams.cs as SortKey)
-    ? (searchParams.cs as SortKey)
-    : "recent";
-  const bestScope =
-    searchParams.bs === "domestic" || searchParams.bs === "overseas"
-      ? searchParams.bs
+  const scopeParam = searchParams.scope ?? searchParams.bs;
+  const scope =
+    scopeParam === "domestic" || scopeParam === "overseas"
+      ? scopeParam
       : undefined;
 
   const demoBanner = !isSupabaseConfigured && (
@@ -170,28 +159,7 @@ export default async function Home({
 
   // ── 경매 탭 ──
   if (isAuction) {
-    const ascope: AuctionScope =
-      searchParams.ac === "자동차" ? "자동차" : "부동산";
-    const validSorts: AuctionSort[] = [
-      "discount_desc",
-      "discount_asc",
-      "price_desc",
-      "price_asc",
-      "recent",
-      "oldest",
-    ];
-    const asort: AuctionSort = validSorts.includes(
-      searchParams.as as AuctionSort
-    )
-      ? (searchParams.as as AuctionSort)
-      : "discount_desc";
-    return (
-      <div>
-        {demoBanner}
-        <h1 className="mb-4 text-xl font-extrabold">⚖️ 경매 특가</h1>
-        <AuctionView scope={ascope} sort={asort} />
-      </div>
-    );
+    notFound();
   }
 
   // ── 쇼핑 딜 ──
@@ -203,7 +171,6 @@ export default async function Home({
     })),
   ];
 
-  // 급락딜/베스트딜 탭 공통 파라미터
   const allParams: Record<string, string> = {};
   if (category) allParams.category = category;
   if (sort !== "discount") allParams.sort = sort;
@@ -211,38 +178,37 @@ export default async function Home({
   if (q) allParams.q = q;
   if (showEnded) allParams.se = "1";
   if (ps) allParams.ps = ps;
-  if (bestScope) allParams.bs = bestScope;
+  if (scope) allParams.scope = scope;
 
-  const bestParams: Record<string, string> = { sec: "best" };
-  if (cc) bestParams.cc = cc;
-  if (cs !== "recent") bestParams.cs = cs;
+  const [trackedDeals, curatedDealsRaw, lastUpdate] = await Promise.all([
+    getDeals({ category, sort, hotOnly: hot, q, priceStatus: ps, scope }),
+    scope !== "overseas" && !ps && !hot ? getCuratedDeals(sort, category) : Promise.resolve([]),
+    getLastPriceUpdate(),
+  ]);
 
-  const fetched =
-    sec === "drop"
-      ? await getDeals({ category, sort, hotOnly: hot, q, priceStatus: ps })
-      : [];
-  const lastUpdate = sec === "drop" ? await getLastPriceUpdate() : null;
+  const term = q.trim().toLowerCase();
+  const curatedDeals = curatedDealsRaw
+    .filter((d) => scope !== "domestic" || d.platform !== "aliexpress")
+    .filter((d) => !term || d.title.toLowerCase().includes(term));
 
-  // 베스트 딜: 충분한 추적 + confidence 통과 상품만 (검색/필터 없을 때)
-  let bestCandidates =
-    sec === "drop" && !q && !ps
-      ? fetched
-          .filter((d) => {
-            if ((d.trackedDays ?? 0) < 10) return false;
-            const s = dropScore(d);
-            return s.tone === "hot" || s.tone === "good" || s.tone === "ok";
-          })
-          .sort((a, b) => hotDealScore(b) - hotDealScore(a))
-      : [];
-  if (bestScope === "domestic")
-    bestCandidates = bestCandidates.filter((d) => d.platform !== "aliexpress");
-  if (bestScope === "overseas")
-    bestCandidates = bestCandidates.filter((d) => d.platform === "aliexpress");
-  const bestDeals = diversifyTop(limitHealthDeals(bestCandidates, 1), 8);
-  const bestIds = new Set(bestDeals.map((d) => d.id));
+  const seen = new Set<number>();
+  const combinedDeals = sortDealList([...trackedDeals, ...curatedDeals], sort)
+    .filter((d) => {
+      if (seen.has(d.productId)) return false;
+      seen.add(d.productId);
+      return true;
+    });
 
-  // 최근 가격 변동: 베스트딜과 중복 제거
-  const listDeals = fetched.filter((d) => !bestIds.has(d.id));
+  // 건강/보충제는 메인 첫 화면 도배 방지. 카테고리로 직접 들어온 경우에는 그대로 보여준다.
+  let healthShown = 0;
+  const listDeals = category === "health"
+    ? combinedDeals
+    : combinedDeals.filter((d) => {
+        if (!isHealthDeal(d)) return true;
+        healthShown += 1;
+        return healthShown <= 1;
+      });
+
   const totalPages = Math.max(1, Math.ceil(listDeals.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
   const paginatedList = listDeals.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
@@ -272,109 +238,84 @@ export default async function Home({
         <SearchBar initial={q} />
       </div>
 
-      <HotdealTabs
-        sec={sec}
-        drop={{ category, sort, hot, q, showEnded, ps }}
-        best={{ cc, cs: cs !== "recent" ? cs : undefined }}
-      />
-
-      {sec === "drop" ? (
-        <>
-          {/* 베스트 딜 — 충분한 추적 + 신뢰도 통과 상품만 */}
-          {bestDeals.length > 0 && (
-            <TopDrops
-              deals={bestDeals}
-              header={
-                <div className="mb-3 flex items-center justify-between">
-                  <h2 className="text-lg font-extrabold text-gray-900">베스트 딜</h2>
-                  <div className="flex gap-1.5">
-                    {([
-                      { key: "", label: "전체" },
-                      { key: "domestic", label: "국내" },
-                      { key: "overseas", label: "해외" },
-                    ] as const).map((tab) => (
-                      <Link
-                        key={tab.key}
-                        href={hrefFor({ bs: tab.key || undefined })}
-                        className={`rounded-full px-3 py-1 text-xs font-bold transition ${
-                          (bestScope ?? "") === tab.key
-                            ? "bg-gray-900 text-white"
-                            : "border border-gray-200 text-gray-500 hover:bg-gray-50"
-                        }`}
-                      >
-                        {tab.label}
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              }
-            />
-          )}
-
-          <GoldboxBanner />
-
-          {/* 최근 가격 변동 — 전체 목록 */}
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-            <h2 className="flex items-baseline text-lg font-extrabold text-gray-900">
-              <span>{q ? `"${q}" 검색 결과` : activeCat ? activeCat.name : "최근 가격 변동"}</span>
+      <section>
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h1 className="flex items-baseline text-xl font-extrabold text-gray-900">
+              <span>{q ? `"${q}" 베스트딜` : activeCat ? `${activeCat.name} 베스트딜` : "베스트딜"}</span>
               <span className="ml-2 text-sm font-normal text-gray-400">{listCount}개</span>
-            </h2>
-            <div className="flex flex-wrap items-center gap-2">
-              <SortDropdown
-                options={catOptions}
-                value={category ?? ""}
-                param="category"
-                params={allParams}
-              />
-              <SortDropdown
-                options={sortOptions}
-                value={sort}
-                param="sort"
-                params={allParams}
-              />
-            </div>
+            </h1>
+            <p className="mt-1 text-xs text-gray-400">
+              여러 종류의 좋은 딜을 하나로 모으고, 왜 좋은 가격인지는 배지로 표시합니다.
+            </p>
           </div>
-          <div className="mb-3 flex items-center justify-between text-xs text-gray-400">
-            <p>가격을 추적해 평소보다 진짜 떨어진 것만</p>
-            {lastUpdate && (
-              <p className="flex items-center gap-1.5 whitespace-nowrap" suppressHydrationWarning>
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" aria-hidden="true" />
-                가격 확인 {timeAgo(lastUpdate)}
-              </p>
-            )}
+          <div className="flex flex-wrap items-center gap-2">
+            <SortDropdown
+              options={catOptions}
+              value={category ?? ""}
+              param="category"
+              params={allParams}
+            />
+            <SortDropdown
+              options={sortOptions}
+              value={sort}
+              param="sort"
+              params={allParams}
+            />
           </div>
+        </div>
 
-          {paginatedList.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-gray-300 bg-white p-12 text-center text-gray-400">
-              {q ? "검색 결과가 없습니다." : "아직 이 카테고리에 감지된 특가가 없습니다."}
-            </div>
-          ) : (
-            <>
-              <DealGrid deals={paginatedList} />
-              <Pagination
-                page={safePage}
-                totalPages={totalPages}
-                base={{
-                  category,
-                  sort,
-                  hot,
-                  q,
-                  ...(showEnded ? { se: "1" } : {}),
-                  ...(ps ? { ps } : {}),
-                  ...(bestScope ? { bs: bestScope } : {}),
-                }}
-              />
-            </>
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <div className="flex gap-1.5">
+            {([
+              { key: "", label: "전체" },
+              { key: "domestic", label: "국내딜" },
+              { key: "overseas", label: "해외딜" },
+            ] as const).map((tab) => (
+              <Link
+                key={tab.key}
+                href={hrefFor({ scope: tab.key || undefined, page: undefined })}
+                className={`rounded-full px-3.5 py-1.5 text-sm font-bold transition ${
+                  (scope ?? "") === tab.key
+                    ? "bg-brand text-white"
+                    : "border border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
+                }`}
+              >
+                {tab.label}
+              </Link>
+            ))}
+          </div>
+          {lastUpdate && (
+            <p className="flex items-center gap-1.5 whitespace-nowrap text-xs text-gray-400" suppressHydrationWarning>
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" aria-hidden="true" />
+              가격 확인 {timeAgo(lastUpdate)}
+            </p>
           )}
-        </>
-      ) : (
-        <CuratedSection
-          cc={cc}
-          cs={cs}
-          catOptions={catOptions}
-          params={bestParams}
-        />
-      )}
+        </div>
+
+        {paginatedList.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-gray-300 bg-white p-12 text-center text-gray-400">
+            {q ? "검색 결과가 없습니다." : "아직 이 조건에 맞는 베스트딜이 없습니다."}
+          </div>
+        ) : (
+          <>
+            <DealGrid deals={paginatedList} />
+            <Pagination
+              page={safePage}
+              totalPages={totalPages}
+              base={{
+                category,
+                sort,
+                hot,
+                q,
+                ...(showEnded ? { se: "1" } : {}),
+                ...(ps ? { ps } : {}),
+                ...(scope ? { scope } : {}),
+              }}
+            />
+          </>
+        )}
+      </section>
     </div>
   );
 }

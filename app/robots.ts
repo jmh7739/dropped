@@ -8,6 +8,7 @@ export default function robots(): MetadataRoute.Robots {
       allow: "/",
       disallow: [
         "/go/",
+        "/?category=auction",
         "/?sort=*",
         "/?ps=*",
         "/?scope=*",

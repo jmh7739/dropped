@@ -80,14 +80,9 @@ export default function AboutPage() {
               desc: "항공권·숙소 최저가 비교",
             },
             {
-              icon: "⚖️",
-              title: "경매 특가",
-              desc: "법원경매 부동산·자동차의 감정가 대비 하락률",
-            },
-            {
               icon: "🛒",
               title: "베스트딜",
-              desc: "국내 온라인몰에서 지금 잘 팔리는 인기 할인 상품",
+              desc: "국내·해외 상품을 좋은 이유 배지와 함께 한곳에서 비교",
             },
           ].map((f) => (
             <div
@@ -135,7 +130,7 @@ export default function AboutPage() {
           href="/"
           className="rounded-lg border border-gray-200 bg-white px-4 py-2 font-bold text-gray-700 hover:bg-gray-50"
         >
-          ← 급락딜 보러가기
+          ← 베스트딜 보러가기
         </Link>
         <Link
           href="/privacy"

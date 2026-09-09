@@ -209,7 +209,6 @@ def ping_indexnow() -> None:
         urls = [
             f"{indexnow.SITE}/",
             f"{indexnow.SITE}/?category=flight",
-            f"{indexnow.SITE}/?category=auction",
         ]
         # canonical/사이트맵과 동일한 영구 URL(/price/[productId])로 통보.
         for d in db.active_deals():
