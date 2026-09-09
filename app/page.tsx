@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getDeals, getCuratedDeals, getLastPriceUpdate, sortDealList, SortKey, PriceStatusKey } from "@/lib/deals";
+import { getDeals, getCuratedDeals, getLastPriceUpdate, sortDealList, diversifyTop, SortKey, PriceStatusKey } from "@/lib/deals";
 import { timeAgo } from "@/lib/format";
 import { isSupabaseConfigured } from "@/lib/supabase";
-import { isHealthDeal } from "@/lib/dropMetrics";
+import { isHealthDeal, headlineDropRate, dropScore } from "@/lib/dropMetrics";
 import DealGrid from "@/components/DealGrid";
+import TopDrops from "@/components/TopDrops";
 import SortDropdown from "@/components/SortDropdown";
 import TravelView, { TravelTab } from "@/components/TravelView";
 import SearchBar from "@/components/SearchBar";
@@ -116,7 +117,7 @@ export default async function Home({
   ];
   const sort: SortKey = validDealSorts.includes(searchParams.sort as SortKey)
     ? (searchParams.sort as SortKey)
-    : "discount";
+    : "recent";
   const hot = searchParams.hot === "1";
   const showEnded = searchParams.se === "1";
   const q = (searchParams.q ?? "").slice(0, 100);
@@ -173,7 +174,7 @@ export default async function Home({
 
   const allParams: Record<string, string> = {};
   if (category) allParams.category = category;
-  if (sort !== "discount") allParams.sort = sort;
+  if (sort !== "recent") allParams.sort = sort;
   if (hot) allParams.hot = "1";
   if (q) allParams.q = q;
   if (showEnded) allParams.se = "1";
@@ -215,11 +216,31 @@ export default async function Home({
   const listCount = listDeals.length;
 
   const sortOptions = [
+    { key: "recent", label: "최신" },
     { key: "discount", label: "할인율" },
     { key: "popular", label: "인기" },
-    { key: "recent", label: "최신" },
     { key: "price_asc", label: "낮은 가격" },
   ];
+
+  // 상단 추천 스트립 — 최신순 리스트에선 좋은 딜이 아래로 밀리므로
+  // "지금 가장 많이 떨어진" 순(하락률 상위)을 위에 별도로 보여준다.
+  //   실시간 인기(골드박스)는 트래픽 쌓인 뒤로 보류 → 지금은 하락률 휴리스틱만.
+  //   검색·가격상태 필터·인기딜 뷰나 2페이지 이상에선 숨겨 리스트에 집중.
+  const showTopStrip = !q.trim() && !ps && !hot && safePage === 1;
+  const topDrops = showTopStrip
+    ? diversifyTop(
+        listDeals
+          .filter(
+            (d) =>
+              d.status !== "ended" &&
+              dropScore(d).score !== null &&
+              headlineDropRate(d) >= 10
+          )
+          .sort((a, b) => headlineDropRate(b) - headlineDropRate(a)),
+        8,
+        2
+      )
+    : [];
   const hrefFor = (next: Record<string, string | undefined>) => {
     const sp = new URLSearchParams();
     const merged = { ...allParams, ...next };
@@ -237,6 +258,22 @@ export default async function Home({
       <div className="mb-5">
         <SearchBar initial={q} />
       </div>
+
+      {topDrops.length >= 4 && (
+        <TopDrops
+          deals={topDrops}
+          header={
+            <div className="mb-3">
+              <h2 className="text-lg font-extrabold text-gray-900">
+                🔥 지금 가장 많이 떨어진
+              </h2>
+              <p className="mt-0.5 text-xs text-gray-400">
+                평소·정가 대비 하락률이 큰 순
+              </p>
+            </div>
+          }
+        />
+      )}
 
       <section>
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
