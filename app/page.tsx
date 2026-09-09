@@ -2,11 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getDeals, getCuratedDeals, getLastPriceUpdate, sortDealList, diversifyTop, SortKey, PriceStatusKey } from "@/lib/deals";
+import { searchProducts } from "@/lib/products";
 import { timeAgo } from "@/lib/format";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { isHealthDeal, headlineDropRate, dropScore } from "@/lib/dropMetrics";
 import DealGrid from "@/components/DealGrid";
 import TopDrops from "@/components/TopDrops";
+import ProductSearchResults from "@/components/ProductSearchResults";
 import SortDropdown from "@/components/SortDropdown";
 import TravelView, { TravelTab } from "@/components/TravelView";
 import SearchBar from "@/components/SearchBar";
@@ -181,10 +183,12 @@ export default async function Home({
   if (ps) allParams.ps = ps;
   if (scope) allParams.scope = scope;
 
-  const [trackedDeals, curatedDealsRaw, lastUpdate] = await Promise.all([
+  const [trackedDeals, curatedDealsRaw, lastUpdate, productMatchesRaw] = await Promise.all([
     getDeals({ category, sort, hotOnly: hot, q, priceStatus: ps, scope }),
     scope !== "overseas" && !ps && !hot ? getCuratedDeals(sort, category) : Promise.resolve([]),
     getLastPriceUpdate(),
+    // 검색 시: 활성 딜뿐 아니라 '가격 추적 중인 상품'도 찾아 지금 살지 판정.
+    q.trim().length >= 2 ? searchProducts(q, 24) : Promise.resolve([]),
   ]);
 
   const term = q.trim().toLowerCase();
@@ -214,6 +218,10 @@ export default async function Home({
   const safePage = Math.min(page, totalPages);
   const paginatedList = listDeals.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
   const listCount = listDeals.length;
+
+  // 검색 결과의 '추적 상품' 중, 이미 위/아래 활성 딜로 나온 것은 중복 제거.
+  const dealProductIds = new Set(listDeals.map((d) => d.productId));
+  const trackedMatches = productMatchesRaw.filter((r) => !dealProductIds.has(r.id));
 
   const sortOptions = [
     { key: "recent", label: "최신" },
@@ -262,6 +270,10 @@ export default async function Home({
       <div className="mb-5">
         <SearchBar initial={q} />
       </div>
+
+      {trackedMatches.length > 0 && (
+        <ProductSearchResults rows={trackedMatches} query={q.trim()} />
+      )}
 
       {topDrops.length >= 4 && (
         <TopDrops
@@ -336,7 +348,11 @@ export default async function Home({
 
         {paginatedList.length === 0 ? (
           <div className="rounded-xl border border-dashed border-gray-300 bg-white p-12 text-center text-gray-400">
-            {q ? "검색 결과가 없습니다." : "아직 이 조건에 맞는 베스트딜이 없습니다."}
+            {q
+              ? trackedMatches.length > 0
+                ? "지금 '특가'로 뜬 건 없어요. 위 추적 상품에서 지금 살 만한지 확인하세요."
+                : "검색 결과가 없습니다."
+              : "아직 이 조건에 맞는 베스트딜이 없습니다."}
           </div>
         ) : (
           <>
