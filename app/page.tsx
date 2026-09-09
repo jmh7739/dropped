@@ -230,12 +230,16 @@ export default async function Home({
   const topDrops = showTopStrip
     ? diversifyTop(
         listDeals
-          .filter(
-            (d) =>
-              d.status !== "ended" &&
-              dropScore(d).score !== null &&
-              headlineDropRate(d) >= 10
-          )
+          .filter((d) => {
+            if (d.status === "ended") return false;
+            if (headlineDropRate(d) < 10) return false;
+            // 큐레이션 베스트딜(baseline 없음=국내몰)은 avg 이력이 없어 dropScore가
+            // 항상 null → 원가 대비 하락률로 판단해야 국내딜 탭에서도 스트립이 뜬다.
+            // 가격추적 급락딜은 dropScore가 나와야(신뢰도) 노이즈를 컷.
+            return d.isCurated
+              ? d.listPrice > d.currentPrice
+              : dropScore(d).score !== null;
+          })
           .sort((a, b) => headlineDropRate(b) - headlineDropRate(a)),
         8,
         2
