@@ -3,3 +3,4 @@ dist/
 results/
 browser-profile/
 *.log
+chrome-extension/auth.local.js

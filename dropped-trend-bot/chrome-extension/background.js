@@ -1,3 +1,5 @@
+try { importScripts("auth.local.js"); } catch (_) {}
+
 const API_ENDPOINT = "https://dropped.kr/api/affiliate-queue";
 const PARTNERS_URL = "https://partners.coupang.com/#affiliate/ws/link-to-any-page";
 const ALARM_NAME = "dropped-affiliate-auto";
@@ -30,10 +32,11 @@ async function getPartnersTab() {
 
 async function request(options = {}) {
   const { droppedToken = "" } = await chrome.storage.local.get("droppedToken");
-  if (!droppedToken) throw new Error("확장 프로그램 작업 토큰이 설정되지 않았습니다.");
+  const workerToken = self.DROPPED_WORKER_TOKEN || droppedToken;
+  if (!workerToken) throw new Error("확장 프로그램 작업 토큰이 설정되지 않았습니다.");
   const response = await fetch(API_ENDPOINT, {
     ...options,
-    headers: { "content-type": "application/json", "x-dropped-worker-token": droppedToken, ...(options.headers || {}) },
+    headers: { "content-type": "application/json", "x-dropped-worker-token": workerToken, ...(options.headers || {}) },
   });
   if (!response.ok) throw new Error(`Dropped API 연결 실패 (${response.status})`);
   return response.json();
