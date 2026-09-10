@@ -7,6 +7,16 @@ const BATCH_SIZE = 10;
 
 let running = false;
 
+async function saveHealth(values) {
+  await chrome.storage.local.set(values);
+}
+
+async function showError(message) {
+  await chrome.action.setBadgeBackgroundColor({ color: "#dc2626" });
+  await chrome.action.setBadgeText({ text: "!" });
+  await saveHealth({ droppedLastError: String(message || "알 수 없는 오류"), droppedLastErrorAt: new Date().toISOString() });
+}
+
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
@@ -59,6 +69,7 @@ async function runAffiliateQueue() {
     const queue = await request();
     if (!Array.isArray(queue) || !queue.length) {
       await chrome.action.setBadgeText({ text: "" });
+      await saveHealth({ droppedLastCheckAt: new Date().toISOString(), droppedLastError: "", droppedLastErrorAt: "" });
       return;
     }
     const tab = await getPartnersTab();
@@ -73,15 +84,15 @@ async function runAffiliateQueue() {
       await chrome.action.setBadgeBackgroundColor({ color: "#16a34a" });
       await chrome.action.setBadgeText({ text: String(completed) });
       if (result?.fatal) {
-        await chrome.action.setBadgeBackgroundColor({ color: "#dc2626" });
-        await chrome.action.setBadgeText({ text: "!" });
+        await showError(result?.error || "쿠팡 파트너스 확인이 필요합니다.");
         return;
       }
       await sleep(900);
     }
+    await saveHealth({ droppedLastCheckAt: new Date().toISOString(), droppedLastSuccessAt: new Date().toISOString(), droppedLastError: "", droppedLastErrorAt: "" });
     await chrome.action.setBadgeText({ text: "" });
   } catch (error) {
-    // 프로그램이 꺼져 있거나 로그인이 만료된 경우 다음 알람에서 자동 재시도한다.
+    await showError(error?.message || String(error));
     console.warn("Dropped affiliate automation:", error?.message || String(error));
   } finally {
     running = false;
@@ -102,3 +113,7 @@ chrome.alarms.onAlarm.addListener(alarm => {
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area === "local" && changes.droppedToken?.newValue) runAffiliateQueue();
 });
+
+// 수동 재로드에서도 즉시 알람을 복구하고 첫 대기열을 처리한다.
+chrome.alarms.create(ALARM_NAME, { delayInMinutes: 0.2, periodInMinutes: 1 });
+runAffiliateQueue();

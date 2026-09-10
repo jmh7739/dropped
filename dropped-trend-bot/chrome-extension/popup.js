@@ -3,6 +3,7 @@ const queueInput = $("queueInput");
 const endpointInput = $("endpointInput");
 const tokenInput = $("tokenInput");
 const statusBox = $("status");
+const autoStatusBox = $("autoStatus");
 let queue = [];
 let index = 0;
 let running = false;
@@ -91,4 +92,16 @@ chrome.storage.local.get(["droppedResults", "droppedEndpoint", "droppedToken"], 
   if (data.droppedEndpoint) endpointInput.value = data.droppedEndpoint;
   if (data.droppedToken) tokenInput.value = data.droppedToken;
   if (Array.isArray(data.droppedResults) && data.droppedResults.length) { queue = data.droppedResults; queueInput.value = JSON.stringify(queue, null, 2); index = queue.findIndex(item => item.status !== "success"); if (index < 0) index = queue.length; setStatus(`이전 작업 ${queue.length}개 복구`); }
+});
+
+function formatTime(value) {
+  if (!value) return "없음";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "없음" : date.toLocaleString("ko-KR");
+}
+
+chrome.storage.local.get(["droppedLastCheckAt", "droppedLastSuccessAt", "droppedLastError", "droppedLastErrorAt"], data => {
+  autoStatusBox.textContent = data.droppedLastError
+    ? `자동 처리 확인 필요\n${data.droppedLastError}\n오류 시각: ${formatTime(data.droppedLastErrorAt)}`
+    : `자동 처리 정상\n마지막 확인: ${formatTime(data.droppedLastCheckAt)}\n마지막 링크 생성: ${formatTime(data.droppedLastSuccessAt)}`;
 });
