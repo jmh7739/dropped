@@ -1,6 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+
+function directImageUrl(value: string): string {
+  const raw = String(value || "").trim();
+  try {
+    const parsed = new URL(raw);
+    const source = parsed.hostname === "search.pstatic.net" && parsed.pathname === "/sunny"
+      ? parsed.searchParams.get("src") || ""
+      : "";
+    if (/^https?:\/\//i.test(source) && /(?:^|\.)coupangcdn\.com$/i.test(new URL(source).hostname)) {
+      return source;
+    }
+  } catch {}
+  return raw;
+}
 
 /**
  * 외부 상품 이미지는 핫링크 차단·만료로 자주 깨진다.
@@ -15,7 +29,12 @@ export default function SafeImage({
   alt: string;
   className?: string;
 }) {
-  const [failed, setFailed] = useState(!src);
+  const resolvedSrc = directImageUrl(src);
+  const [failed, setFailed] = useState(!resolvedSrc);
+
+  useEffect(() => {
+    setFailed(!resolvedSrc);
+  }, [resolvedSrc]);
 
   if (failed) {
     return (
@@ -31,7 +50,7 @@ export default function SafeImage({
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      src={src}
+      src={resolvedSrc}
       alt={alt}
       loading="lazy"
       decoding="async"

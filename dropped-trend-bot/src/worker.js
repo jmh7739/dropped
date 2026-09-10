@@ -11,6 +11,7 @@ const {
   productQueueItem,
   diversifyProductSelections,
   isUsableProductImage,
+  normalizeProductImage,
 } = require("./core");
 
 function loadLocalEnv() {
@@ -98,7 +99,7 @@ async function ensureProduct(db, trend, product) {
   const { data: existing, error } = await db.from("products").select("id,affiliate_url,image_url").eq("platform", "coupang").eq("external_product_id", product.productId).maybeSingle();
   if (error) throw error;
   const price = typeof product.price === "number" && product.price > 0 ? product.price : null;
-  const imageUrl = isUsableProductImage(product.imageUrl) ? product.imageUrl : null;
+  const imageUrl = isUsableProductImage(product.imageUrl) ? normalizeProductImage(product.imageUrl) : null;
   if (existing) {
     const imageUpdate = imageUrl
       ? { image_url: imageUrl }

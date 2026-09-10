@@ -1,6 +1,6 @@
 "use client";
 
-import { trackClick, trackEvent } from "@/lib/engagementClient";
+import { trackEvent } from "@/lib/engagementClient";
 import { safeUrl } from "@/lib/format";
 
 /**
@@ -24,7 +24,8 @@ export default function BuyButton({
   track?: boolean; // 골드박스 등 products에 없는 항목은 false
   source?: string;
 }) {
-  const goHref = track ? `/go/${productId}` : safeUrl(href);
+  // 사용자가 길게 누르거나 주소를 복사해도 파트너스 URL이 그대로 보이게 한다.
+  const goHref = safeUrl(href);
 
   function onClick(e: React.MouseEvent) {
     e.stopPropagation();

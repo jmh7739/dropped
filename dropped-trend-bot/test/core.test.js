@@ -1,6 +1,6 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { calculateHotScore, isHardExcluded, rankStatus, calculateProductScore, selectHotTrends, isBadTitle, diversifyProductSelections, isUsableProductImage } = require("../src/core");
+const { calculateHotScore, isHardExcluded, rankStatus, calculateProductScore, selectHotTrends, isBadTitle, diversifyProductSelections, isUsableProductImage, normalizeProductImage } = require("../src/core");
 
 test("서비스/여행형 키워드를 제외한다", () => {
   ["부산요트투어", "일본여행", "식전영상", "연극예매", "렌터카", "캠핑카렌트"].forEach(value => assert.equal(isHardExcluded(value), true));
@@ -36,6 +36,12 @@ test("검색엔진 광고성 스니펫을 상품명에서 제외한다", () => {
 test("쿠팡 파비콘은 상품 이미지로 사용하지 않는다", () => {
   assert.equal(isUsableProductImage("https://search.pstatic.net/sunny?src=https%3A%2F%2Fwww.coupang.com%2Ffavicon.ico&type=f30_30_png_expire24"), false);
   assert.equal(isUsableProductImage("https://thumbnail.coupangcdn.com/thumbnails/remote/492x492ex/image/retail/product.jpg"), true);
+});
+
+test("네이버 이미지 프록시를 쿠팡 CDN 원본 주소로 바꾼다", () => {
+  const source = "https://thumbnail.coupangcdn.com/thumbnails/remote/492x492ex/image/retail/product.jpg";
+  const proxy = `https://search.pstatic.net/sunny?src=${encodeURIComponent(source)}&type=fff208_208_ar`;
+  assert.equal(normalizeProductImage(proxy), source);
 });
 
 test("카테고리 강제 균등 없이 독점만 제한한다", () => {

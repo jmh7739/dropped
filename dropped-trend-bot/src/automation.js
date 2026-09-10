@@ -9,6 +9,7 @@ const {
   calculateProductScore: coreCalculateProductScore,
   productQueueItem,
   isUsableProductImage,
+  normalizeProductImage,
 } = require("./core");
 
 
@@ -1796,6 +1797,15 @@ async function collectSearchPage(
                   image?.getAttribute("src") ||
                   "";
                 if (value.startsWith("//")) value = "https:" + value;
+                try {
+                  const parsed = new URL(value);
+                  const source = parsed.hostname === "search.pstatic.net" && parsed.pathname === "/sunny"
+                    ? parsed.searchParams.get("src") || ""
+                    : "";
+                  if (/^https?:\/\//i.test(source) && /(?:^|\.)coupangcdn\.com$/i.test(new URL(source).hostname)) {
+                    value = source;
+                  }
+                } catch {}
                 return value;
               };
 
@@ -2315,7 +2325,7 @@ async function findProductCandidates(
           item.title
         ),
 
-      imageUrl: isUsableProductImage(item.imageUrl) ? item.imageUrl : "",
+      imageUrl: isUsableProductImage(item.imageUrl) ? normalizeProductImage(item.imageUrl) : "",
 
       price:
         typeof item.price === "number" && item.price > 0
