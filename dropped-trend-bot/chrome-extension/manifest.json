@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Dropped Link Helper",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Dropped Trend Finder 쿠팡 파트너스 링크 생성 보조",
   "permissions": [
     "activeTab",
