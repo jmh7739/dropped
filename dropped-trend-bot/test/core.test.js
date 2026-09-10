@@ -1,6 +1,6 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { calculateHotScore, isHardExcluded, rankStatus, calculateProductScore, selectHotTrends, isBadTitle, diversifyProductSelections } = require("../src/core");
+const { calculateHotScore, isHardExcluded, rankStatus, calculateProductScore, selectHotTrends, isBadTitle, diversifyProductSelections, isUsableProductImage } = require("../src/core");
 
 test("서비스/여행형 키워드를 제외한다", () => {
   ["부산요트투어", "일본여행", "식전영상", "연극예매", "렌터카", "캠핑카렌트"].forEach(value => assert.equal(isHardExcluded(value), true));
@@ -31,6 +31,11 @@ test("본상품이 액세서리보다 높은 Product Score를 받는다", () => 
 
 test("검색엔진 광고성 스니펫을 상품명에서 제외한다", () => {
   assert.equal(isBadTitle("현재 별점 4.7점, 리뷰 300개를 가진 상품! 지금 쿠팡에서 더 저렴하고 확인하세요."), true);
+});
+
+test("쿠팡 파비콘은 상품 이미지로 사용하지 않는다", () => {
+  assert.equal(isUsableProductImage("https://search.pstatic.net/sunny?src=https%3A%2F%2Fwww.coupang.com%2Ffavicon.ico&type=f30_30_png_expire24"), false);
+  assert.equal(isUsableProductImage("https://thumbnail.coupangcdn.com/thumbnails/remote/492x492ex/image/retail/product.jpg"), true);
 });
 
 test("카테고리 강제 균등 없이 독점만 제한한다", () => {

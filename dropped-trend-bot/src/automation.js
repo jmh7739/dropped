@@ -8,6 +8,7 @@ const {
   selectHotTrends,
   calculateProductScore: coreCalculateProductScore,
   productQueueItem,
+  isUsableProductImage,
 } = require("./core");
 
 
@@ -1784,32 +1785,40 @@ async function collectSearchPage(
                   "li, article, [class*='product'], [class*='item'], [class*='api_subject_bx'], [class*='total_wrap']"
                 );
 
-              const image =
-                link.querySelector(
-                  "img"
-                ) ||
-                resultCard?.querySelector(
-                  "img"
-                );
-
-              // 쿠팡 검색결과는 lazy-load라 src가 빈/플레이스홀더일 수 있음
-              //  → data-src/srcset 우선, 프로토콜상대(//) 보정.
-              let imageUrl =
-                image?.getAttribute("data-src") ||
-                image?.getAttribute("data-img-src") ||
-                image?.getAttribute("data-lazysrc") ||
-                image?.getAttribute("data-original") ||
-                (image?.getAttribute("srcset") || "").split(" ")[0] ||
-                image?.currentSrc ||
-                image?.getAttribute("src") ||
-                "";
-              if (/^data:/.test(imageUrl) || /blank|placeholder|1x1|spacer/i.test(imageUrl)) {
-                imageUrl =
+              const readImageUrl = image => {
+                let value =
                   image?.getAttribute("data-src") ||
+                  image?.getAttribute("data-img-src") ||
+                  image?.getAttribute("data-lazysrc") ||
+                  image?.getAttribute("data-original") ||
+                  (image?.getAttribute("srcset") || "").split(" ")[0] ||
+                  image?.currentSrc ||
                   image?.getAttribute("src") ||
                   "";
+                if (value.startsWith("//")) value = "https:" + value;
+                return value;
+              };
+
+              const usableImage = image => {
+                const value = readImageUrl(image);
+                return /^https?:\/\//i.test(value) &&
+                  !/favicon(?:\.ico)?|(?:^|[\/_-])logo(?:[\/_-]|\.)|placeholder|blank|spacer|1x1|f30_30/i.test(value);
+              };
+
+              // 제목 링크에서 위로 올라가며 가장 가까운 실제 상품 이미지를 찾는다.
+              // 검색 결과 묶음의 첫 이미지인 쿠팡 파비콘을 선택하지 않도록 한다.
+              let imageUrl = "";
+              let imageScope = link;
+              for (let depth = 0; imageScope && depth < 7; depth += 1) {
+                const images = [...imageScope.querySelectorAll("img")];
+                const image = images.find(usableImage);
+                if (image) {
+                  imageUrl = readImageUrl(image);
+                  break;
+                }
+                if (imageScope === resultCard) break;
+                imageScope = imageScope.parentElement;
               }
-              if (imageUrl.startsWith("//")) imageUrl = "https:" + imageUrl;
 
               // 가격: 쿠팡은 가격이 <a> 밖(상품 카드 li)에 있을 수 있어
               //  가장 가까운 카드 컨테이너까지 텍스트를 훑어 '12,900원' 패턴 추출.
@@ -2306,9 +2315,7 @@ async function findProductCandidates(
           item.title
         ),
 
-      imageUrl:
-        item.imageUrl ||
-        "",
+      imageUrl: isUsableProductImage(item.imageUrl) ? item.imageUrl : "",
 
       price:
         typeof item.price === "number" && item.price > 0

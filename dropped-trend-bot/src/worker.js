@@ -10,6 +10,7 @@ const {
   keywordQueueItem,
   productQueueItem,
   diversifyProductSelections,
+  isUsableProductImage,
 } = require("./core");
 
 function loadLocalEnv() {
@@ -94,16 +95,20 @@ async function saveRealtimeTrends(db, collected) {
 }
 
 async function ensureProduct(db, trend, product) {
-  const { data: existing, error } = await db.from("products").select("id,affiliate_url").eq("platform", "coupang").eq("external_product_id", product.productId).maybeSingle();
+  const { data: existing, error } = await db.from("products").select("id,affiliate_url,image_url").eq("platform", "coupang").eq("external_product_id", product.productId).maybeSingle();
   if (error) throw error;
   const price = typeof product.price === "number" && product.price > 0 ? product.price : null;
+  const imageUrl = isUsableProductImage(product.imageUrl) ? product.imageUrl : null;
   if (existing) {
-    await db.from("products").update({ title: product.title, product_url: product.url, ...(product.imageUrl ? { image_url: product.imageUrl } : {}), ...(price != null ? { list_price: price } : {}) }).eq("id", existing.id);
+    const imageUpdate = imageUrl
+      ? { image_url: imageUrl }
+      : (!isUsableProductImage(existing.image_url) ? { image_url: null } : {});
+    await db.from("products").update({ title: product.title, product_url: product.url, ...imageUpdate, ...(price != null ? { list_price: price } : {}) }).eq("id", existing.id);
     return existing;
   }
   const slug = CATEGORY_SLUG[trend.category] || "living";
   const { data: category } = await db.from("categories").select("id").eq("slug", slug).maybeSingle();
-  const { data: created, error: insertError } = await db.from("products").insert({ platform: "coupang", external_product_id: product.productId, title: product.title, category_id: category?.id || null, image_url: product.imageUrl || null, product_url: product.url, mall_name: "쿠팡", list_price: price }).select("id,affiliate_url").single();
+  const { data: created, error: insertError } = await db.from("products").insert({ platform: "coupang", external_product_id: product.productId, title: product.title, category_id: category?.id || null, image_url: imageUrl, product_url: product.url, mall_name: "쿠팡", list_price: price }).select("id,affiliate_url").single();
   if (insertError) throw insertError;
   return created;
 }

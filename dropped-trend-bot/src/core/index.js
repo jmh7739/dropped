@@ -7,5 +7,6 @@ module.exports = {
   ...require("./productResolver"),
   ...require("./productScoring"),
   ...require("./productDiversity"),
+  ...require("./productImage"),
   ...require("./affiliateQueue"),
 };

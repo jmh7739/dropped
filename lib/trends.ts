@@ -23,6 +23,11 @@ export interface TrendingProduct {
   category: string;
 }
 
+function usableProductImage(value: unknown): string {
+  const url = String(value || "").trim();
+  return /^https?:\/\//i.test(url) && !/favicon(?:\.ico)?|(?:^|[\/_-])logo(?:[\/_-]|\.)|placeholder|blank|spacer|1x1|f30_30/i.test(url) ? url : "";
+}
+
 export async function getRealtimeTrends(): Promise<RealtimeTrend[]> {
   if (!supabase) return [];
   const { data: latest } = await supabase.from("realtime_trends").select("collected_at").eq("is_published", true).order("collected_at", { ascending: false }).limit(1);
@@ -48,7 +53,7 @@ export async function getTrendingProducts(limit = 30): Promise<TrendingProduct[]
   if (error || !data) return [];
   return data.flatMap((row: any) => {
     const product = Array.isArray(row.products) ? row.products[0] : row.products;
-    const imageUrl = product?.image_url || "";
+    const imageUrl = usableProductImage(product?.image_url);
     // SafeImage가 빈/깨진 이미지를 자리표시로 처리하므로 수익 링크가 준비된 상품은 유지한다.
     return product ? [{ id: product.id, keyword: row.keyword, title: product.title, imageUrl, price: product.list_price != null ? Number(product.list_price) : null, productScore: Number(row.product_score), hotScore: Number(row.hot_score), category: row.category || "" }] : [];
   });
