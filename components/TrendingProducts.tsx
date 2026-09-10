@@ -22,7 +22,7 @@ export default function TrendingProducts({ products }: { products: TrendingProdu
           <h2 className="text-lg font-extrabold text-gray-900">요즘 뜨는 상품</h2>
           <p className="mt-0.5 text-xs text-gray-400">쇼핑 트렌드와 상품 일치도를 바탕으로 고른 실제 상품</p>
         </div>
-        <span className="shrink-0 text-xs text-gray-400">4시간마다 갱신</span>
+        <span className="shrink-0 text-xs text-gray-400">최대 30개 · 10개씩 · 4시간 갱신</span>
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
@@ -59,6 +59,7 @@ export default function TrendingProducts({ products }: { products: TrendingProdu
               key={i}
               type="button"
               onClick={() => setPage(i)}
+              aria-label={`${i + 1}페이지`}
               aria-current={page === i}
               className={`h-7 w-7 rounded-lg text-xs font-bold transition ${
                 page === i

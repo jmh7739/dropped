@@ -9,6 +9,7 @@ const {
   rankStatus,
   keywordQueueItem,
   productQueueItem,
+  diversifyProductSelections,
 } = require("./core");
 
 function loadLocalEnv() {
@@ -108,27 +109,40 @@ async function ensureProduct(db, trend, product) {
 }
 
 async function saveTrendingProducts(db, trends) {
-  // 트렌드당 여러 상품(설정값)까지 후보로 넓혀 개수·다양성 확보. 같은 상품 중복 제거.
-  const perTrend = Math.max(1, config.DEFAULT_SELECTED_PRODUCTS_PER_TREND || 1);
-  const seenProduct = new Set();
-  const selected = trends
-    .flatMap(trend => (trend.productCandidates || []).slice(0, perTrend).map(product => ({ trend, product })))
-    .filter(row => row.product && row.product.productScore >= config.MIN_PRODUCT_SCORE)
-    .sort((a, b) => (b.trend.trendScore + b.product.productScore) - (a.trend.trendScore + a.product.productScore))
-    .filter(row => {
-      const id = row.product.productId;
-      if (!id || seenProduct.has(id)) return false;
-      seenProduct.add(id);
-      return true;
-    })
-    .slice(0, config.TRENDING_PRODUCT_MAX);
+  // 우선 검색어당 설정 개수만 노출하되, 링크 제한 상품이 있으면 다음 후보까지 확인한다.
+  const maxPerTrend = Math.max(1, config.DEFAULT_SELECTED_PRODUCTS_PER_TREND || 1);
+  const candidates = trends
+    .flatMap(trend => (trend.productCandidates || [])
+      .filter(product => product && product.productScore >= config.MIN_PRODUCT_SCORE)
+      .slice(0, config.PRODUCT_CANDIDATE_LIMIT)
+      .map(product => ({ trend, product })))
+    .sort((a, b) => (b.trend.trendScore + b.product.productScore) - (a.trend.trendScore + a.product.productScore));
+  const selected = diversifyProductSelections(candidates, config.TRENDING_PRODUCT_MAX);
+  const primaryIds = new Set(selected.map(row => String(row.product.productId)));
+  const ordered = [...selected, ...candidates.filter(row => !primaryIds.has(String(row.product.productId)))];
   const active = [];
-  for (const { trend, product } of selected) {
+  const attemptedProducts = new Set();
+  const activePerTrend = new Map();
+  const activePerCategory = new Map();
+  for (const { trend, product } of ordered) {
+    if (active.length >= config.TRENDING_PRODUCT_MAX) break;
+    const productId = String(product.productId || "");
+    const trendKey = trend.normalizedKeyword || trend.keyword;
+    const category = trend.category || "기타";
+    if (!productId || attemptedProducts.has(productId)) continue;
+    if ((activePerTrend.get(trendKey) || 0) >= maxPerTrend) continue;
+    if ((activePerCategory.get(category) || 0) >= config.MAX_TRENDING_PRODUCTS_PER_CATEGORY) continue;
+    attemptedProducts.add(productId);
     try {
       const dbProduct = await ensureProduct(db, trend, product);
       const affiliateUrl = await enqueueIfMissing(db, { ...productQueueItem(trend, product), dbProductId: dbProduct.id });
+      const prepared = { keyword: trend.keyword, product_id: dbProduct.id, product_score: product.productScore, hot_score: trend.trendScore, category: trend.category, is_active: Boolean(affiliateUrl), updated_at: new Date().toISOString() };
+      const { error: preparedError } = await db.from("trending_products").upsert(prepared, { onConflict: "product_id" });
+      if (preparedError) throw preparedError;
       if (!affiliateUrl) continue; // 실제 파트너스 링크 생성 전에는 카드/구매 버튼을 노출하지 않음
-      active.push({ keyword: trend.keyword, product_id: dbProduct.id, product_score: product.productScore, hot_score: trend.trendScore, category: trend.category, is_active: true, updated_at: new Date().toISOString() });
+      active.push(prepared);
+      activePerTrend.set(trendKey, (activePerTrend.get(trendKey) || 0) + 1);
+      activePerCategory.set(category, (activePerCategory.get(category) || 0) + 1);
     } catch (error) {
       console.warn(`[상품 저장 실패] ${trend.keyword}: ${error.message}`);
     }
@@ -175,4 +189,4 @@ async function main() {
 
 if (require.main === module) main().catch(error => { console.error(error); process.exitCode = 1; });
 
-module.exports = { runRealtimeTrendUpdate, runTrendingProductsUpdate, saveRealtimeTrends, saveTrendingProducts };
+module.exports = { getDb, runRealtimeTrendUpdate, runTrendingProductsUpdate, saveRealtimeTrends, saveTrendingProducts };

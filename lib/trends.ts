@@ -49,7 +49,7 @@ export async function getTrendingProducts(limit = 30): Promise<TrendingProduct[]
   return data.flatMap((row: any) => {
     const product = Array.isArray(row.products) ? row.products[0] : row.products;
     const imageUrl = product?.image_url || "";
-    // 이미지 없는 상품은 카드가 깨져 보이므로 제외(이미지 있는 것만 노출).
-    return product && imageUrl ? [{ id: product.id, keyword: row.keyword, title: product.title, imageUrl, price: product.list_price != null ? Number(product.list_price) : null, productScore: Number(row.product_score), hotScore: Number(row.hot_score), category: row.category || "" }] : [];
+    // SafeImage가 빈/깨진 이미지를 자리표시로 처리하므로 수익 링크가 준비된 상품은 유지한다.
+    return product ? [{ id: product.id, keyword: row.keyword, title: product.title, imageUrl, price: product.list_price != null ? Number(product.list_price) : null, productScore: Number(row.product_score), hotScore: Number(row.hot_score), category: row.category || "" }] : [];
   });
 }

@@ -12,6 +12,7 @@ module.exports = Object.freeze({
   NAVER_PRODUCT_TARGET: 2,
   MIN_PRODUCT_SCORE: 28,
   MAX_TRENDS_PER_CATEGORY: 4,
+  MAX_TRENDING_PRODUCTS_PER_CATEGORY: 6,
   HOT_SCORE: Object.freeze({
     rankMax: 58,
     newEntry: 14,

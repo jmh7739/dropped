@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
   if (!authorized(request)) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const db = adminDb();
   if (!db) return NextResponse.json({ error: "server_not_configured" }, { status: 503 });
-  const { data, error } = await db.from("affiliate_queue").select("id,type,keyword,normalized_keyword,external_product_id,original_url,status").in("status", ["pending", "error"]).order("created_at").limit(100);
+  const { data, error } = await db.from("affiliate_queue").select("id,type,keyword,normalized_keyword,external_product_id,original_url,status").eq("status", "pending").order("created_at").limit(20);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json((data || []).map(row => ({ id: row.id, type: row.type, keyword: row.keyword, normalizedKeyword: row.normalized_keyword, productId: row.external_product_id, originalUrl: row.original_url, status: row.status })));
 }
@@ -52,6 +52,12 @@ export async function POST(request: NextRequest) {
   if (status === "success" && item.type === "product") {
     if (item.product_id) await db.from("products").update({ affiliate_url: affiliateUrl }).eq("id", item.product_id);
     else if (item.external_product_id) await db.from("products").update({ affiliate_url: affiliateUrl }).eq("platform", "coupang").eq("external_product_id", item.external_product_id);
+    if (item.product_id) {
+      await db.from("trending_products").update({ is_active: true, updated_at: new Date().toISOString() }).eq("product_id", item.product_id);
+      const { data: active } = await db.from("trending_products").select("product_id").eq("is_active", true).order("hot_score", { ascending: false }).order("product_score", { ascending: false });
+      const overflow = (active || []).slice(30).map(row => row.product_id);
+      if (overflow.length) await db.from("trending_products").update({ is_active: false }).in("product_id", overflow);
+    }
   }
   return NextResponse.json({ ok: true });
 }

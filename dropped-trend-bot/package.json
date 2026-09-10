@@ -1,0 +1,23 @@
+{
+  "name": "dropped-trend-finder",
+  "version": "0.8.0",
+  "description": "Dropped Trend Finder",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "start:auto": "node src/scheduler.js",
+    "dev": "electron .",
+    "test": "node --test test/*.test.js",
+    "trend:realtime": "node src/worker.js realtime",
+    "trend:products": "node src/worker.js products",
+    "trend:all": "node src/worker.js all",
+    "trend:scheduler": "node src/scheduler.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "2.45.0",
+    "playwright": "^1.55.0"
+  },
+  "devDependencies": {
+    "electron": "^37.0.0"
+  }
+}

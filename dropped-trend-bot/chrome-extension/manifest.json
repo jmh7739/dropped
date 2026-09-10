@@ -1,0 +1,39 @@
+{
+  "manifest_version": 3,
+  "name": "Dropped Link Helper",
+  "version": "0.4.0",
+  "description": "Dropped Trend Finder 쿠팡 파트너스 링크 생성 보조",
+  "permissions": [
+    "activeTab",
+    "alarms",
+    "tabs",
+    "storage",
+    "clipboardRead",
+    "clipboardWrite"
+  ],
+  "host_permissions": [
+    "https://partners.coupang.com/*",
+    "https://dropped.kr/*",
+    "https://www.dropped.kr/*",
+    "http://localhost:3000/*",
+    "http://127.0.0.1:3000/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://partners.coupang.com/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "Dropped Link Helper",
+    "default_popup": "popup.html"
+  }
+}
