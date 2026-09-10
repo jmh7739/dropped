@@ -1800,10 +1800,19 @@ async function collectSearchPage(
               }
               if (imageUrl.startsWith("//")) imageUrl = "https:" + imageUrl;
 
-              // 가격: 카드 텍스트에서 '12,900원' 패턴을 추출(선택자 무관하게 견고).
-              const priceMatch = (link.textContent || "").match(
-                /([0-9][0-9,]{2,})\s*원/
-              );
+              // 가격: 쿠팡은 가격이 <a> 밖(상품 카드 li)에 있을 수 있어
+              //  가장 가까운 카드 컨테이너까지 텍스트를 훑어 '12,900원' 패턴 추출.
+              const priceScope =
+                link.closest(
+                  "li, [class*='ProductUnit'], [class*='search-product'], [class*='product']"
+                ) ||
+                link.parentElement ||
+                link;
+              const priceText =
+                (priceScope && priceScope.textContent) ||
+                link.textContent ||
+                "";
+              const priceMatch = priceText.match(/([0-9][0-9,]{3,})\s*원/);
               const price = priceMatch
                 ? parseInt(priceMatch[1].replace(/,/g, ""), 10)
                 : null;

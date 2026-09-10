@@ -104,8 +104,12 @@ export function displayTitle(raw: string, maxLen = 60): string {
     .replace(/\([^)]{0,30}\)/g, " ")
     .replace(/\[[^\]]{0,30}\]/g, " ")
     .replace(MALL_SUFFIX, " ") // 접미 몰명이 괄호 뒤에 남는 경우 한 번 더
+    .replace(/\s+([,.)\]])/g, "$1") // 괄호/노이즈 제거 후 생긴 ' ,' → ','
+    .replace(/([([])\s+/g, "$1")
+    .replace(/,\s*(?=,)/g, "") // 중복 콤마 정리
     .replace(/\s{2,}/g, " ")
-    .replace(/^[\s:·\-]+/, "")
+    .replace(/^[\s:·\-,]+/, "")
+    .replace(/[\s:·\-,]+$/, "")
     .trim();
   const brand = brandFrom(raw);
   if (brand && !t.toLowerCase().includes(brand.toLowerCase())) {

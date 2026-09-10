@@ -42,7 +42,7 @@ export async function getRealtimeTrends(): Promise<RealtimeTrend[]> {
   }));
 }
 
-export async function getTrendingProducts(limit = 24): Promise<TrendingProduct[]> {
+export async function getTrendingProducts(limit = 30): Promise<TrendingProduct[]> {
   if (!supabase) return [];
   const { data, error } = await supabase.from("trending_products").select("keyword,product_score,hot_score,category,products(id,title,image_url,list_price)").eq("is_active", true).order("hot_score", { ascending: false }).order("product_score", { ascending: false }).limit(limit);
   if (error || !data) return [];

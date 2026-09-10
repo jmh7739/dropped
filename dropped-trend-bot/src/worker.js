@@ -108,7 +108,20 @@ async function ensureProduct(db, trend, product) {
 }
 
 async function saveTrendingProducts(db, trends) {
-  const selected = trends.map(trend => ({ trend, product: trend.productCandidates?.[0] })).filter(row => row.product && row.product.productScore >= config.MIN_PRODUCT_SCORE).sort((a, b) => (b.trend.trendScore + b.product.productScore) - (a.trend.trendScore + a.product.productScore)).slice(0, config.TRENDING_PRODUCT_MAX);
+  // 트렌드당 여러 상품(설정값)까지 후보로 넓혀 개수·다양성 확보. 같은 상품 중복 제거.
+  const perTrend = Math.max(1, config.DEFAULT_SELECTED_PRODUCTS_PER_TREND || 1);
+  const seenProduct = new Set();
+  const selected = trends
+    .flatMap(trend => (trend.productCandidates || []).slice(0, perTrend).map(product => ({ trend, product })))
+    .filter(row => row.product && row.product.productScore >= config.MIN_PRODUCT_SCORE)
+    .sort((a, b) => (b.trend.trendScore + b.product.productScore) - (a.trend.trendScore + a.product.productScore))
+    .filter(row => {
+      const id = row.product.productId;
+      if (!id || seenProduct.has(id)) return false;
+      seenProduct.add(id);
+      return true;
+    })
+    .slice(0, config.TRENDING_PRODUCT_MAX);
   const active = [];
   for (const { trend, product } of selected) {
     try {
