@@ -98,18 +98,18 @@ async function saveRealtimeTrends(db, collected) {
 async function ensureProduct(db, trend, product) {
   const { data: existing, error } = await db.from("products").select("id,affiliate_url,image_url").eq("platform", "coupang").eq("external_product_id", product.productId).maybeSingle();
   if (error) throw error;
-  const price = typeof product.price === "number" && product.price > 0 ? product.price : null;
   const imageUrl = isUsableProductImage(product.imageUrl) ? normalizeProductImage(product.imageUrl) : null;
   if (existing) {
     const imageUpdate = imageUrl
       ? { image_url: imageUrl }
       : (!isUsableProductImage(existing.image_url) ? { image_url: null } : {});
-    await db.from("products").update({ title: product.title, product_url: product.url, ...imageUpdate, ...(price != null ? { list_price: price } : {}) }).eq("id", existing.id);
+    // 검색 결과의 가격은 같은 카드 안 다른 상품 가격과 섞일 수 있어 저장하지 않는다.
+    await db.from("products").update({ title: product.title, product_url: product.url, ...imageUpdate, list_price: null }).eq("id", existing.id);
     return existing;
   }
   const slug = CATEGORY_SLUG[trend.category] || "living";
   const { data: category } = await db.from("categories").select("id").eq("slug", slug).maybeSingle();
-  const { data: created, error: insertError } = await db.from("products").insert({ platform: "coupang", external_product_id: product.productId, title: product.title, category_id: category?.id || null, image_url: imageUrl, product_url: product.url, mall_name: "쿠팡", list_price: price }).select("id,affiliate_url").single();
+  const { data: created, error: insertError } = await db.from("products").insert({ platform: "coupang", external_product_id: product.productId, title: product.title, category_id: category?.id || null, image_url: imageUrl, product_url: product.url, mall_name: "쿠팡", list_price: null }).select("id,affiliate_url").single();
   if (insertError) throw insertError;
   return created;
 }

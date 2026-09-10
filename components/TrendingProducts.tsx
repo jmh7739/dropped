@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import SafeImage from "./SafeImage";
-import { formatWon, displayTitle } from "@/lib/format";
+import { displayTitle } from "@/lib/format";
 import type { TrendingProduct } from "@/lib/trends";
 
 const PAGE_SIZE = 10;
@@ -38,11 +38,6 @@ export default function TrendingProducts({ products }: { products: TrendingProdu
               <h3 className="mt-1 line-clamp-2 text-sm font-bold leading-5 text-gray-900 group-hover:text-brand">
                 {displayTitle(product.title)}
               </h3>
-              {product.price != null && (
-                <div className="mt-1.5 text-sm font-extrabold text-gray-900">
-                  {formatWon(product.price)}
-                </div>
-              )}
             </div>
           </Link>
         ))}
