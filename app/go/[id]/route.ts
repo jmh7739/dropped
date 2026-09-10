@@ -25,7 +25,8 @@ export async function GET(
     return NextResponse.redirect(new URL("/", request.url));
   }
 
-  void supabase.rpc("click_deal", { p_product_id: row.product_id });
+  // PostgREST builders are lazy: await executes the RPC before the serverless response ends.
+  await supabase.rpc("click_deal", { p_product_id: row.product_id });
 
   return NextResponse.redirect(url, {
     status: 302,

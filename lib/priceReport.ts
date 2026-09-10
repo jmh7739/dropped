@@ -17,7 +17,7 @@ export type PriceStats = {
   trackedDays: number;
   percentile: number;
   isLowest: boolean; // 현재가가 추적기간 내 최저
-  /** '역대 최저'는 충분히 오래 추적(≥60일)했을 때만. 아니면 '최근 N일 최저'. */
+  /** 관측한 기간 내 최저: 추적 기간이 길어져도 역대 전체를 단정하지 않는다. */
   lowestLabel: string;
   enoughData: boolean; // 판정을 신뢰할 만큼 이력이 쌓였나
 };
@@ -26,12 +26,13 @@ export function priceStats(
   history: PricePoint[],
   current: number
 ): PriceStats | null {
-  if (!history.length) return null;
+  if (!history.length || !Number.isFinite(current) || current <= 0) return null;
   const now = Date.now();
   const pts = history.map((h) => ({
     p: h.price,
     t: new Date(h.collectedAt).getTime(),
-  }));
+  })).filter(h => Number.isFinite(h.p) && h.p > 0 && Number.isFinite(h.t) && h.t <= now);
+  if (!pts.length) return null;
   const prices = pts.map((x) => x.p);
   const within = (d: number) =>
     pts.filter((x) => now - x.t <= d * 86400000).map((x) => x.p);
@@ -45,7 +46,7 @@ export function priceStats(
   const rank = sorted.filter((p) => p <= current).length;
   const trackedDays = Math.max(
     1,
-    Math.round((now - Math.min(...pts.map((x) => x.t))) / 86400000)
+    Math.ceil((Math.max(...pts.map(x => x.t)) - Math.min(...pts.map(x => x.t))) / 86400000)
   );
 
   return {
@@ -61,7 +62,7 @@ export function priceStats(
     trackedDays,
     percentile: Math.round((rank / sorted.length) * 100),
     isLowest: current <= minAll,
-    lowestLabel: trackedDays >= 60 ? "역대 최저가" : `추적 ${trackedDays}일 중 최저`,
+    lowestLabel: `추적 ${trackedDays}일 중 최저`,
     enoughData: prices.length >= 10 && trackedDays >= 7,
   };
 }
@@ -163,7 +164,7 @@ export function dealVerdict(d: {
       : Math.max(0, Math.round(d.discountVsAvg ?? 0));
   const enoughData = points >= 10 && days >= 7;
   const lowestLabel =
-    days >= 60 ? "역대 최저가" : `추적 ${Math.max(days, 1)}일 중 최저`;
+    `추적 ${Math.max(days, 1)}일 중 최저`;
   return buyVerdict(rate, d.isLowestEver, lowestLabel, enoughData);
 }
 

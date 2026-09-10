@@ -19,6 +19,7 @@ jobs:
           node-version: "20"
           cache: "npm"
       - run: npm ci
+      - run: npm test
       - run: npm run build
         env:
           # 빌드 시 Supabase 미연결이어도 통과(런타임 no-store로 동적 렌더).

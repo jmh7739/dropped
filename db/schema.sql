@@ -153,8 +153,8 @@ insert into categories (name, slug, deal_type, sort_order) values
 on conflict (slug) do nothing;
 
 -- ============================================================
---  30일 지난 가격 이력 롤업(일 1건 요약) — 무료티어 용량 방지
---  크롤러가 주기적으로 SELECT rollup_old_price_history(); 호출
+--  가격 원본 보존: 과거 삭제형 롤업 호출과의 호환용 no-op
+--  별도 집계/아카이브 검증 전에는 원본을 평균값으로 교체하지 않는다.
 -- ============================================================
 -- 종료 딜은 검색/공유 URL 자산이라 삭제하지 않는다.
 create or replace function prune_ended_deals()
@@ -167,21 +167,8 @@ $$;
 create or replace function rollup_old_price_history()
 returns void language plpgsql as $$
 begin
-  -- 30일 이전 데이터를 (상품, 날짜)별 평균 1건으로 요약
-  with agg as (
-    select product_id,
-           date_trunc('day', collected_at) as day,
-           round(avg(price))::bigint       as avg_price
-    from price_history
-    where collected_at < now() - interval '30 days'
-    group by product_id, date_trunc('day', collected_at)
-  ),
-  del as (
-    delete from price_history
-    where collected_at < now() - interval '30 days'
-    returning 1
-  )
-  insert into price_history (product_id, price, collected_at)
-  select product_id, avg_price, day from agg;
+  -- Compatibility stub. Separate daily aggregates are refreshed by the crawler.
+  -- Original observations must never be replaced with an average.
+  return;
 end;
 $$;

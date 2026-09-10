@@ -1,6 +1,8 @@
 import { supabase } from "./supabase";
 import { PricePoint } from "./types";
 import { priceStats, buyVerdict, VerdictTier } from "./priceReport";
+import { readPriceHistory } from "./priceHistory";
+import { cache } from "react";
 
 /**
  * SEO용 '상품 가격 페이지' 데이터 — 딜이 끝나도 유지되는 영구 리포트.
@@ -26,7 +28,7 @@ export interface ProductReport {
   lastCheckedAt: string | null;
 }
 
-export async function getProductReport(
+export const getProductReport = cache(async function getProductReport(
   id: number
 ): Promise<ProductReport | null> {
   if (!supabase || !Number.isFinite(id)) return null;
@@ -38,16 +40,7 @@ export async function getProductReport(
     .single();
   if (error || !p) return null;
 
-  const { data: hist } = await supabase
-    .from("price_history")
-    .select("price, collected_at")
-    .eq("product_id", id)
-    .order("collected_at", { ascending: true });
-
-  const history: PricePoint[] = (hist ?? []).map((h: any) => ({
-    price: h.price,
-    collectedAt: h.collected_at,
-  }));
+  const history = (await readPriceHistory([id])).get(id) ?? [];
   if (history.length === 0) return null; // 이력 없으면 리포트 의미 없음 → 404
 
   const { data: hd } = await supabase
@@ -63,7 +56,7 @@ export async function getProductReport(
     .eq("product_id", id)
     .single();
 
-  const lastHistory = hist?.[hist.length - 1];
+  const lastHistory = history[history.length - 1];
   const cat = (p as any).categories;
   return {
     id: p.id,
@@ -82,9 +75,9 @@ export async function getProductReport(
     history,
     hasActiveDeal: (hd?.length ?? 0) > 0,
     likeCount: stats?.like_count ?? 0,
-    lastCheckedAt: lastHistory?.collected_at ?? null,
+    lastCheckedAt: lastHistory?.collectedAt ?? null,
   };
-}
+});
 
 /**
  * 상품 검색 결과 1건 — "지금 특가냐"와 무관하게, 추적 이력이 있는 상품을
@@ -131,19 +124,7 @@ export async function searchProducts(
 
   const ids = prods.map((p: any) => p.id);
   const since = new Date(Date.now() - 90 * 86400000).toISOString();
-  const { data: hist } = await supabase
-    .from("price_history")
-    .select("product_id, price, collected_at")
-    .in("product_id", ids)
-    .gte("collected_at", since)
-    .order("collected_at", { ascending: true });
-
-  const byProduct = new Map<number, PricePoint[]>();
-  for (const h of (hist ?? []) as any[]) {
-    const arr = byProduct.get(h.product_id) ?? [];
-    arr.push({ price: h.price, collectedAt: h.collected_at });
-    byProduct.set(h.product_id, arr);
-  }
+  const byProduct = await readPriceHistory(ids, since);
 
   const rows: ProductSearchRow[] = [];
   for (const p of prods as any[]) {

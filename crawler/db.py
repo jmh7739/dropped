@@ -136,6 +136,8 @@ def history_days(product_id: int) -> float:
 
 
 def insert_price(product_id: int, price: int) -> None:
+    if type(price) is not int or price <= 0:
+        raise ValueError("Only positive integer prices belong in price_history")
     if config.DRY_RUN:
         return
     client().table("price_history").insert(
@@ -213,9 +215,8 @@ def prune_ended_deals() -> None:
 
 
 def rollup_old_history() -> None:
-    if config.DRY_RUN:
-        return
-    client().rpc("rollup_old_price_history").execute()
+    """Keep original observations until a separate aggregate/archive is verified."""
+    return
 
 
 # ── 항공권 특가 ───────────────────────────────────────────────
@@ -283,15 +284,7 @@ def prune_old_flights() -> None:
     if config.DRY_RUN:
         return
     client().rpc("prune_old_flight_deals").execute()
-    # 가격 이력은 90일치만 유지(테이블 없으면 스킵).
-    try:
-        from datetime import datetime, timedelta, timezone
-        cutoff = (datetime.now(timezone.utc) - timedelta(days=90)).isoformat()
-        client().table("flight_price_history").delete().lt(
-            "collected_at", cutoff
-        ).execute()
-    except Exception:
-        pass
+    # Flight listings can expire; independent price history must be preserved.
 
 
 def flight_fresh_within(hours: float) -> bool:

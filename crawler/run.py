@@ -5,7 +5,7 @@
 2) 상품 upsert + 가격 이력 적재
 3) 이상탐지/가드레일로 딜 판정 → 진행중 딜 갱신
 4) 기존 진행중 딜 재검사 → 원복/이탈 시 종료 처리
-5) 오래된 이력 롤업
+5) 기존 가격 이력 보존(삭제형 롤업 중단)
 """
 from __future__ import annotations
 
@@ -22,6 +22,8 @@ import config
 import db
 import detect
 import indexnow
+import price_quality
+from dataclasses import replace
 # 네이버 검색 API는 신규 앱에 권한 부여가 막혀(정책) 제외. sources/naver.py는
 # 남겨둠 — 향후 접근 가능해지면 아래 SOURCES에 다시 넣으면 됨.
 # linkprice_products는 cps와 같은 /ci/product/data API라 중복 → cps만 사용
@@ -39,6 +41,12 @@ def collect_and_flag() -> tuple[int, int, set[int], set[int]]:
 
     def process(raw) -> bool:
         """한 항목 처리 → is_deal이면 True. seen/flagged_ids 갱신은 여기서."""
+        quality, reasons = price_quality.validate_price(raw)
+        if quality == "quarantined":
+            print(f"[rejected:{price_quality.QUALITY_VERSION}] {raw.platform} | {raw.external_product_id} | {','.join(reasons)}")
+            return False
+        if "invalid_reference_price" in reasons:
+            raw = replace(raw, list_price=None)
         product_id = db.upsert_product(raw)
         if product_id is None:
             return False
@@ -46,6 +54,10 @@ def collect_and_flag() -> tuple[int, int, set[int], set[int]]:
 
         history = db.recent_prices(product_id)
         hdays = db.history_days(product_id)
+        quality, reasons = price_quality.validate_price(raw, history)
+        if quality == "quarantined":
+            print(f"[rejected:{price_quality.QUALITY_VERSION}] {raw.platform} | {raw.external_product_id} | {','.join(reasons)}")
+            return False
         db.insert_price(product_id, raw.current_price)
 
         verdict = detect.classify(
@@ -73,7 +85,7 @@ def collect_and_flag() -> tuple[int, int, set[int], set[int]]:
             })
             flagged_ids.add(product_id)
             return True
-        if raw.curated:
+        if raw.curated and raw.current_price >= config.MIN_PRICE and not verdict.is_price_error:
             # 베스트딜(국내몰 인기): 제휴사 실판매가 기준 할인(원가→할인가).
             #   baseline_price=None 이 '베스트딜' 마커(프론트가 급락딜과 분리).
             dvl = None
@@ -103,7 +115,12 @@ def collect_and_flag() -> tuple[int, int, set[int], set[int]]:
             print(f"[{name}] 소스 실패 → 이 소스만 건너뜀: {type(e).__name__}: {e}")
             traceback.print_exc()
             continue
+        source_seen = set()
         for raw in raws:
+            identity = (raw.platform, raw.external_product_id)
+            if identity in source_seen:
+                continue
+            source_seen.add(identity)
             scanned += 1
             try:
                 if process(raw):

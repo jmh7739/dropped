@@ -22,3 +22,9 @@ class RawDeal:
     # 가격추적 급락딜이 아니어도 'MD 추천 특가'로 노출할 후보(국내몰 큐레이션).
     #   이미지·이름 품질이 확보된 것만 True. collect_and_flag가 curated 딜로 기록.
     curated: bool = False
+    # Only use documented source fields. Unknown is deliberately different from free/public.
+    currency: str = "KRW"
+    option_key: Optional[str] = None
+    quantity: Optional[int] = None
+    price_basis: str = "unknown"
+    stock_status: str = "unknown"

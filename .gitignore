@@ -31,6 +31,7 @@ venv/
 
 # vercel
 .vercel
+.audit-backups/
 
 # typescript
 *.tsbuildinfo

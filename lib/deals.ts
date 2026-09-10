@@ -1,6 +1,7 @@
 import { supabase } from "./supabase";
 import { Deal, PricePoint, HOT_LIKE_THRESHOLD } from "./types";
 import { headlineDropRate, hotDealScore, dropScore } from "./dropMetrics";
+import { readPriceHistory } from "./priceHistory";
 
 export type SortKey =
   | "discount" // 하락률 높은순 (기본)
@@ -352,17 +353,7 @@ export async function getDeal(id: number): Promise<Deal | null> {
 }
 
 async function getPriceHistory(productId: number): Promise<PricePoint[]> {
-  if (!supabase) return [];
-  const { data: hist } = await supabase
-    .from("price_history")
-    .select("price, collected_at")
-    .eq("product_id", productId)
-    .order("collected_at", { ascending: true });
-
-  return (hist ?? []).map((h: any) => ({
-    price: h.price,
-    collectedAt: h.collected_at,
-  }));
+  return (await readPriceHistory([productId])).get(productId) ?? [];
 }
 
 /** 같은 카테고리 관련 딜 — 중복 제거 + DROP 점수 좋은 순 */
