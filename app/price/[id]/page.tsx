@@ -34,7 +34,9 @@ export async function generateMetadata({
   const canonical = `${SITE}/price/${r.id}`;
   return {
     title: `${r.title} 최저가·가격추이`,
-    description: `${r.categoryName} · 현재 ${formatWon(r.currentPrice)} — 가격 이력으로 지금이 살 때인지 알려드려요.`,
+    description: r.currentPrice == null
+      ? `${r.categoryName} · 요즘 뜨는 상품 — 가격 추적을 준비하고 있습니다.`
+      : `${r.categoryName} · 현재 ${formatWon(r.currentPrice)} — 가격 이력으로 지금이 살 때인지 알려드려요.`,
     alternates: { canonical },
     openGraph: {
       title: `${r.title} 최저가·가격추이`,
@@ -56,16 +58,17 @@ export default async function ProductPricePage({
     getRelatedDeals(r.categorySlug, r.id, 6),
   ]);
 
-  const stats = priceStats(r.history, r.currentPrice);
+  const currentPrice = r.currentPrice;
+  const stats = currentPrice == null ? null : priceStats(r.history, currentPrice);
   const realRate =
-    stats && stats.avg30 && stats.avg30 > r.currentPrice
-      ? Math.round(((stats.avg30 - r.currentPrice) / stats.avg30) * 100)
+    stats && currentPrice != null && stats.avg30 && stats.avg30 > currentPrice
+      ? Math.round(((stats.avg30 - currentPrice) / stats.avg30) * 100)
       : 0;
   const verdict = stats
     ? buyVerdict(realRate, stats.isLowest, stats.lowestLabel, stats.enoughData)
     : null;
   const score =
-    stats && verdict
+    stats && verdict && currentPrice != null
       ? dropScore({
           platform: r.platform as Platform,
           categorySlug: r.categorySlug,
@@ -75,7 +78,7 @@ export default async function ProductPricePage({
           likeCount: r.likeCount,
           clickCount: 0,
           baselinePrice: stats.avg30 ?? 0,
-          currentPrice: r.currentPrice,
+          currentPrice,
           trackedDays: stats.trackedDays,
           checkedAt: r.lastCheckedAt ?? null,
           avg30Price: stats.avg30 ?? null,
@@ -88,9 +91,9 @@ export default async function ProductPricePage({
     name: r.title,
     image: r.imageUrl ? [r.imageUrl] : undefined,
     category: r.categoryName,
-    offers: {
+    offers: currentPrice == null ? undefined : {
       "@type": "Offer",
-      price: r.currentPrice,
+      price: currentPrice,
       priceCurrency: "KRW",
       availability: r.hasActiveDeal
         ? "https://schema.org/InStock"
@@ -139,7 +142,11 @@ export default async function ProductPricePage({
           </div>
 
           <h1 className="text-lg font-bold leading-snug">{r.title}</h1>
-          {!r.hasActiveDeal && (
+          {currentPrice == null ? (
+            <div className="mt-3 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-medium text-blue-900">
+              요즘 뜨는 상품으로 새로 등록됐습니다. 가격 이력 수집을 준비하고 있습니다.
+            </div>
+          ) : !r.hasActiveDeal && (
             <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-900">
               이 특가는 종료되었거나 판매 페이지 가격이 바뀌었을 수 있습니다. 마지막 수집 가격 기준으로 비슷한 현재 특가를 확인해 주세요.
             </div>
@@ -157,14 +164,16 @@ export default async function ProductPricePage({
           </div>
 
           <div className="mt-4 rounded-xl bg-gray-50 p-4">
-            {r.listPrice > 0 && r.listPrice > r.currentPrice && (
+            {currentPrice != null && r.listPrice > 0 && r.listPrice > currentPrice && (
               <div className="text-sm text-gray-400 line-through">
                 정가 {formatWon(r.listPrice)}
               </div>
             )}
-            <div className="mt-1 text-3xl font-extrabold text-brand">
-              {formatWon(r.currentPrice)}
-            </div>
+            {currentPrice == null ? (
+              <div className="mt-1 text-lg font-extrabold text-gray-600">가격 수집 준비 중</div>
+            ) : (
+              <div className="mt-1 text-3xl font-extrabold text-brand">{formatWon(currentPrice)}</div>
+            )}
             {r.unitPrice && (
               <div className="mt-0.5 text-sm text-gray-400">{r.unitPrice}</div>
             )}
@@ -180,7 +189,7 @@ export default async function ProductPricePage({
             <ShareButton path={`/price/${r.id}`} title={r.title} compact />
             <div className="flex-1">
               <BuyButton productId={r.id} href={r.affiliateUrl}>
-                판매 페이지로 →
+                {r.platform === "coupang" ? "쿠팡에서 보기 →" : "판매 페이지로 →"}
               </BuyButton>
             </div>
           </div>
@@ -202,12 +211,16 @@ export default async function ProductPricePage({
         </section>
       )}
 
-      <section className="mt-8">
+      {r.history.length > 0 ? <section className="mt-8">
         <h2 className="mb-2 text-base font-bold">📉 가격 변동 그래프</h2>
         <div className="rounded-xl border border-gray-200 bg-white p-4">
           <PriceChart history={r.history} />
         </div>
-      </section>
+      </section> : (
+        <section className="mt-8 rounded-xl border border-dashed border-gray-300 bg-white p-6 text-center text-sm text-gray-500">
+          가격 이력이 쌓이면 변동 그래프와 구매 판단을 제공합니다.
+        </section>
+      )}
 
       {relatedDeals.length > 0 && (
         <section className="mt-10">

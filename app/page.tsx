@@ -15,6 +15,8 @@ import SearchBar from "@/components/SearchBar";
 import Pagination from "@/components/Pagination";
 import { PAGE_SIZE } from "@/lib/nav";
 import { CATEGORIES } from "@/lib/types";
+import { getTrendingProducts } from "@/lib/trends";
+import TrendingProducts from "@/components/TrendingProducts";
 
 export const dynamic = "force-dynamic";
 
@@ -184,12 +186,13 @@ export default async function Home({
   if (ps) allParams.ps = ps;
   if (scope) allParams.scope = scope;
 
-  const [trackedDeals, curatedDealsRaw, lastUpdate, productMatchesRaw] = await Promise.all([
+  const [trackedDeals, curatedDealsRaw, lastUpdate, productMatchesRaw, trendingProducts] = await Promise.all([
     getDeals({ category, sort, hotOnly: hot, q, priceStatus: ps, scope }),
     scope !== "overseas" && !ps && !hot ? getCuratedDeals(sort, category) : Promise.resolve([]),
     getLastPriceUpdate(),
     // 검색 시: 활성 딜뿐 아니라 '가격 추적 중인 상품'도 찾아 지금 살지 판정.
     q.trim().length >= 2 ? searchProducts(q, 24) : Promise.resolve([]),
+    !q.trim() && !category && page === 1 ? getTrendingProducts() : Promise.resolve([]),
   ]);
 
   const term = q.trim().toLowerCase();
@@ -294,6 +297,8 @@ export default async function Home({
       <div className="mb-5">
         <SearchBar initial={q} />
       </div>
+
+      <TrendingProducts products={trendingProducts} />
 
       {trackedMatches.length > 0 && (
         <ProductSearchResults rows={trackedMatches} query={q.trim()} />

@@ -1,11 +1,14 @@
 import Link from "next/link";
+import RealtimeTrendTicker from "./RealtimeTrendTicker";
+import { getRealtimeTrends } from "@/lib/trends";
 
 const NAV = [
   { href: "/", label: "베스트딜" },
   { href: "/?category=flight", label: "✈️ 여행" },
 ];
 
-export default function Header() {
+export default async function Header() {
+  const trends = await getRealtimeTrends();
   return (
     <header className="sticky top-0 z-20 border-b border-gray-200 bg-white">
       <div className="mx-auto flex h-14 max-w-6xl items-center gap-3 px-4">
@@ -18,7 +21,7 @@ export default function Header() {
           </svg>
           <span className="text-lg font-extrabold tracking-tight">떨어졌다</span>
         </Link>
-        <nav className="flex items-center gap-1 text-sm">
+        <nav className="hidden items-center gap-1 text-sm sm:flex">
           {NAV.map((n) => (
             <Link
               key={n.href}
@@ -29,6 +32,7 @@ export default function Header() {
             </Link>
           ))}
         </nav>
+        <RealtimeTrendTicker trends={trends} />
       </div>
     </header>
   );

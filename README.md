@@ -219,3 +219,20 @@ npm run dev
 이 사이트는 쿠팡파트너스, 알리익스프레스 어필리에이트 등 제휴마케팅 활동의
 일환으로 이에 따른 일정액의 수수료를 제공받습니다.
 ```
+# 실시간 트렌드 로컬 실행
+
+`db/migration_trends.sql`은 검토용 migration이며 자동 실행되지 않습니다. 로컬 Supabase에 수동 적용한 뒤 `.env.local`에 `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `DROPPED_WORKER_TOKEN`을 설정합니다.
+
+```bash
+npm run test:trend
+npm run trend:realtime
+npm run trend:products
+npm run trend:all
+npm run trend:scheduler
+```
+
+- `trend:realtime`: 네이버 쇼핑인사이트를 수집해 실시간 TOP20과 신규 keywordSearch 큐를 저장합니다.
+- `trend:products`: 트렌드별 후보 최대 5개 중 대표상품 #1을 고르고 product 큐를 저장합니다. 가격 이력이 있는 기존 Dropped 상품만 사이트에 노출합니다.
+- `trend:scheduler`: 로컬 프로세스에서 실시간 순위는 1시간, 상품은 4시간 간격으로 실행합니다. 운영 cron은 등록하지 않습니다.
+- 링크 생성이 중단되면 미완성 실시간 snapshot은 공개하지 않으며, 준비된 상품이 8개 미만이면 기존 활성 상품 목록을 그대로 유지합니다.
+- Chrome 확장 프로그램에서 로컬 API 주소와 `DROPPED_WORKER_TOKEN`을 입력한 뒤 대기열을 불러와 **전체 자동 생성**을 누릅니다. CAPTCHA, Access Denied, 보안확인, 로그인 만료는 즉시 중단합니다.

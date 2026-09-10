@@ -21,7 +21,7 @@ export interface ProductReport {
   unitPrice: string | null;
   categorySlug: string;
   categoryName: string;
-  currentPrice: number;
+  currentPrice: number | null;
   history: PricePoint[];
   hasActiveDeal: boolean;
   likeCount: number;
@@ -41,8 +41,6 @@ export const getProductReport = cache(async function getProductReport(
   if (error || !p) return null;
 
   const history = (await readPriceHistory([id])).get(id) ?? [];
-  if (history.length === 0) return null; // 이력 없으면 리포트 의미 없음 → 404
-
   const { data: hd } = await supabase
     .from("hot_deals")
     .select("id")
@@ -71,7 +69,7 @@ export const getProductReport = cache(async function getProductReport(
     unitPrice: p.unit_price ?? null,
     categorySlug: cat?.slug ?? "",
     categoryName: cat?.name ?? "기타",
-    currentPrice: history[history.length - 1].price,
+    currentPrice: lastHistory?.price ?? null,
     history,
     hasActiveDeal: (hd?.length ?? 0) > 0,
     likeCount: stats?.like_count ?? 0,

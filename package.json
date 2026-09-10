@@ -7,7 +7,12 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test": "node scripts/test-price-safety.cjs"
+    "test": "node scripts/test-price-safety.cjs",
+    "test:trend": "node --test dropped-trend-bot/test/*.test.js",
+    "trend:realtime": "node dropped-trend-bot/src/worker.js realtime",
+    "trend:products": "node dropped-trend-bot/src/worker.js products",
+    "trend:all": "node dropped-trend-bot/src/worker.js all",
+    "trend:scheduler": "node dropped-trend-bot/src/scheduler.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.45.0",

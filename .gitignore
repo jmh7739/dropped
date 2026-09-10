@@ -36,3 +36,10 @@ venv/
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# 트렌드봇 로컬 아티팩트(민감정보/대용량) — 커밋 금지
+dropped-trend-bot/node_modules/
+dropped-trend-bot/browser-profile/
+dropped-trend-bot/results/
+dropped-trend-bot/**/.env
+dropped-trend-bot/**/.env.local
