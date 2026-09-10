@@ -1,0 +1,165 @@
+const path = require("path");
+const os = require("os");
+const fs = require("fs");
+const { createClient } = require("@supabase/supabase-js");
+const { findAutomaticTrends, findRealtimeTrends } = require("./automation");
+const {
+  config,
+  calculateHotScore,
+  rankStatus,
+  keywordQueueItem,
+  productQueueItem,
+} = require("./core");
+
+function loadLocalEnv() {
+  const file = path.resolve(__dirname, "..", "..", ".env.local");
+  if (!fs.existsSync(file)) return;
+  for (const line of fs.readFileSync(file, "utf8").split(/\r?\n/)) {
+    const match = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/);
+    if (!match || process.env[match[1]]) continue;
+    process.env[match[1]] = match[2].replace(/^(['"])(.*)\1$/, "$2");
+  }
+}
+
+loadLocalEnv();
+
+const CATEGORY_SLUG = {
+  패션: "fashion", 패션잡화: "fashion", 뷰티: "beauty", 디지털: "digital",
+  인테리어: "living", 육아: "baby", 식품: "food", 스포츠: "sports", 생활: "living", 여가: "living",
+};
+
+function getDb() {
+  const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) throw new Error("SUPABASE_URL과 SUPABASE_SERVICE_ROLE_KEY가 필요합니다.");
+  return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
+}
+
+async function latestTrendMap(db) {
+  const { data: newest, error } = await db.from("realtime_trends").select("collected_at").order("collected_at", { ascending: false }).limit(1);
+  if (error) throw error;
+  if (!newest?.length) return new Map();
+  const { data, error: rowsError } = await db.from("realtime_trends").select("normalized_keyword,rank").eq("collected_at", newest[0].collected_at);
+  if (rowsError) throw rowsError;
+  return new Map((data || []).map(row => [row.normalized_keyword, row.rank]));
+}
+
+async function enqueueIfMissing(db, item) {
+  if (item.type === "keywordSearch") {
+    const { data: cached } = await db.from("affiliate_keyword_cache").select("affiliate_url").eq("normalized_keyword", item.normalizedKeyword).maybeSingle();
+    if (cached?.affiliate_url) return cached.affiliate_url;
+    const { data: queued } = await db.from("affiliate_queue").select("id,status,affiliate_url").eq("type", "keywordSearch").eq("normalized_keyword", item.normalizedKeyword).order("created_at", { ascending: false }).limit(1);
+    if (!queued?.length) await db.from("affiliate_queue").insert({ type: item.type, keyword: item.keyword, normalized_keyword: item.normalizedKeyword, original_url: item.originalUrl });
+    else if (queued[0].status === "error") await db.from("affiliate_queue").update({ status: "pending", error: null, updated_at: new Date().toISOString() }).eq("id", queued[0].id);
+    else if (queued[0].status === "success" && queued[0].affiliate_url) {
+      await db.from("affiliate_keyword_cache").upsert({ normalized_keyword: item.normalizedKeyword, keyword: item.keyword, affiliate_url: queued[0].affiliate_url, updated_at: new Date().toISOString() }, { onConflict: "normalized_keyword" });
+      return queued[0].affiliate_url;
+    }
+    return null;
+  }
+  const { data: product } = await db.from("products").select("affiliate_url").eq("external_product_id", item.productId).eq("platform", "coupang").maybeSingle();
+  if (product?.affiliate_url) return product.affiliate_url;
+  const { data: queued } = await db.from("affiliate_queue").select("id,status,affiliate_url").eq("type", "product").eq("external_product_id", item.productId).order("created_at", { ascending: false }).limit(1);
+  if (!queued?.length) await db.from("affiliate_queue").insert({ type: item.type, keyword: item.keyword, normalized_keyword: item.normalizedKeyword, product_id: item.dbProductId, external_product_id: item.productId, original_url: item.originalUrl });
+  else if (queued[0].status === "error") await db.from("affiliate_queue").update({ status: "pending", error: null, product_id: item.dbProductId, updated_at: new Date().toISOString() }).eq("id", queued[0].id);
+  else if (queued[0].status === "success" && queued[0].affiliate_url) {
+    await db.from("products").update({ affiliate_url: queued[0].affiliate_url }).eq("platform", "coupang").eq("external_product_id", item.productId);
+    return queued[0].affiliate_url;
+  }
+  return null;
+}
+
+async function saveRealtimeTrends(db, collected) {
+  const previous = await latestTrendMap(db);
+  const rescored = collected.map(item => ({
+    ...item,
+    previousDisplayRank: previous.get(item.normalizedKeyword) || null,
+    displayScore: calculateHotScore(item.currentRank, previous.get(item.normalizedKeyword) || null, item.keyword),
+  })).sort((a, b) => b.displayScore - a.displayScore || a.currentRank - b.currentRank).slice(0, config.REALTIME_TREND_LIMIT);
+  const collectedAt = new Date().toISOString();
+  const rows = [];
+  for (let index = 0; index < rescored.length; index += 1) {
+    const item = rescored[index];
+    const rank = index + 1;
+    const previousRank = previous.get(item.normalizedKeyword) || null;
+    const movement = rankStatus(rank, previousRank);
+    const affiliateUrl = await enqueueIfMissing(db, keywordQueueItem(item));
+    rows.push({ keyword: item.keyword, normalized_keyword: item.normalizedKeyword, rank, previous_rank: previousRank, rank_change: movement.rankChange, status: movement.status, hot_score: item.displayScore, category: item.category, affiliate_search_url: affiliateUrl, collected_at: collectedAt });
+  }
+  const ready = rows.length === config.REALTIME_TREND_LIMIT && rows.every(row => row.affiliate_search_url);
+  const { error } = await db.from("realtime_trends").insert(rows.map(row => ({ ...row, is_published: ready })));
+  if (error) throw error;
+  return rows;
+}
+
+async function ensureProduct(db, trend, product) {
+  const { data: existing, error } = await db.from("products").select("id,affiliate_url").eq("platform", "coupang").eq("external_product_id", product.productId).maybeSingle();
+  if (error) throw error;
+  const price = typeof product.price === "number" && product.price > 0 ? product.price : null;
+  if (existing) {
+    await db.from("products").update({ title: product.title, image_url: product.imageUrl || null, product_url: product.url, ...(price != null ? { list_price: price } : {}) }).eq("id", existing.id);
+    return existing;
+  }
+  const slug = CATEGORY_SLUG[trend.category] || "living";
+  const { data: category } = await db.from("categories").select("id").eq("slug", slug).maybeSingle();
+  const { data: created, error: insertError } = await db.from("products").insert({ platform: "coupang", external_product_id: product.productId, title: product.title, category_id: category?.id || null, image_url: product.imageUrl || null, product_url: product.url, mall_name: "쿠팡", list_price: price }).select("id,affiliate_url").single();
+  if (insertError) throw insertError;
+  return created;
+}
+
+async function saveTrendingProducts(db, trends) {
+  const selected = trends.map(trend => ({ trend, product: trend.productCandidates?.[0] })).filter(row => row.product && row.product.productScore >= config.MIN_PRODUCT_SCORE).sort((a, b) => (b.trend.trendScore + b.product.productScore) - (a.trend.trendScore + a.product.productScore)).slice(0, config.TRENDING_PRODUCT_MAX);
+  const active = [];
+  for (const { trend, product } of selected) {
+    try {
+      const dbProduct = await ensureProduct(db, trend, product);
+      const affiliateUrl = await enqueueIfMissing(db, { ...productQueueItem(trend, product), dbProductId: dbProduct.id });
+      if (!affiliateUrl) continue; // 실제 파트너스 링크 생성 전에는 카드/구매 버튼을 노출하지 않음
+      active.push({ keyword: trend.keyword, product_id: dbProduct.id, product_score: product.productScore, hot_score: trend.trendScore, category: trend.category, is_active: true, updated_at: new Date().toISOString() });
+    } catch (error) {
+      console.warn(`[상품 저장 실패] ${trend.keyword}: ${error.message}`);
+    }
+  }
+  if (active.length < config.TRENDING_PRODUCT_MIN) {
+    console.warn(`요즘 뜨는 상품 준비 ${active.length}/${config.TRENDING_PRODUCT_MIN}개: 기존 활성 목록을 유지합니다.`);
+    return [];
+  }
+  await db.from("trending_products").update({ is_active: false }).eq("is_active", true);
+  for (const row of active) {
+    const { error } = await db.from("trending_products").upsert(row, { onConflict: "product_id" });
+    if (error) throw error;
+  }
+  return active;
+}
+
+function profileDir() {
+  return process.env.TREND_BROWSER_PROFILE || path.join(os.tmpdir(), "dropped-trend-worker-profile");
+}
+
+async function runRealtimeTrendUpdate() {
+  const db = getDb();
+  const trends = await findRealtimeTrends({ profileDir: profileDir(), log: console.log });
+  const saved = await saveRealtimeTrends(db, trends);
+  console.log(`실시간 TOP${saved.length} 저장 완료`);
+  return saved;
+}
+
+async function runTrendingProductsUpdate() {
+  const db = getDb();
+  const trends = await findAutomaticTrends({ profileDir: profileDir(), log: console.log });
+  const saved = await saveTrendingProducts(db, trends);
+  console.log(`요즘 뜨는 상품 ${saved.length}개 활성화 완료`);
+  return saved;
+}
+
+async function main() {
+  const command = process.argv[2] || "all";
+  if (command === "realtime") await runRealtimeTrendUpdate();
+  else if (command === "products") await runTrendingProductsUpdate();
+  else if (command === "all") { await runRealtimeTrendUpdate(); await runTrendingProductsUpdate(); }
+  else throw new Error("사용법: node src/worker.js realtime|products|all");
+}
+
+if (require.main === module) main().catch(error => { console.error(error); process.exitCode = 1; });
+
+module.exports = { runRealtimeTrendUpdate, runTrendingProductsUpdate, saveRealtimeTrends, saveTrendingProducts };

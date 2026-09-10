@@ -17,6 +17,7 @@ export interface TrendingProduct {
   keyword: string;
   title: string;
   imageUrl: string;
+  price: number | null;
   productScore: number;
   hotScore: number;
   category: string;
@@ -43,12 +44,12 @@ export async function getRealtimeTrends(): Promise<RealtimeTrend[]> {
 
 export async function getTrendingProducts(limit = 24): Promise<TrendingProduct[]> {
   if (!supabase) return [];
-  const { data, error } = await supabase.from("trending_products").select("keyword,product_score,hot_score,category,products(id,title,image_url)").eq("is_active", true).order("hot_score", { ascending: false }).order("product_score", { ascending: false }).limit(limit);
+  const { data, error } = await supabase.from("trending_products").select("keyword,product_score,hot_score,category,products(id,title,image_url,list_price)").eq("is_active", true).order("hot_score", { ascending: false }).order("product_score", { ascending: false }).limit(limit);
   if (error || !data) return [];
   return data.flatMap((row: any) => {
     const product = Array.isArray(row.products) ? row.products[0] : row.products;
     const imageUrl = product?.image_url || "";
     // 이미지 없는 상품은 카드가 깨져 보이므로 제외(이미지 있는 것만 노출).
-    return product && imageUrl ? [{ id: product.id, keyword: row.keyword, title: product.title, imageUrl, productScore: Number(row.product_score), hotScore: Number(row.hot_score), category: row.category || "" }] : [];
+    return product && imageUrl ? [{ id: product.id, keyword: row.keyword, title: product.title, imageUrl, price: product.list_price != null ? Number(product.list_price) : null, productScore: Number(row.product_score), hotScore: Number(row.hot_score), category: row.category || "" }] : [];
   });
 }

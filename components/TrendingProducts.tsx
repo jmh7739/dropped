@@ -1,5 +1,6 @@
 import Link from "next/link";
 import SafeImage from "./SafeImage";
+import { formatWon } from "@/lib/format";
 import type { TrendingProduct } from "@/lib/trends";
 
 export default function TrendingProducts({ products }: { products: TrendingProduct[] }) {
@@ -14,7 +15,7 @@ export default function TrendingProducts({ products }: { products: TrendingProdu
         {products.map(product => (
           <Link key={product.id} href={`/price/${product.id}`} className="group overflow-hidden rounded-xl border border-gray-200 bg-white transition hover:-translate-y-0.5 hover:shadow-md">
             <SafeImage src={product.imageUrl} alt={product.title} className="aspect-square w-full object-cover" />
-            <div className="p-3"><span className="text-[11px] font-bold text-brand">#{product.keyword}</span><h3 className="mt-1 line-clamp-2 text-sm font-bold leading-5 text-gray-900 group-hover:text-brand">{product.title}</h3></div>
+            <div className="p-3"><span className="text-[11px] font-bold text-brand">#{product.keyword}</span><h3 className="mt-1 line-clamp-2 text-sm font-bold leading-5 text-gray-900 group-hover:text-brand">{product.title}</h3>{product.price != null && (<div className="mt-1.5 text-sm font-extrabold text-gray-900">{formatWon(product.price)}</div>)}</div>
           </Link>
         ))}
       </div>
