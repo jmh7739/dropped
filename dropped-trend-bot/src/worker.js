@@ -98,7 +98,7 @@ async function ensureProduct(db, trend, product) {
   if (error) throw error;
   const price = typeof product.price === "number" && product.price > 0 ? product.price : null;
   if (existing) {
-    await db.from("products").update({ title: product.title, image_url: product.imageUrl || null, product_url: product.url, ...(price != null ? { list_price: price } : {}) }).eq("id", existing.id);
+    await db.from("products").update({ title: product.title, product_url: product.url, ...(product.imageUrl ? { image_url: product.imageUrl } : {}), ...(price != null ? { list_price: price } : {}) }).eq("id", existing.id);
     return existing;
   }
   const slug = CATEGORY_SLUG[trend.category] || "living";

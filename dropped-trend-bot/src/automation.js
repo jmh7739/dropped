@@ -1779,8 +1779,16 @@ async function collectSearchPage(
               }
 
 
+              const resultCard =
+                link.closest(
+                  "li, article, [class*='product'], [class*='item'], [class*='api_subject_bx'], [class*='total_wrap']"
+                );
+
               const image =
                 link.querySelector(
+                  "img"
+                ) ||
+                resultCard?.querySelector(
                   "img"
                 );
 
@@ -1789,7 +1797,10 @@ async function collectSearchPage(
               let imageUrl =
                 image?.getAttribute("data-src") ||
                 image?.getAttribute("data-img-src") ||
+                image?.getAttribute("data-lazysrc") ||
+                image?.getAttribute("data-original") ||
                 (image?.getAttribute("srcset") || "").split(" ")[0] ||
+                image?.currentSrc ||
                 image?.getAttribute("src") ||
                 "";
               if (/^data:/.test(imageUrl) || /blank|placeholder|1x1|spacer/i.test(imageUrl)) {
@@ -1803,9 +1814,7 @@ async function collectSearchPage(
               // 가격: 쿠팡은 가격이 <a> 밖(상품 카드 li)에 있을 수 있어
               //  가장 가까운 카드 컨테이너까지 텍스트를 훑어 '12,900원' 패턴 추출.
               const priceScope =
-                link.closest(
-                  "li, [class*='ProductUnit'], [class*='search-product'], [class*='product']"
-                ) ||
+                resultCard ||
                 link.parentElement ||
                 link;
               const priceText =
@@ -2323,15 +2332,19 @@ async function findProductCandidates(
       );
 
 
-    if (
-      !existing ||
-      candidate.title.length >
-        existing.title.length
-    ) {
-      uniqueProducts.set(
-        productId,
-        candidate
-      );
+    if (!existing) {
+      uniqueProducts.set(productId, candidate);
+    } else {
+      const betterTitle = candidate.title.length > existing.title.length
+        ? candidate.title
+        : existing.title;
+      uniqueProducts.set(productId, {
+        ...existing,
+        ...candidate,
+        title: betterTitle,
+        imageUrl: candidate.imageUrl || existing.imageUrl || "",
+        price: candidate.price || existing.price || null,
+      });
     }
   }
 
