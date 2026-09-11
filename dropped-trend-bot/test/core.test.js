@@ -44,6 +44,13 @@ test("본상품이 액세서리보다 높은 Product Score를 받는다", () => 
   assert.ok(main > accessory + 30);
 });
 
+test("서로 다른 브랜드 상품은 검색어와 무관하면 제외한다", () => {
+  const unrelated = calculateProductScore("설화수자음2종", { title: "HOKA 운동화 호카 본디 9 블랙", imageUrl: "x" }, 0);
+  const related = calculateProductScore("설화수자음2종", { title: "설화수 NEW 자음 2종 세트", imageUrl: "x" }, 0);
+  assert.equal(unrelated, 0);
+  assert.ok(related >= 28);
+});
+
 test("검색엔진 광고성 스니펫을 상품명에서 제외한다", () => {
   assert.equal(isBadTitle("현재 별점 4.7점, 리뷰 300개를 가진 상품! 지금 쿠팡에서 더 저렴하고 확인하세요."), true);
 });

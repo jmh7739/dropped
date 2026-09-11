@@ -54,10 +54,20 @@ function hasBrandSignal(keyword) {
   return BRANDS.some(brand => value.includes(normalizeKeyword(brand)));
 }
 
+function hasMatchingBrand(keyword, title) {
+  const keywordValue = normalizeKeyword(keyword);
+  const titleValue = normalizeKeyword(title);
+  return BRANDS.some(brand => {
+    const normalizedBrand = normalizeKeyword(brand);
+    return keywordValue.includes(normalizedBrand) && titleValue.includes(normalizedBrand);
+  });
+}
+
 module.exports = {
   isServiceKeyword,
   isHardExcluded,
   genericPenalty,
   hasBrandSignal,
+  hasMatchingBrand,
   GENERIC_TERMS,
 };
