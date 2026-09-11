@@ -1905,7 +1905,8 @@ async function collectSearchPage(
 async function fastProductSearch(
   page,
   keyword,
-  log
+  log,
+  targetCount = NAVER_PRODUCT_TARGET
 ) {
   const collected = [];
 
@@ -1961,7 +1962,7 @@ async function fastProductSearch(
 
   if (
     uniqueCount >=
-    NAVER_PRODUCT_TARGET
+    targetCount
   ) {
     log(
       `  ✓ NAVER에서 후보 확보 → 추가 검색 생략`
@@ -2228,7 +2229,8 @@ function calculateProductScore(
 async function findProductCandidates(
   page,
   keyword,
-  log
+  log,
+  targetCount = NAVER_PRODUCT_TARGET
 ) {
   log(
     `상품 후보 검색: ${keyword}`
@@ -2243,7 +2245,8 @@ async function findProductCandidates(
       await fastProductSearch(
         page,
         keyword,
-        log
+        log,
+        targetCount
       );
 
   } catch (error) {
@@ -2506,7 +2509,10 @@ async function findAutomaticTrends({
           await findProductCandidates(
             page,
             trend.keyword,
-            log
+            log,
+            i < config.TOP_TREND_COUNT
+              ? config.TOP_TREND_SELECTED_PRODUCTS
+              : config.DEFAULT_SELECTED_PRODUCTS_PER_TREND
           );
 
       } catch (error) {
