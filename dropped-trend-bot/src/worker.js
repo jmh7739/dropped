@@ -5,13 +5,14 @@ const { createClient } = require("@supabase/supabase-js");
 const { findAutomaticTrends, findRealtimeTrends } = require("./automation");
 const {
   config,
-  calculateHotScore,
   rankStatus,
   keywordQueueItem,
   productQueueItem,
   diversifyProductSelections,
   isUsableProductImage,
   normalizeProductImage,
+  rankDisplayTrends,
+  productLimitForTrend,
 } = require("./core");
 
 function loadLocalEnv() {
@@ -39,7 +40,7 @@ function getDb() {
 }
 
 async function latestTrendMap(db) {
-  const { data: newest, error } = await db.from("realtime_trends").select("collected_at").order("collected_at", { ascending: false }).limit(1);
+  const { data: newest, error } = await db.from("realtime_trends").select("collected_at").eq("is_published", true).order("collected_at", { ascending: false }).limit(1);
   if (error) throw error;
   if (!newest?.length) return new Map();
   const { data, error: rowsError } = await db.from("realtime_trends").select("normalized_keyword,rank").eq("collected_at", newest[0].collected_at);
@@ -74,11 +75,7 @@ async function enqueueIfMissing(db, item) {
 
 async function saveRealtimeTrends(db, collected) {
   const previous = await latestTrendMap(db);
-  const rescored = collected.map(item => ({
-    ...item,
-    previousDisplayRank: previous.get(item.normalizedKeyword) || null,
-    displayScore: calculateHotScore(item.currentRank, previous.get(item.normalizedKeyword) || null, item.keyword),
-  })).sort((a, b) => b.displayScore - a.displayScore || a.currentRank - b.currentRank).slice(0, config.REALTIME_TREND_LIMIT);
+  const rescored = rankDisplayTrends(collected, previous, config.REALTIME_TREND_LIMIT);
   const collectedAt = new Date().toISOString();
   const rows = [];
   for (let index = 0; index < rescored.length; index += 1) {
@@ -116,8 +113,8 @@ async function ensureProduct(db, trend, product) {
 
 async function saveTrendingProducts(db, trends) {
   // 우선 검색어당 설정 개수만 노출하되, 링크 제한 상품이 있으면 다음 후보까지 확인한다.
-  const maxPerTrend = Math.max(1, config.DEFAULT_SELECTED_PRODUCTS_PER_TREND || 1);
-  const candidates = trends
+  const rankedTrends = trends.map((trend, index) => ({ ...trend, displayRank: index + 1 }));
+  const candidates = rankedTrends
     .flatMap(trend => (trend.productCandidates || [])
       .filter(product => product && product.productScore >= config.MIN_PRODUCT_SCORE)
       .slice(0, config.PRODUCT_CANDIDATE_LIMIT)
@@ -136,7 +133,7 @@ async function saveTrendingProducts(db, trends) {
     const trendKey = trend.normalizedKeyword || trend.keyword;
     const category = trend.category || "기타";
     if (!productId || attemptedProducts.has(productId)) continue;
-    if ((activePerTrend.get(trendKey) || 0) >= maxPerTrend) continue;
+    if ((activePerTrend.get(trendKey) || 0) >= productLimitForTrend(trend)) continue;
     if ((activePerCategory.get(category) || 0) >= config.MAX_TRENDING_PRODUCTS_PER_CATEGORY) continue;
     attemptedProducts.add(productId);
     try {

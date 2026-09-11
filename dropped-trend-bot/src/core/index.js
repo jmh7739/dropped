@@ -8,5 +8,6 @@ module.exports = {
   ...require("./productScoring"),
   ...require("./productDiversity"),
   ...require("./productImage"),
+  ...require("./displayRanking"),
   ...require("./affiliateQueue"),
 };

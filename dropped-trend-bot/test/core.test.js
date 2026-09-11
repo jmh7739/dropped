@@ -1,6 +1,6 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { calculateHotScore, isHardExcluded, rankStatus, calculateProductScore, selectHotTrends, isBadTitle, diversifyProductSelections, isUsableProductImage, normalizeProductImage } = require("../src/core");
+const { calculateHotScore, isHardExcluded, rankStatus, calculateProductScore, selectHotTrends, isBadTitle, diversifyProductSelections, isUsableProductImage, normalizeProductImage, rankDisplayTrends, productLimitForTrend } = require("../src/core");
 
 test("서비스/여행형 키워드를 제외한다", () => {
   ["부산요트투어", "일본여행", "식전영상", "연극예매", "렌터카", "캠핑카렌트"].forEach(value => assert.equal(isHardExcluded(value), true));
@@ -26,6 +26,16 @@ test("직전 TOP20 기준 등락 표기를 계산한다", () => {
   assert.deepEqual(rankStatus(8, 6), { status: "down", rankChange: -2 });
   assert.deepEqual(rankStatus(4, null), { status: "NEW", rankChange: null });
   assert.deepEqual(rankStatus(2, 2), { status: "same", rankChange: 0 });
+});
+
+test("화면 직전 순위가 원본 트렌드 정렬 점수를 뒤집지 않는다", () => {
+  const collected = [
+    { keyword: "상위", normalizedKeyword: "상위", trendScore: 90, currentRank: 2 },
+    { keyword: "하위", normalizedKeyword: "하위", trendScore: 70, currentRank: 1 },
+  ];
+  const ranked = rankDisplayTrends(collected, new Map([["상위", 20], ["하위", 1]]), 20);
+  assert.deepEqual(ranked.map(item => item.keyword), ["상위", "하위"]);
+  assert.deepEqual(ranked.map(item => item.displayScore), [90, 70]);
 });
 
 test("본상품이 액세서리보다 높은 Product Score를 받는다", () => {
@@ -63,4 +73,10 @@ test("트렌드 상품을 카테고리 라운드로빈으로 다양하게 선발
   }));
   const selected = diversifyProductSelections(rows, 4);
   assert.equal(new Set(selected.map(row => row.trend.category)).size, 4);
+});
+
+test("실시간 1~3위는 상품을 네 개까지 선발한다", () => {
+  assert.equal(productLimitForTrend({ displayRank: 1 }), 4);
+  assert.equal(productLimitForTrend({ displayRank: 3 }), 4);
+  assert.equal(productLimitForTrend({ displayRank: 4 }), 2);
 });
