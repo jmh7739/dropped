@@ -13,6 +13,7 @@ const {
   normalizeProductImage,
   rankDisplayTrends,
   productLimitForTrend,
+  calculateProductScore,
 } = require("./core");
 
 function loadLocalEnv() {
@@ -111,6 +112,51 @@ async function ensureProduct(db, trend, product) {
   return created;
 }
 
+async function appendReusableTopProducts(db, rankedTrends, active, activePerTrend, activePerCategory) {
+  if (active.length >= config.TRENDING_PRODUCT_MAX) return;
+  const { data: products, error } = await db
+    .from("products")
+    .select("id,title,image_url,affiliate_url")
+    .eq("platform", "coupang")
+    .like("affiliate_url", "https://link.coupang.com/%")
+    .limit(500);
+  if (error) throw error;
+
+  const usedProductIds = new Set(active.map(row => String(row.product_id)));
+  for (const trend of rankedTrends.slice(0, config.TOP_TREND_COUNT)) {
+    if (active.length >= config.TRENDING_PRODUCT_MAX) break;
+    const trendKey = trend.normalizedKeyword || trend.keyword;
+    const category = trend.category || "기타";
+    const reusable = (products || [])
+      .filter(product => !usedProductIds.has(String(product.id)) && isUsableProductImage(product.image_url))
+      .map((product, index) => ({
+        product,
+        score: calculateProductScore(trend.keyword, { title: product.title, imageUrl: product.image_url }, index + 8),
+      }))
+      .filter(row => row.score >= config.MIN_PRODUCT_SCORE)
+      .sort((a, b) => b.score - a.score);
+
+    for (const { product, score } of reusable) {
+      if (active.length >= config.TRENDING_PRODUCT_MAX) break;
+      if ((activePerTrend.get(trendKey) || 0) >= productLimitForTrend(trend)) break;
+      if ((activePerCategory.get(category) || 0) >= config.MAX_TRENDING_PRODUCTS_PER_CATEGORY) break;
+      if (usedProductIds.has(String(product.id))) continue;
+      active.push({
+        keyword: trend.keyword,
+        product_id: product.id,
+        product_score: score,
+        hot_score: trend.trendScore,
+        category: trend.category,
+        is_active: true,
+        updated_at: new Date().toISOString(),
+      });
+      usedProductIds.add(String(product.id));
+      activePerTrend.set(trendKey, (activePerTrend.get(trendKey) || 0) + 1);
+      activePerCategory.set(category, (activePerCategory.get(category) || 0) + 1);
+    }
+  }
+}
+
 async function saveTrendingProducts(db, trends) {
   // 우선 검색어당 설정 개수만 노출하되, 링크 제한 상품이 있으면 다음 후보까지 확인한다.
   const rankedTrends = trends.map((trend, index) => ({ ...trend, displayRank: index + 1 }));
@@ -150,6 +196,8 @@ async function saveTrendingProducts(db, trends) {
       console.warn(`[상품 저장 실패] ${trend.keyword}: ${error.message}`);
     }
   }
+  // 새 후보의 링크가 제한/대기 상태여도, 이전에 검증된 쿠팡 수익링크 상품으로 상위 1~3위를 보강한다.
+  await appendReusableTopProducts(db, rankedTrends, active, activePerTrend, activePerCategory);
   if (active.length < config.TRENDING_PRODUCT_MIN) {
     console.warn(`요즘 뜨는 상품 준비 ${active.length}/${config.TRENDING_PRODUCT_MIN}개: 기존 활성 목록을 유지합니다.`);
     return [];

@@ -48,6 +48,11 @@ function inspectPage() {
         text
       ),
 
+    linkRestricted:
+      /파트너스 링크 생성이 제한|링크 생성이 제한된 상품/i.test(
+        text
+      ),
+
     linkPage:
       /간편 링크|링크 생성/i.test(
         text
@@ -326,8 +331,12 @@ async function generate(
   button.click();
 
 
+  const startedAt =
+    Date.now();
+
+
   const timeout =
-    Date.now() +
+    startedAt +
     12000;
 
 
@@ -367,7 +376,6 @@ async function generate(
       throw error;
     }
 
-
     const links =
       extractLinks();
 
@@ -396,6 +404,15 @@ async function generate(
         links.length -
         1
       ];
+    }
+
+
+    // 직전 상품의 제한 안내가 잠시 남을 수 있어 새 결과를 먼저 확인한다.
+    if (
+      state.linkRestricted &&
+      Date.now() - startedAt > 1500
+    ) {
+      throw new Error("파트너스 링크 생성 제한 상품입니다.");
     }
   }
 
