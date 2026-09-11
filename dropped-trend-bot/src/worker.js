@@ -139,7 +139,6 @@ async function appendReusableTopProducts(db, rankedTrends, active, activePerTren
     for (const { product, score } of reusable) {
       if (active.length >= config.TRENDING_PRODUCT_MAX) break;
       if ((activePerTrend.get(trendKey) || 0) >= productLimitForTrend(trend)) break;
-      if ((activePerCategory.get(category) || 0) >= config.MAX_TRENDING_PRODUCTS_PER_CATEGORY) break;
       if (usedProductIds.has(String(product.id))) continue;
       active.push({
         keyword: trend.keyword,
