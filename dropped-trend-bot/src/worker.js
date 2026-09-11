@@ -41,11 +41,22 @@ function getDb() {
   return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
 }
 
-async function latestTrendMap(db) {
-  const { data: newest, error } = await db.from("realtime_trends").select("collected_at").eq("is_published", true).order("collected_at", { ascending: false }).limit(1);
+async function dayAgoTrendMap(db) {
+  const target = Date.now() - config.RANK_CHANGE_LOOKBACK_MS;
+  const from = new Date(target - config.RANK_CHANGE_WINDOW_MS).toISOString();
+  const to = new Date(target + config.RANK_CHANGE_WINDOW_MS).toISOString();
+  const { data: snapshots, error } = await db
+    .from("realtime_trends")
+    .select("collected_at")
+    .eq("is_published", true)
+    .gte("collected_at", from)
+    .lte("collected_at", to)
+    .order("collected_at", { ascending: false });
   if (error) throw error;
-  if (!newest?.length) return new Map();
-  const { data, error: rowsError } = await db.from("realtime_trends").select("normalized_keyword,rank").eq("collected_at", newest[0].collected_at);
+  if (!snapshots?.length) return new Map();
+  const collectedAt = [...new Set(snapshots.map(row => row.collected_at))]
+    .sort((a, b) => Math.abs(new Date(a).getTime() - target) - Math.abs(new Date(b).getTime() - target))[0];
+  const { data, error: rowsError } = await db.from("realtime_trends").select("normalized_keyword,rank").eq("collected_at", collectedAt);
   if (rowsError) throw rowsError;
   return new Map((data || []).map(row => [row.normalized_keyword, row.rank]));
 }
@@ -101,7 +112,7 @@ async function enqueueIfMissing(db, item) {
 }
 
 async function saveRealtimeTrends(db, collected) {
-  const previous = await latestTrendMap(db);
+  const previous = await dayAgoTrendMap(db);
   const rescored = rankDisplayTrends(collected, previous, config.REALTIME_TREND_LIMIT);
   const collectedAt = new Date().toISOString();
   const rows = [];
