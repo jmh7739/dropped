@@ -26,7 +26,7 @@ function Movement({ trend }: { trend: RealtimeTrend }) {
     return <span className="text-[11px] font-bold text-red-500">▲{trend.rankChange}</span>;
   if (trend.status === "down")
     return <span className="text-[11px] font-bold text-blue-500">▼{Math.abs(trend.rankChange || 0)}</span>;
-  return <span className="text-[11px] font-bold text-gray-400">동일</span>;
+  return <span className="text-[11px] font-bold text-gray-400">-</span>;
 }
 
 /** 순위/키워드/증감 한 줄. asLink=true면 제휴 검색으로 이동(펼친 목록에서만). */
