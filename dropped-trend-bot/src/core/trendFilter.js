@@ -30,6 +30,7 @@ const BRANDS = [
   "소니", "캐논", "나이키", "아디다스", "뉴발란스", "호카", "살로몬", "헤라", "설화수", "에스티로더",
   "스팸", "정관장", "레고", "포켓몬", "샤오미", "로보락", "발뮤다", "쿠쿠", "브라운", "필립스",
 ];
+const SHOPPING_INTENT = /선물세트|화장품|스킨|로션|에센스|크림|아이크림|쿠션|파운데이션|립스틱|샴푸|운동화|등산화|구두|슬리퍼|샌들|바람막이|패딩|가디건|원피스|재킷|자켓|가방|백팩|스마트폰|태블릿|노트북|모니터|게임기|콘솔|이어폰|헤드폰|카메라|청소기|안마기|캠핑용품|골프채|낚싯대|유모차|카시트|기저귀|분유|갈비|한우|꽃게|대하|굴비|과일세트|홍삼|영양제|유산균|비타민/;
 
 function isServiceKeyword(keyword) {
   const value = normalizeKeyword(keyword);
@@ -63,11 +64,17 @@ function hasMatchingBrand(keyword, title) {
   });
 }
 
+function isLikelyShoppingKeyword(keyword) {
+  const value = normalizeKeyword(keyword);
+  return !isHardExcluded(value) && (hasBrandSignal(value) || SHOPPING_INTENT.test(value));
+}
+
 module.exports = {
   isServiceKeyword,
   isHardExcluded,
   genericPenalty,
   hasBrandSignal,
   hasMatchingBrand,
+  isLikelyShoppingKeyword,
   GENERIC_TERMS,
 };

@@ -1,6 +1,6 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { calculateHotScore, isHardExcluded, rankStatus, calculateProductScore, selectHotTrends, isBadTitle, diversifyProductSelections, isUsableProductImage, normalizeProductImage, rankDisplayTrends, productLimitForTrend } = require("../src/core");
+const { calculateHotScore, isHardExcluded, rankStatus, calculateProductScore, selectHotTrends, isBadTitle, diversifyProductSelections, isUsableProductImage, normalizeProductImage, rankDisplayTrends, productLimitForTrend, isLikelyShoppingKeyword, parseGoogleTrendRss } = require("../src/core");
 
 test("서비스/여행형 키워드를 제외한다", () => {
   ["부산요트투어", "일본여행", "식전영상", "연극예매", "렌터카", "캠핑카렌트"].forEach(value => assert.equal(isHardExcluded(value), true));
@@ -9,6 +9,16 @@ test("서비스/여행형 키워드를 제외한다", () => {
 test("범용 가전·사무·생활용품 키워드를 제외한다", () => {
   ["에어컨", "캐리어냉난방기", "전자레인지", "전자렌지", "A4용지", "복사용지", "빨래건조대", "가습기", "청호나이스정수기", "수건"].forEach(value => assert.equal(isHardExcluded(value), true));
   ["닌텐도스위치2", "AHC아이크림", "스팸선물세트", "나이키운동화"].forEach(value => assert.equal(isHardExcluded(value), false));
+});
+
+test("Google 급상승에서는 사람·뉴스·A4 용지를 빼고 상품형 검색어만 허용한다", () => {
+  ["이서진", "손예진 아들", "한화 대 SSG", "A4용지", "전자레인지"].forEach(value => assert.equal(isLikelyShoppingKeyword(value), false));
+  ["아디다스 운동화", "아이폰 듀오", "추석 선물세트", "AHC 아이크림"].forEach(value => assert.equal(isLikelyShoppingKeyword(value), true));
+});
+
+test("Google RSS에서 상품형 급상승 검색어만 파싱한다", () => {
+  const xml = `<rss xmlns:ht="x"><channel><item><title>이서진</title><ht:approx_traffic>5K+</ht:approx_traffic><pubDate>x</pubDate></item><item><title>아디다스 운동화</title><ht:approx_traffic>20K+</ht:approx_traffic><pubDate>y</pubDate></item><item><title>A4용지</title><ht:approx_traffic>10K+</ht:approx_traffic><pubDate>z</pubDate></item></channel></rss>`;
+  assert.deepEqual(parseGoogleTrendRss(xml).map(item => [item.title, item.traffic]), [["아디다스 운동화", 20000]]);
 });
 
 test("시즌/브랜드/모델 키워드가 범용어보다 높은 Hot Score를 받는다", () => {

@@ -9,5 +9,6 @@ module.exports = {
   ...require("./productDiversity"),
   ...require("./productImage"),
   ...require("./displayRanking"),
+  ...require("./googleTrend"),
   ...require("./affiliateQueue"),
 };

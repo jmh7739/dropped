@@ -11,6 +11,9 @@ const {
   isUsableProductImage,
   normalizeProductImage,
   isHardExcluded: coreIsHardExcluded,
+  parseGoogleTrendRss,
+  googleTrendScore,
+  inferShoppingCategory,
 } = require("./core");
 
 
@@ -40,6 +43,9 @@ const NAVER_PAGE =
 
 const NAVER_ENDPOINT =
   "/shoppingInsight/getCategoryKeywordRank.naver";
+
+const GOOGLE_TRENDS_RSS =
+  "https://trends.google.com/trending/rss?geo=KR&hl=ko";
 
 
 /* =========================================================
@@ -255,6 +261,26 @@ function specificityBonus(keyword) {
   }
 
   return bonus;
+}
+
+async function collectGoogleShoppingSignals(log) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
+  try {
+    const response = await fetch(GOOGLE_TRENDS_RSS, {
+      headers: { "user-agent": "Mozilla/5.0 DroppedTrendBot/1.0" },
+      signal: controller.signal,
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const items = parseGoogleTrendRss(await response.text());
+    log(`Google 최근 급상승 중 상품형 신호 ${items.length}개`);
+    return items;
+  } catch (error) {
+    log(`  ⚠ Google 실시간 신호 생략: ${error?.message || String(error)}`);
+    return [];
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 
@@ -1241,8 +1267,41 @@ async function collectTrends(
 
   // 품질 우선 전체 선발. 카테고리별 강제 할당은 하지 않고
   // 한 카테고리의 과도한 독점만 느슨하게 제한한다.
+  const combined = groups.flatMap(group => group.candidates);
+  const googleSignals = await collectGoogleShoppingSignals(log);
+  for (const signal of googleSignals) {
+    const matching = combined.find(item => {
+      const daily = normalize(item.keyword);
+      return daily === signal.normalizedKeyword ||
+        (daily.length >= 3 && signal.normalizedKeyword.includes(daily)) ||
+        (signal.normalizedKeyword.length >= 3 && daily.includes(signal.normalizedKeyword));
+    });
+    const score = googleTrendScore(signal);
+    if (matching) {
+      matching.trendScore = Math.max(matching.trendScore, score);
+      matching.trendType = "🔥 실시간 상승";
+      matching.reason = `${matching.reason} · Google 최근 급상승`;
+      continue;
+    }
+    combined.push({
+      keyword: signal.title,
+      normalizedKeyword: signal.normalizedKeyword,
+      category: inferShoppingCategory(signal.title),
+      sourceCategory: "Google 최근 급상승",
+      currentRank: signal.sourceRank,
+      previousRank: null,
+      rankChange: null,
+      trendScore: score,
+      trendType: "🔥 실시간 상승",
+      genericPenalty: 0,
+      specificityBonus: coreSpecificityBonus(signal.title),
+      observedDate: signal.publishedAt || new Date().toISOString(),
+      reason: `Google 최근 급상승 ${signal.sourceRank}위`,
+    });
+  }
+
   const selected = selectHotTrends(
-    groups.flatMap(group => group.candidates),
+    combined,
     FINAL_TREND_COUNT
   );
 
