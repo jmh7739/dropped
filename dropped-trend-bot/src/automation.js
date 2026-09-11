@@ -10,6 +10,7 @@ const {
   productQueueItem,
   isUsableProductImage,
   normalizeProductImage,
+  isHardExcluded: coreIsHardExcluded,
 } = require("./core");
 
 
@@ -149,18 +150,6 @@ const GENERIC_WORDS = new Set([
 ]);
 
 
-/*
-  이것들만 완전 제외.
-*/
-const HARD_EXCLUDE = new Set([
-  "상품",
-  "제품",
-  "추천",
-  "할인",
-  "세일"
-]);
-
-
 /* =========================================================
    공통
 ========================================================= */
@@ -227,22 +216,7 @@ function addDays(date, amount) {
 ========================================================= */
 
 function isHardExcluded(keyword) {
-  const word =
-    normalize(keyword);
-
-  if (!word) {
-    return true;
-  }
-
-  if (word.length < 2) {
-    return true;
-  }
-
-  if (/^[0-9]+$/.test(word)) {
-    return true;
-  }
-
-  return HARD_EXCLUDE.has(word);
+  return coreIsHardExcluded(keyword);
 }
 
 

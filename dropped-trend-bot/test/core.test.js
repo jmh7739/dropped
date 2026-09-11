@@ -6,6 +6,11 @@ test("서비스/여행형 키워드를 제외한다", () => {
   ["부산요트투어", "일본여행", "식전영상", "연극예매", "렌터카", "캠핑카렌트"].forEach(value => assert.equal(isHardExcluded(value), true));
 });
 
+test("범용 가전·사무·생활용품 키워드를 제외한다", () => {
+  ["에어컨", "캐리어냉난방기", "전자레인지", "전자렌지", "A4용지", "복사용지", "빨래건조대", "가습기"].forEach(value => assert.equal(isHardExcluded(value), true));
+  ["닌텐도스위치2", "AHC아이크림", "스팸선물세트", "나이키운동화"].forEach(value => assert.equal(isHardExcluded(value), false));
+});
+
 test("시즌/브랜드/모델 키워드가 범용어보다 높은 Hot Score를 받는다", () => {
   const generic = calculateHotScore(1, 2, "사다리");
   const seasonal = calculateHotScore(7, 18, "추석선물세트");

@@ -1,6 +1,13 @@
 const { normalizeKeyword } = require("./text");
 
 const HARD_EXCLUDE = new Set(["상품", "제품", "추천", "할인", "세일"]);
+const LOW_SIGNAL_PATTERNS = [
+  /에어컨|냉난방기/,
+  /전자레인지|전자렌지/,
+  /a4용지|복사용지/i,
+  /빨래건조대|의류건조대|^건조대$/,
+  /^가습기$/,
+];
 const SERVICE_PATTERNS = [
   /여행|투어|크루즈|배편|항공권|렌터카|렌트카|렌트|대여|숙박|호텔|리조트|펜션|예약/,
   /공연|연극|뮤지컬|콘서트|전시|관람권|입장권|체험권|이용권/,
@@ -32,7 +39,7 @@ function isServiceKeyword(keyword) {
 
 function isHardExcluded(keyword) {
   const value = normalizeKeyword(keyword);
-  return !value || value.length < 2 || /^\d+$/.test(value) || HARD_EXCLUDE.has(value) || isServiceKeyword(value);
+  return !value || value.length < 2 || /^\d+$/.test(value) || HARD_EXCLUDE.has(value) || LOW_SIGNAL_PATTERNS.some(pattern => pattern.test(value)) || isServiceKeyword(value);
 }
 
 function genericPenalty(keyword) {
