@@ -1,11 +1,17 @@
 name: 실시간 인기·트렌드 상품 자동 갱신
 
 on:
-  schedule:
-    # 실시간 인기: 매시간, 트렌드 상품: 4시간마다. 혼잡한 정각은 피한다.
-    - cron: "7 * * * *"
-    - cron: "17 */4 * * *"
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 실행할 갱신 작업
+        required: true
+        default: all
+        type: choice
+        options:
+          - all
+          - realtime
+          - products
 
 concurrency:
   group: dropped-trends
@@ -37,5 +43,5 @@ jobs:
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          TREND_MODE: ${{ github.event_name == 'workflow_dispatch' && 'all' || github.event.schedule == '7 * * * *' && 'realtime' || 'products' }}
+          TREND_MODE: ${{ inputs.mode || 'all' }}
         run: node src/worker.js "$TREND_MODE"
