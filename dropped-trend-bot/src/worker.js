@@ -49,6 +49,31 @@ async function latestTrendMap(db) {
   return new Map((data || []).map(row => [row.normalized_keyword, row.rank]));
 }
 
+async function latestPublishedTopTrends(db) {
+  const { data: newest, error } = await db
+    .from("realtime_trends")
+    .select("collected_at")
+    .eq("is_published", true)
+    .order("collected_at", { ascending: false })
+    .limit(1);
+  if (error) throw error;
+  if (!newest?.length) return [];
+  const { data, error: rowsError } = await db
+    .from("realtime_trends")
+    .select("keyword,normalized_keyword,rank,hot_score,category")
+    .eq("collected_at", newest[0].collected_at)
+    .order("rank", { ascending: true })
+    .limit(config.TOP_TREND_COUNT);
+  if (rowsError) throw rowsError;
+  return (data || []).map(row => ({
+    keyword: row.keyword,
+    normalizedKeyword: row.normalized_keyword,
+    displayRank: row.rank,
+    trendScore: Number(row.hot_score || 0),
+    category: row.category,
+  }));
+}
+
 async function enqueueIfMissing(db, item) {
   if (item.type === "keywordSearch") {
     const { data: cached } = await db.from("affiliate_keyword_cache").select("affiliate_url").eq("normalized_keyword", item.normalizedKeyword).maybeSingle();
@@ -195,8 +220,9 @@ async function saveTrendingProducts(db, trends) {
       console.warn(`[상품 저장 실패] ${trend.keyword}: ${error.message}`);
     }
   }
-  // 새 후보의 링크가 제한/대기 상태여도, 이전에 검증된 쿠팡 수익링크 상품으로 상위 1~3위를 보강한다.
-  await appendReusableTopProducts(db, rankedTrends, active, activePerTrend, activePerCategory);
+  // 상품 수집 내부 순위가 아니라 홈에 게시된 실제 1~3위를 우선 보강한다.
+  const publishedTopTrends = await latestPublishedTopTrends(db);
+  await appendReusableTopProducts(db, publishedTopTrends.length ? publishedTopTrends : rankedTrends, active, activePerTrend, activePerCategory);
   if (active.length < config.TRENDING_PRODUCT_MIN) {
     console.warn(`요즘 뜨는 상품 준비 ${active.length}/${config.TRENDING_PRODUCT_MIN}개: 기존 활성 목록을 유지합니다.`);
     return [];
