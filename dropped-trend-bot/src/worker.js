@@ -14,6 +14,7 @@ const {
   rankDisplayTrends,
   productLimitForTrend,
   calculateProductScore,
+  normalizeKeyword,
 } = require("./core");
 
 function loadLocalEnv() {
@@ -153,7 +154,7 @@ async function appendReusableTopProducts(db, rankedTrends, active, activePerTren
     const trendKey = trend.normalizedKeyword || trend.keyword;
     const category = trend.category || "기타";
     const reusable = (products || [])
-      .filter(product => !usedProductIds.has(String(product.id)) && isUsableProductImage(product.image_url))
+      .filter(product => isUsableProductImage(product.image_url))
       .map((product, index) => ({
         product,
         score: calculateProductScore(trend.keyword, { title: product.title, imageUrl: product.image_url }, index + 8),
@@ -162,9 +163,22 @@ async function appendReusableTopProducts(db, rankedTrends, active, activePerTren
       .sort((a, b) => b.score - a.score);
 
     for (const { product, score } of reusable) {
+      const currentTrendCount = active.filter(row => normalizeKeyword(row.keyword) === trendKey).length;
+      if (currentTrendCount >= productLimitForTrend(trend)) break;
+      const existingActive = active.find(row => String(row.product_id) === String(product.id));
+      if (existingActive) {
+        const oldTrendKey = normalizeKeyword(existingActive.keyword);
+        if (oldTrendKey !== trendKey) {
+          existingActive.keyword = trend.keyword;
+          existingActive.product_score = Math.max(Number(existingActive.product_score || 0), score);
+          existingActive.hot_score = trend.trendScore;
+          existingActive.category = trend.category;
+          activePerTrend.set(oldTrendKey, Math.max(0, (activePerTrend.get(oldTrendKey) || 1) - 1));
+          activePerTrend.set(trendKey, (activePerTrend.get(trendKey) || 0) + 1);
+        }
+        continue;
+      }
       if (active.length >= config.TRENDING_PRODUCT_MAX) break;
-      if ((activePerTrend.get(trendKey) || 0) >= productLimitForTrend(trend)) break;
-      if (usedProductIds.has(String(product.id))) continue;
       active.push({
         keyword: trend.keyword,
         product_id: product.id,
