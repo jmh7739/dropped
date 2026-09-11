@@ -30,7 +30,7 @@ function usableProductImage(value: unknown): string {
 
 function blockedTrendKeyword(value: unknown): boolean {
   const keyword = String(value || "").toLowerCase().replace(/[^0-9a-z가-힣]/gi, "");
-  return /에어컨|냉난방기|전자레인지|전자렌지|a4용지|복사용지|빨래건조대|의류건조대/.test(keyword) || keyword === "건조대" || keyword === "가습기";
+  return /(에어컨|냉난방기|전자레인지|전자렌지|정수기|공기청정기|세탁기|냉장고|음식물처리기|비데|안마의자)$/.test(keyword) || /a4용지|복사용지|빨래건조대|의류건조대/.test(keyword) || keyword === "건조대" || keyword === "가습기" || keyword === "수건";
 }
 
 export async function getRealtimeTrends(): Promise<RealtimeTrend[]> {

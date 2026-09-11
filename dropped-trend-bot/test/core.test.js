@@ -7,7 +7,7 @@ test("서비스/여행형 키워드를 제외한다", () => {
 });
 
 test("범용 가전·사무·생활용품 키워드를 제외한다", () => {
-  ["에어컨", "캐리어냉난방기", "전자레인지", "전자렌지", "A4용지", "복사용지", "빨래건조대", "가습기"].forEach(value => assert.equal(isHardExcluded(value), true));
+  ["에어컨", "캐리어냉난방기", "전자레인지", "전자렌지", "A4용지", "복사용지", "빨래건조대", "가습기", "청호나이스정수기", "수건"].forEach(value => assert.equal(isHardExcluded(value), true));
   ["닌텐도스위치2", "AHC아이크림", "스팸선물세트", "나이키운동화"].forEach(value => assert.equal(isHardExcluded(value), false));
 });
 
