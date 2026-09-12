@@ -274,7 +274,15 @@ export default async function Home({
     ? diversifyTop(
         trackedDeals
           .filter((d) => d.isLowestEver && (d.trackedDays ?? 0) >= 7)
-          .sort((a, b) => (b.trackedDays ?? 0) - (a.trackedDays ?? 0)),
+          .sort((a, b) => {
+            // 최저가라는 사실만으로 -1%, -3% 상품이 앞에 오지 않도록
+            // DROP SCORE → 평균 대비 하락률 → 추적기간 순으로 강한 딜을 우선한다.
+            const scoreGap = (dropScore(b).score ?? 0) - (dropScore(a).score ?? 0);
+            if (scoreGap !== 0) return scoreGap;
+            const rateGap = headlineDropRate(b) - headlineDropRate(a);
+            if (rateGap !== 0) return rateGap;
+            return (b.trackedDays ?? 0) - (a.trackedDays ?? 0);
+          }),
         8,
         2
       )
@@ -329,7 +337,7 @@ export default async function Home({
           deals={topDrops}
           header={
             <h2 className="mb-3 text-lg font-extrabold text-gray-900">
-              🔥 오늘 진짜 떨어진 가격
+              🔥 지금 진짜 떨어진 가격
             </h2>
           }
         />
