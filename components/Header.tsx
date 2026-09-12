@@ -1,12 +1,11 @@
 import Link from "next/link";
 import RealtimeTrendTicker from "./RealtimeTrendTicker";
+import SectionNav from "./SectionNav";
 import { getRealtimeTrends } from "@/lib/trends";
 
-const NAV = [
+const DETAIL_NAV = [
   { href: "/price-drop", label: "🔥 가격급락" },
   { href: "/lowest-price", label: "🏆 추적 최저가" },
-  { href: "/deals", label: "베스트딜" },
-  { href: "/?category=flight", label: "✈️ 여행" },
 ];
 
 export default async function Header() {
@@ -23,8 +22,13 @@ export default async function Header() {
           </svg>
           <span className="text-lg font-extrabold tracking-tight">떨어졌다</span>
         </Link>
-        <nav className="hidden items-center gap-1 text-sm sm:flex">
-          {NAV.map((n) => (
+        <RealtimeTrendTicker trends={trends} />
+      </div>
+      <div className="border-t border-gray-100">
+        <div className="mx-auto flex min-h-12 max-w-6xl items-center gap-3 overflow-x-auto px-4 py-2">
+          <SectionNav />
+          <nav className="hidden items-center gap-1 border-l border-gray-200 pl-3 text-sm md:flex">
+          {DETAIL_NAV.map((n) => (
             <Link
               key={n.href}
               href={n.href}
@@ -33,8 +37,8 @@ export default async function Header() {
               {n.label}
             </Link>
           ))}
-        </nav>
-        <RealtimeTrendTicker trends={trends} />
+          </nav>
+        </div>
       </div>
     </header>
   );
