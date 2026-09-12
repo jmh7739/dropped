@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import RealtimeTrendTicker from "./RealtimeTrendTicker";
 import SectionNav from "./SectionNav";
 import { getRealtimeTrends } from "@/lib/trends";
@@ -26,7 +27,14 @@ export default async function Header() {
       </div>
       <div className="border-t border-gray-100">
         <div className="mx-auto flex min-h-12 max-w-6xl items-center gap-3 overflow-x-auto px-4 py-2">
-          <SectionNav />
+          <Suspense fallback={
+            <nav className="flex items-center gap-1.5" aria-label="주요 섹션">
+              <Link href="/" className="rounded-full bg-brand px-4 py-1.5 text-sm font-extrabold text-white shadow-sm">🔥 핫딜</Link>
+              <Link href="/?category=flight" className="rounded-full border border-gray-200 bg-white px-4 py-1.5 text-sm font-extrabold text-gray-700">✈️ 여행딜</Link>
+            </nav>
+          }>
+            <SectionNav />
+          </Suspense>
           <nav className="hidden items-center gap-1 border-l border-gray-200 pl-3 text-sm md:flex">
           {DETAIL_NAV.map((n) => (
             <Link
