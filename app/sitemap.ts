@@ -11,6 +11,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticRoutes: MetadataRoute.Sitemap = [
     { url: SITE_URL, changeFrequency: "hourly", priority: 1 },
     { url: `${SITE_URL}/about`, changeFrequency: "monthly", priority: 0.5 },
+    { url: `${SITE_URL}/deals`, changeFrequency: "hourly", priority: 0.9 },
+    { url: `${SITE_URL}/deals/domestic`, changeFrequency: "hourly", priority: 0.8 },
+    { url: `${SITE_URL}/deals/global`, changeFrequency: "hourly", priority: 0.8 },
+    { url: `${SITE_URL}/lowest-price`, changeFrequency: "hourly", priority: 0.9 },
+    { url: `${SITE_URL}/price-drop`, changeFrequency: "hourly", priority: 0.9 },
     ...CATEGORIES.filter((c) => c.dealType === "shopping").map((c) => ({
       url: `${SITE_URL}/category/${c.slug}`,
       changeFrequency: "hourly" as const,

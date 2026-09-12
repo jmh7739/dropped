@@ -77,8 +77,7 @@ export function dealStatus(
     return { label: `🔥 ${tag} -${Math.round(rate)}%`, cls: "bg-red-600 text-white" };
   if (isLowestEver && rate >= 12) {
     const days = trackedDays ?? 0;
-    const label =
-      days >= 60 ? "🏆 역대 최저가" : days >= 14 ? "🏆 추적 최저가" : "🏆 최근 최저";
+    const label = days >= 90 ? "🏆 90일 최저가" : `🏆 추적 ${Math.max(days, 1)}일 최저가`;
     return { label, cls: "bg-amber-400 text-amber-950" };
   }
   if (rate >= 8)

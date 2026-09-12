@@ -2,7 +2,7 @@ import { PricePoint } from "./types";
 
 /**
  * 가격 리포트 — "그래서 지금 사? 기다려?"에 답하기 위한 통계 + 최종 판정.
- * 상품 이력(price_history)에서 7일/30일 평균·최저, 역대 최저, 추적기간을 계산한다.
+ * 상품 이력(price_history)에서 기간별 평균·최저와 실제 추적기간을 계산한다.
  */
 export type PriceStats = {
   current: number;
@@ -62,7 +62,7 @@ export function priceStats(
     trackedDays,
     percentile: Math.round((rank / sorted.length) * 100),
     isLowest: current <= minAll,
-    lowestLabel: `추적 ${trackedDays}일 중 최저`,
+    lowestLabel: trackedDays >= 90 ? "90일 최저가" : `추적 ${trackedDays}일 최저가`,
     enoughData: prices.length >= 10 && trackedDays >= 7,
   };
 }

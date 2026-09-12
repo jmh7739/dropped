@@ -29,6 +29,25 @@ export default function AboutPage() {
       </section>
 
       <section className="mt-8">
+        <h2 className="text-lg font-bold">가격 판정은 언제 믿을 수 있나요?</h2>
+        <div className="mt-3 overflow-hidden rounded-xl border border-gray-200 bg-white text-sm">
+          {[
+            ["🔵 7일 미만", "신규 추적"],
+            ["🟡 7~29일", "가격 데이터 축적 중"],
+            ["🟢 30~89일", "30일 가격판정 가능"],
+            ["🏆 90일 이상", "90일 최저·평균 판정 가능"],
+          ].map(([period, meaning]) => (
+            <div key={period} className="grid grid-cols-2 border-b border-gray-100 px-4 py-2.5 last:border-0">
+              <strong>{period}</strong><span className="text-gray-600">{meaning}</span>
+            </div>
+          ))}
+        </div>
+        <p className="mt-2 text-xs text-gray-500">
+          90일 이력이 없으면 “90일 최저가”라고 표시하지 않고, 실제 추적 기간을 함께 밝힙니다.
+        </p>
+      </section>
+
+      <section className="mt-8">
         <h2 className="text-lg font-bold">어떻게 작동하나요?</h2>
         <ul className="mt-3 space-y-2 text-gray-700">
           <li className="flex gap-2">

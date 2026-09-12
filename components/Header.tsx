@@ -3,7 +3,9 @@ import RealtimeTrendTicker from "./RealtimeTrendTicker";
 import { getRealtimeTrends } from "@/lib/trends";
 
 const NAV = [
-  { href: "/", label: "베스트딜" },
+  { href: "/price-drop", label: "🔥 가격급락" },
+  { href: "/lowest-price", label: "🏆 추적 최저가" },
+  { href: "/deals", label: "베스트딜" },
   { href: "/?category=flight", label: "✈️ 여행" },
 ];
 

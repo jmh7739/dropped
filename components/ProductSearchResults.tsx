@@ -57,13 +57,17 @@ export default function ProductSearchResults({
               <h3 className="line-clamp-2 text-sm font-medium text-gray-800">
                 {r.title}
               </h3>
-              <div className="mt-auto flex items-baseline justify-between pt-1">
-                <span className="text-base font-extrabold text-brand">
-                  {formatWon(r.currentPrice)}
-                </span>
-                <span className="whitespace-nowrap text-xs font-bold text-gray-400 group-hover:text-brand">
-                  가격추이 →
-                </span>
+              <div className="mt-auto space-y-1 border-t border-gray-100 pt-2 text-xs">
+                <div className="flex items-baseline justify-between gap-2">
+                  <span className="text-gray-500">현재 최저가</span>
+                  <span className="text-base font-extrabold text-brand">{formatWon(r.currentPrice)}</span>
+                </div>
+                {r.averagePrice != null && <div className="flex justify-between gap-2 text-gray-500"><span>{r.averageLabel}</span><strong className="text-gray-700">{formatWon(r.averagePrice)}</strong></div>}
+                <div className="flex justify-between gap-2 text-gray-500"><span>{r.lowestLabel}</span><strong className="text-gray-700">{formatWon(r.lowestPrice)}</strong></div>
+                <div className="flex justify-between gap-2 pt-1 font-bold">
+                  <span className={r.rate > 0 ? "text-blue-600" : "text-gray-400"}>평균 대비 {r.rate > 0 ? `-${r.rate}%` : "비슷함"}</span>
+                  <span className="text-gray-400 group-hover:text-brand">가격 그래프 →</span>
+                </div>
               </div>
             </div>
           </Link>

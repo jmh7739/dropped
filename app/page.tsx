@@ -5,7 +5,7 @@ import { getDeals, getCuratedDeals, getLastPriceUpdate, sortDealList, diversifyT
 import { searchProducts } from "@/lib/products";
 import { timeAgo } from "@/lib/format";
 import { isSupabaseConfigured } from "@/lib/supabase";
-import { isHealthDeal, headlineDropRate, dropScore } from "@/lib/dropMetrics";
+import { isHealthDeal, headlineDropRate, dropScore, isVerifiedBestDeal } from "@/lib/dropMetrics";
 import DealGrid from "@/components/DealGrid";
 import TopDrops from "@/components/TopDrops";
 import ProductSearchResults from "@/components/ProductSearchResults";
@@ -208,11 +208,20 @@ export default async function Home({
       return true;
     });
 
+  const isDefaultListing = !q.trim() && !category && !ps && !hot && !scope;
+  const isDefaultHome = isDefaultListing && page === 1;
+  // 기본 홈의 전체 목록은 가격이력으로 검증된 딜만 노출한다. 이력이 짧거나
+  // 정가 할인만 있는 상품은 아래 '새로 발견한 할인'에서 별도로 공개한다.
+  const verifiedOnly = isDefaultListing || searchParams.sec === "best";
+  const mainDeals = verifiedOnly
+    ? combinedDeals.filter(isVerifiedBestDeal)
+    : combinedDeals;
+
   // 건강/보충제는 메인 첫 화면 도배 방지. 카테고리로 직접 들어온 경우에는 그대로 보여준다.
   let healthShown = 0;
   const listDeals = category === "health"
-    ? combinedDeals
-    : combinedDeals.filter((d) => {
+    ? mainDeals
+    : mainDeals.filter((d) => {
         if (!isHealthDeal(d)) return true;
         healthShown += 1;
         return healthShown <= 1;
@@ -241,12 +250,13 @@ export default async function Home({
   const showTopStrip = !q.trim() && !ps && !hot && safePage === 1;
   const topDrops = showTopStrip
     ? diversifyTop(
-        listDeals
+        trackedDeals
           .filter((d) => {
             if (d.status === "ended") return false;
-            if (d.isCurated) return false;
             if (headlineDropRate(d) < 10) return false;
-            return dropScore(d).score !== null;
+            if ((d.trackedDays ?? 0) < 7) return false;
+            const checked = new Date(d.checkedAt ?? d.detectedAt).getTime();
+            return Number.isFinite(checked) && Date.now() - checked <= 24 * 3600 * 1000;
           })
           .sort((a, b) => {
             // 실제 가격이력이 충분한(7일+) 상품을 우선, 그다음 하락률 큰 순.
@@ -260,25 +270,36 @@ export default async function Home({
       )
     : [];
 
-  // 국내 베스트딜은 '평소가 이력'이 없어 위 '가격 이력 급락'엔 안 들어온다.
-  //   → 가격이력 급락 스트립이 없을 때(주로 국내딜 탭), 원가 대비 할인율 상위로
-  //     '국내 베스트딜 TOP' 스트립을 대신 보여준다. (스트립은 항상 최대 1개)
-  const topCurated =
-    showTopStrip && topDrops.length < 4
-      ? diversifyTop(
-          listDeals
-            .filter(
-              (d) =>
-                d.isCurated &&
-                d.status !== "ended" &&
-                d.listPrice > d.currentPrice &&
-                d.discountVsList >= 10
-            )
-            .sort((a, b) => b.discountVsList - a.discountVsList),
-          8,
-          2
-        )
-      : [];
+  const trackedLowest = isDefaultHome
+    ? diversifyTop(
+        trackedDeals
+          .filter((d) => d.isLowestEver && (d.trackedDays ?? 0) >= 7)
+          .sort((a, b) => (b.trackedDays ?? 0) - (a.trackedDays ?? 0)),
+        8,
+        2
+      )
+    : [];
+  const goodPrices = isDefaultHome
+    ? diversifyTop(
+        trackedDeals
+          .filter((d) => (d.trackedDays ?? 0) >= 10 && (dropScore(d).score ?? 0) >= 70)
+          .sort((a, b) => (dropScore(b).score ?? 0) - (dropScore(a).score ?? 0)),
+        8,
+        2
+      )
+    : [];
+  const newDiscounts = isDefaultHome
+    ? diversifyTop(
+        combinedDeals
+          .filter((d) =>
+            d.status !== "ended" &&
+            (d.isCurated ? d.discountVsList >= 40 : (d.trackedDays ?? 0) < 10 && headlineDropRate(d) >= 10)
+          )
+          .sort((a, b) => headlineDropRate(b) - headlineDropRate(a)),
+        8,
+        2
+      )
+    : [];
 
   const hrefFor = (next: Record<string, string | undefined>) => {
     const sp = new URLSearchParams();
@@ -296,39 +317,47 @@ export default async function Home({
 
       <div className="mb-5">
         <SearchBar initial={q} />
+        {!q && <p className="mt-2 text-center text-xs font-medium text-gray-500">판매자 할인율이 아니라 실제 가격 이력으로 판단합니다.</p>}
       </div>
-
-      <TrendingProducts products={trendingProducts} />
 
       {trackedMatches.length > 0 && (
         <ProductSearchResults rows={trackedMatches} query={q.trim()} />
       )}
 
-      {topDrops.length >= 4 ? (
+      {topDrops.length > 0 && (
         <TopDrops
           deals={topDrops}
           header={
             <h2 className="mb-3 text-lg font-extrabold text-gray-900">
-              🔥 가격 이력 급락 TOP
+              🔥 오늘 진짜 떨어진 가격
             </h2>
           }
         />
-      ) : topCurated.length >= 4 ? (
+      )}
+      {trackedLowest.length > 0 && (
         <TopDrops
-          deals={topCurated}
+          deals={trackedLowest}
           header={
             <h2 className="mb-3 text-lg font-extrabold text-gray-900">
-              🛒 국내 베스트딜 TOP
+              🏆 추적 최저가
             </h2>
           }
         />
-      ) : null}
+      )}
+      {goodPrices.length > 0 && (
+        <TopDrops deals={goodPrices} header={<h2 className="mb-3 text-lg font-extrabold text-gray-900">💚 지금 사기 좋은 가격 <span className="text-sm font-medium text-gray-400">DROP SCORE 70+</span></h2>} />
+      )}
+      {newDiscounts.length > 0 && (
+        <TopDrops deals={newDiscounts} header={<div><h2 className="text-lg font-extrabold text-gray-900">🆕 새로 발견한 할인</h2><p className="mb-3 text-xs text-gray-400">가격 이력을 수집 중인 상품입니다. 판매자 표시 할인은 검증된 딜과 분리했어요.</p></div>} />
+      )}
+
+      <TrendingProducts products={trendingProducts} />
 
       <section>
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
           <div>
             <h1 className="flex items-baseline text-xl font-extrabold text-gray-900">
-              <span>{q ? `"${q}" 베스트딜` : activeCat ? `${activeCat.name} 베스트딜` : "베스트딜"}</span>
+              <span>{q ? `"${q}" 검색 결과` : activeCat ? `${activeCat.name} 베스트딜` : verifiedOnly ? "🔥 검증된 베스트딜" : "베스트딜"}</span>
               <span className="ml-2 text-sm font-normal text-gray-400">{listCount}개</span>
             </h1>
           </div>

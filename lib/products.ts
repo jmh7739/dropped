@@ -3,6 +3,7 @@ import { PricePoint } from "./types";
 import { priceStats, buyVerdict, VerdictTier } from "./priceReport";
 import { readPriceHistory } from "./priceHistory";
 import { cache } from "react";
+import { averagePeriodLabel, lowestPeriodLabel } from "./dropMetrics";
 
 /**
  * SEO용 '상품 가격 페이지' 데이터 — 딜이 끝나도 유지되는 영구 리포트.
@@ -96,6 +97,10 @@ export interface ProductSearchRow {
   verdictCls: string;
   rate: number;
   trackedDays: number;
+  averagePrice: number | null;
+  lowestPrice: number;
+  averageLabel: string;
+  lowestLabel: string;
 }
 
 /**
@@ -152,6 +157,10 @@ export async function searchProducts(
       verdictCls: v.cls,
       rate,
       trackedDays: stats.trackedDays,
+      averagePrice: stats.avg30,
+      lowestPrice: stats.trackedDays >= 90 ? (stats.min90 ?? stats.minAll) : stats.minAll,
+      averageLabel: averagePeriodLabel(stats.trackedDays),
+      lowestLabel: lowestPeriodLabel(stats.trackedDays),
     });
   }
 

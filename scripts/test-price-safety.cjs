@@ -24,7 +24,8 @@ async function main() {
     {price:1,collectedAt:at(-2)},{price:100,collectedAt:at(1)}],100);
   assert.equal(clean.points, 1);
   assert.equal(priceStats([{price:1,collectedAt:at(1)}],0),null);
-  assert.match(priceStats([{price:100,collectedAt:at(100)},{price:100,collectedAt:at(0)}],100).lowestLabel,/추적/);
+  assert.equal(priceStats([{price:100,collectedAt:at(100)},{price:100,collectedAt:at(0)}],100).lowestLabel,'90일 최저가');
+  assert.equal(priceStats([{price:100,collectedAt:at(12)},{price:100,collectedAt:at(0)}],100).lowestLabel,'추적 12일 최저가');
   assert.doesNotMatch(dealVerdict({discountVsAvg:20,avg30Price:120,currentPrice:100,isLowestEver:true,
     trackedDays:90,historyPointCount:100}).reason,/역대/);
 

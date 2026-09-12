@@ -207,6 +207,7 @@ export default async function ProductPricePage({
             verdict={verdict}
             listPrice={r.listPrice}
             dropScore={score ?? undefined}
+            lastCheckedAt={r.lastCheckedAt}
           />
         </section>
       )}

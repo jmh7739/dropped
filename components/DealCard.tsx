@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Deal, mallLabel } from "@/lib/types";
 import { formatWon, headlineDiscount, displayTitle, brandFrom } from "@/lib/format";
-import { dropScore } from "@/lib/dropMetrics";
+import { averagePeriodLabel, dropScore, lowestPeriodLabel, trackingStage } from "@/lib/dropMetrics";
 import { dealVerdict } from "@/lib/priceReport";
 import { StatusBadge, PriceErrorBadge, ShippingBadge } from "./DiscountBadge";
 import LikeButton from "./LikeButton";
@@ -22,6 +22,7 @@ export default function DealCard({
   const isCurated = deal.isCurated;
   const score = dropScore(deal);
   const trackedDays = deal.trackedDays;
+  const stage = trackingStage(trackedDays);
   const brand = brandFrom(deal.title);
   // 홈/상세 판정 일관성: 카드도 상세와 동일한 buyVerdict(단일 source)로 판정.
   const verdict = !isCurated ? dealVerdict(deal) : null;
@@ -33,8 +34,8 @@ export default function DealCard({
       : 0;
   const curatedBadge =
     curatedDisc > 0 ? (
-      <span className="rounded-md bg-brand px-2 py-1 text-[11px] font-extrabold text-white shadow-sm">
-        정가 -{curatedDisc}%
+      <span className="rounded-md bg-blue-600 px-2 py-1 text-[11px] font-extrabold text-white shadow-sm">
+        🆕 새로 발견 · 정가 -{curatedDisc}%
       </span>
     ) : null;
   // 취소선 표시 가격: 큐레이션은 원가, 급락딜은 평소가
@@ -43,6 +44,12 @@ export default function DealCard({
       ? deal.listPrice
       : 0
     : deal.baselinePrice || deal.listPrice;
+
+  const trackingChip = !isCurated ? (
+    <span className={`rounded border px-1.5 py-0.5 text-[10px] font-bold ${stage.className}`}>
+      {stage.icon} {trackedDays ? `${trackedDays}일 추적` : "추적 시작"}
+    </span>
+  ) : null;
 
   const brandChip = brand ? (
     <span className="rounded bg-gray-900/85 px-1.5 py-0.5 font-bold text-white">
@@ -76,6 +83,7 @@ export default function DealCard({
                 {mallLabel(deal)}
               </span>
               {brandChip}
+              {trackingChip}
               <ShippingBadge fee={deal.shippingFee} />
             </div>
             <h3 className="truncate text-sm font-medium text-gray-900">
@@ -101,6 +109,9 @@ export default function DealCard({
             </div>
             {!isCurated && score.score !== null && verdict && (
               <div className="mt-1 flex flex-wrap items-center gap-x-2 text-[11px]">
+                <span className="text-gray-500">
+                  {deal.isLowestEver ? lowestPeriodLabel(trackedDays) : averagePeriodLabel(trackedDays)}
+                </span>
                 <span className="font-extrabold text-gray-700">DROP {score.score}</span>
                 <span className="text-gray-500">
                   {verdict.icon} {verdict.title}
@@ -163,6 +174,7 @@ export default function DealCard({
               {mallLabel(deal)}
             </span>
             {brandChip}
+            {trackingChip}
             <ShippingBadge fee={deal.shippingFee} />
           </div>
 
@@ -171,11 +183,6 @@ export default function DealCard({
           </h3>
 
           <div className="mt-auto pt-1">
-            {strikePrice > deal.currentPrice && (
-              <div className="text-xs text-gray-400 line-through">
-                {formatWon(strikePrice)}
-              </div>
-            )}
             <div className="flex items-baseline gap-1.5">
               <span className="text-lg font-extrabold text-brand">
                 {formatWon(deal.currentPrice)}
@@ -188,6 +195,15 @@ export default function DealCard({
             </div>
             {deal.unitPrice && (
               <div className="text-[11px] text-gray-400">{deal.unitPrice}</div>
+            )}
+            {strikePrice > deal.currentPrice && (
+              <div className="mt-0.5 text-[11px] text-gray-500">
+                {isCurated ? "정가" : averagePeriodLabel(trackedDays)} {formatWon(strikePrice)}
+                {rate > 0 && <span className="ml-1 font-bold text-blue-600">↓{Math.round(rate)}%</span>}
+              </div>
+            )}
+            {!isCurated && deal.isLowestEver && (
+              <div className="mt-0.5 text-[11px] font-bold text-amber-700">🏆 {lowestPeriodLabel(trackedDays)}</div>
             )}
             {!isCurated && score.score !== null && verdict && (
               <div className="mt-1.5 flex items-center gap-1 text-[11px]">

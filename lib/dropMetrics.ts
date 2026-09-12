@@ -22,6 +22,41 @@ export type DropScoreResult = {
   tone: "hot" | "good" | "ok" | "wait" | "weak";
 };
 
+export type TrackingStage = {
+  icon: string;
+  label: string;
+  className: string;
+};
+
+/** 추적 기간에 따라 사이트 전체에서 동일하게 쓰는 데이터 성숙도 표시. */
+export function trackingStage(trackedDays?: number | null): TrackingStage {
+  const days = Math.max(0, trackedDays ?? 0);
+  if (days < 7)
+    return { icon: "🔵", label: "신규 추적", className: "border-blue-200 bg-blue-50 text-blue-700" };
+  if (days < 30)
+    return { icon: "🟡", label: "가격 데이터 축적 중", className: "border-amber-200 bg-amber-50 text-amber-700" };
+  if (days < 90)
+    return { icon: "🟢", label: "30일 가격판정 가능", className: "border-emerald-200 bg-emerald-50 text-emerald-700" };
+  return { icon: "🏆", label: "90일 가격판정 가능", className: "border-yellow-300 bg-yellow-50 text-yellow-800" };
+}
+
+export function averagePeriodLabel(trackedDays?: number | null): string {
+  const days = Math.max(1, trackedDays ?? 1);
+  return days >= 30 ? "30일 평균" : `추적 ${days}일 평균`;
+}
+
+export function lowestPeriodLabel(trackedDays?: number | null): string {
+  const days = Math.max(1, trackedDays ?? 1);
+  if (days >= 90) return "90일 최저가";
+  return `추적 ${days}일 최저가`;
+}
+
+/** 홈의 '검증된 베스트딜' 최소 게이트. 정가 할인만 있는 큐레이션은 통과하지 않는다. */
+export function isVerifiedBestDeal(d: Deal): boolean {
+  const score = dropScore(d).score ?? 0;
+  return !d.isCurated && (d.trackedDays ?? 0) >= 10 && score >= 50 && headlineDropRate(d) >= 5;
+}
+
 const TRUSTED_PLATFORM_BONUS: Record<Platform, number> = {
   coupang: 8,
   cps: 7,
@@ -114,7 +149,7 @@ export function dropScore(d: ScoreInput): DropScoreResult {
   );
 
   if (days < 7) return { score, label: "데이터 수집 중", tone: "weak" };
-  if (score >= 90) return { score, label: "역대급 가격", tone: "hot" };
+  if (score >= 90) return { score, label: "매우 좋은 가격", tone: "hot" };
   if (score >= 75) return { score, label: "지금 사기 좋음", tone: "good" };
   if (score >= 50) return { score, label: "괜찮은 가격", tone: "ok" };
   if (score >= 25) return { score, label: "조금 더 지켜보기", tone: "wait" };

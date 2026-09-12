@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getDeals, getLastPriceUpdate, SortKey, PriceStatusKey, PRICE_STATUS } from "@/lib/deals";
 import { timeAgo } from "@/lib/format";
-import { hotDealScore, limitHealthDeals } from "@/lib/dropMetrics";
+import { hotDealScore, isVerifiedBestDeal, limitHealthDeals } from "@/lib/dropMetrics";
 import { categoryHref, PAGE_SIZE } from "@/lib/nav";
 import { CATEGORIES } from "@/lib/types";
 import { SITE_URL } from "@/lib/site";
@@ -72,7 +72,7 @@ export default async function CategoryPage({
 
   const topDeals = !ps
     ? limitHealthDeals(
-        [...fetched].sort((a, b) => hotDealScore(b) - hotDealScore(a)),
+        fetched.filter(isVerifiedBestDeal).sort((a, b) => hotDealScore(b) - hotDealScore(a)),
         1
       ).slice(0, 6)
     : [];

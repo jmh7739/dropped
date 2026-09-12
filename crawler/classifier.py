@@ -81,9 +81,18 @@ BRAND_TO_SLUG = {
     "beauty": ("세타필", "미샤", "아벤느"),
 }
 
+# 뷰티의 일반 키워드 "크림"보다 먼저 보아야 하는 명확한 식품명.
+# 예: "아이스크림", "크림 파스타"가 뷰티로 오분류되는 경우를 막는다.
+STRONG_FOOD_KEYWORDS = (
+    "아이스크림", "아이스 크림", "파스타", "스파게티", "마카로니", "페투치네",
+    "파르팔레", "페네", "노끼", "라자냐", "파스타소스", "떡볶이",
+)
+
 
 def classify_slug(title: str, source_slug: str | None = None) -> str:
     lower = clean_title(title).lower()
+    if _has(lower, STRONG_FOOD_KEYWORDS):
+        return "food"
     for keywords, slug in PRODUCT_GROUPS:
         if _has(lower, keywords):
             return slug

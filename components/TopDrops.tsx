@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Deal, mallLabel } from "@/lib/types";
 import { formatWon, headlineDiscount, displayTitle } from "@/lib/format";
 import { StatusBadge } from "./DiscountBadge";
+import { trackingStage } from "@/lib/dropMetrics";
 import SafeImage from "./SafeImage";
 
 /**
@@ -28,6 +29,7 @@ export default function TopDrops({
             d.isCurated && d.listPrice > d.currentPrice
               ? Math.round(((d.listPrice - d.currentPrice) / d.listPrice) * 100)
               : 0;
+          const stage = trackingStage(d.trackedDays);
           return (
             <Link
               key={d.id}
@@ -57,6 +59,9 @@ export default function TopDrops({
               </div>
               <div className="flex flex-1 flex-col gap-0.5 p-2.5">
                 <span className="text-[10px] text-gray-400">{mallLabel(d)}</span>
+                <span className="text-[10px] font-medium text-gray-500">
+                  {d.isCurated ? "가격 이력 수집 중" : `${stage.icon} ${d.trackedDays ? `추적 ${d.trackedDays}일` : "추적 시작"}`}
+                </span>
                 <h3 className="line-clamp-2 text-xs font-medium text-gray-800">
                   {displayTitle(d.title, 40)}
                 </h3>
