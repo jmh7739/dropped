@@ -42,11 +42,11 @@ export function priceStats(
   const p30 = within(30);
   const p90 = within(90);
   const minAll = Math.min(...prices, current);
-  const sorted = [...prices, current].sort((a, b) => a - b);
-  const rank = sorted.filter((p) => p <= current).length;
+  // 동일 가격이 여러 번 관측되어도 최저가의 위치가 100%로 뒤집히지 않게 한다.
+  const lowerCount = prices.filter((p) => p < current).length;
   const trackedDays = Math.max(
     1,
-    Math.ceil((Math.max(...pts.map(x => x.t)) - Math.min(...pts.map(x => x.t))) / 86400000)
+    Math.floor((Math.max(...pts.map(x => x.t)) - Math.min(...pts.map(x => x.t))) / 86400000)
   );
 
   return {
@@ -60,7 +60,7 @@ export function priceStats(
     minAll,
     points: prices.length,
     trackedDays,
-    percentile: Math.round((rank / sorted.length) * 100),
+    percentile: Math.round((lowerCount / prices.length) * 100),
     isLowest: current <= minAll,
     lowestLabel: trackedDays >= 90 ? "90일 최저가" : `추적 ${trackedDays}일 최저가`,
     enoughData: prices.length >= 10 && trackedDays >= 7,

@@ -20,10 +20,12 @@ export default function PriceReport({
 }) {
   const d = stats.trackedDays;
   const stage = trackingStage(d);
-  const confidence = d >= 90 && stats.points >= 60 ? 90 : d >= 30 && stats.points >= 30 ? 78 : d >= 7 && stats.points >= 10 ? 48 : 20;
+  const baseConfidence = d >= 90 && stats.points >= 60 ? 90 : d >= 30 && stats.points >= 30 ? 78 : d >= 7 && stats.points >= 10 ? 48 : 20;
+  const ageHours = lastCheckedAt ? (Date.now() - new Date(lastCheckedAt).getTime()) / 3600000 : Infinity;
+  const confidence = ageHours > 168 ? Math.min(baseConfidence, 20) : ageHours > 24 ? Math.min(baseConfidence, 48) : baseConfidence;
   const confidenceLabel = confidence >= 75 ? "높음" : confidence >= 40 ? "보통" : "낮음";
   const rows: { label: string; value: number | null; hi?: boolean }[] = [
-    { label: "현재가", value: stats.current, hi: true },
+    { label: "마지막 확인가", value: stats.current, hi: true },
     { label: averagePeriodLabel(d), value: stats.avg30 },
     { label: lowestPeriodLabel(d), value: d >= 90 ? stats.min90 : stats.minAll },
     ...(d >= 90 ? [{ label: "90일 평균", value: stats.avg90 }] : []),
@@ -73,6 +75,7 @@ export default function PriceReport({
           {lastCheckedAt && <span suppressHydrationWarning>최근 확인 {timeAgo(lastCheckedAt)}</span>}
         </div>
         {!stats.enoughData && <p className="mt-2 text-xs font-medium text-amber-700">가격 이력 부족 · 판정 참고용</p>}
+        {ageHours > 24 && <p className="mt-2 text-xs font-medium text-amber-700">마지막 확인 이후 가격이 바뀌었을 수 있습니다.</p>}
       </div>
 
       {/* 가격 분석표 */}

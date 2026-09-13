@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Home from "../../page";
 import { SITE_URL } from "@/lib/site";
+import { getDeals } from "@/lib/deals";
+import { isVerifiedBestDeal } from "@/lib/dropMetrics";
 
 const scopes = { domestic: "국내", global: "해외" } as const;
 
@@ -9,13 +11,16 @@ export function generateStaticParams() {
   return Object.keys(scopes).map((scope) => ({ scope }));
 }
 
-export function generateMetadata({ params }: { params: { scope: string } }): Metadata {
-  if (!(params.scope in scopes)) return {};
+export async function generateMetadata({ params }: { params: { scope: string } }): Promise<Metadata> {
+  if (!(params.scope in scopes)) return { robots: { index: false, follow: false } };
   const label = scopes[params.scope as keyof typeof scopes];
+  const scope = params.scope === "global" ? "overseas" : "domestic";
+  const hasDeals = (await getDeals({ scope })).some(isVerifiedBestDeal);
   return {
     title: `${label} 검증 베스트딜`,
     description: `${label} 상품 중 실제 가격 이력으로 검증한 할인만 확인하세요.`,
     alternates: { canonical: `${SITE_URL}/deals/${params.scope}` },
+    robots: { index: hasDeals, follow: true },
   };
 }
 

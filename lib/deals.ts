@@ -51,7 +51,11 @@ function rowToDeal(row: any, history: PricePoint[]): Deal {
     avg30Price: row.avg30_price != null ? Number(row.avg30_price) : null,
     min90Price: row.min90_price != null ? Number(row.min90_price) : null,
     max90Price: row.max90_price != null ? Number(row.max90_price) : null,
-    trackedDays: row.tracked_days != null ? Number(row.tracked_days) : null,
+    // DB 뷰는 경과일을 ceil()로 집계한다. 89일 몇 시간이 90일로 보이는
+    // 과장을 피하려고 화면에서는 완료된 일수만 보수적으로 표시한다.
+    trackedDays: row.tracked_days != null
+      ? Math.max(1, Number(row.tracked_days) - 1)
+      : null,
     historyPointCount:
       row.history_points != null ? Number(row.history_points) : null,
     history,

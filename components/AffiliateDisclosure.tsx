@@ -48,7 +48,7 @@ export default function AffiliateDisclosure() {
               <span className="text-lg font-extrabold tracking-tight">떨어졌다</span>
             </Link>
             <p className="mt-4 max-w-sm text-sm leading-6 text-gray-400">
-              판매자가 표시한 할인율 대신 실제 가격 이력으로 지금이 정말 싼지 확인합니다.
+              상품별 가격 이력과 추적 기간으로 평소보다 싼지 확인하세요. 신규 할인은 별도로 안내합니다.
             </p>
             <p className="mt-3 text-sm text-gray-400">
               문의:{" "}

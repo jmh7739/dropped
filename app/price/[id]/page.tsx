@@ -30,16 +30,21 @@ export async function generateMetadata({
   params: { id: string };
 }): Promise<Metadata> {
   const r = await getProductReport(Number(params.id));
-  if (!r) return { title: "상품을 찾을 수 없음" };
+  if (!r) return { title: "상품을 찾을 수 없음", robots: { index: false, follow: false } };
   const canonical = `${SITE}/price/${r.id}`;
+  const stats = r.currentPrice == null ? null : priceStats(r.history, r.currentPrice);
+  const lastCheck = r.lastCheckedAt ? new Date(r.lastCheckedAt).getTime() : 0;
+  const indexable = Boolean(stats?.enoughData && lastCheck > 0 && Date.now() - lastCheck <= 14 * 86400000);
+  const period = stats ? `추적 ${stats.trackedDays}일 · ${stats.points}회 가격 확인` : "가격 이력 수집 중";
   return {
-    title: `${r.title} 최저가·가격추이`,
+    title: `${r.title} 가격 이력·추적 최저가`,
     description: r.currentPrice == null
-      ? `${r.categoryName} · 요즘 뜨는 상품 — 가격 추적을 준비하고 있습니다.`
-      : `${r.categoryName} · 현재 ${formatWon(r.currentPrice)} — 가격 이력으로 지금이 살 때인지 알려드려요.`,
+      ? `${r.categoryName} · 가격 이력 수집을 준비하고 있습니다.`
+      : `${r.categoryName} · 마지막 확인 가격 ${formatWon(r.currentPrice)} · ${period}. 가격 변동과 수집 시점을 확인하세요.`,
+    robots: { index: indexable, follow: true },
     alternates: { canonical },
     openGraph: {
-      title: `${r.title} 최저가·가격추이`,
+      title: `${r.title} 가격 이력·추적 최저가`,
       url: canonical,
       images: r.imageUrl ? [r.imageUrl] : [],
     },
@@ -126,7 +131,7 @@ export default async function ProductPricePage({
         <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
           <SafeImage
             src={r.imageUrl}
-            alt={`${r.title} ${r.categoryName} 최저가`}
+            alt={`${r.title} 상품 이미지`}
             className="aspect-square w-full object-cover"
           />
         </div>
@@ -173,6 +178,9 @@ export default async function ProductPricePage({
               <div className="mt-1 text-lg font-extrabold text-gray-600">가격 수집 준비 중</div>
             ) : (
               <div className="mt-1 text-3xl font-extrabold text-brand">{formatWon(currentPrice)}</div>
+            )}
+            {currentPrice != null && (
+              <p className="mt-1 text-xs text-gray-500">마지막 수집 시점의 가격 · 실시간 판매가가 아닙니다</p>
             )}
             {r.unitPrice && (
               <div className="mt-0.5 text-sm text-gray-400">{r.unitPrice}</div>

@@ -26,6 +26,9 @@ async function main() {
   assert.equal(priceStats([{price:1,collectedAt:at(1)}],0),null);
   assert.equal(priceStats([{price:100,collectedAt:at(100)},{price:100,collectedAt:at(0)}],100).lowestLabel,'90일 최저가');
   assert.equal(priceStats([{price:100,collectedAt:at(12)},{price:100,collectedAt:at(0)}],100).lowestLabel,'추적 12일 최저가');
+  assert.equal(priceStats([{price:100,collectedAt:at(89.9)},{price:100,collectedAt:at(0)}],100).lowestLabel,'추적 89일 최저가');
+  assert.equal(priceStats([{price:100,collectedAt:at(1)},{price:100,collectedAt:at(0)}],100).percentile,0,
+    '동일한 최저 가격은 상위 가격대가 아니라 최저 구간으로 표시');
   assert.doesNotMatch(dealVerdict({discountVsAvg:20,avg30Price:120,currentPrice:100,isLowestEver:true,
     trackedDays:90,historyPointCount:100}).reason,/역대/);
 

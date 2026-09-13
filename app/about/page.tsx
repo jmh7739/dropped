@@ -53,8 +53,8 @@ export default function AboutPage() {
           <li className="flex gap-2">
             <span className="mt-0.5 text-brand">•</span>
             <span>
-              매시간 주요 쇼핑몰(쿠팡, 알리익스프레스, 국내 온라인몰)의 가격을
-              자동으로 수집합니다.
+              쿠팡·알리익스프레스·국내 온라인몰 등에서 확인한 가격을
+              주기적으로 기록합니다. 상품별 수집 간격은 다를 수 있습니다.
             </span>
           </li>
           <li className="flex gap-2">
@@ -67,8 +67,8 @@ export default function AboutPage() {
           <li className="flex gap-2">
             <span className="mt-0.5 text-brand">•</span>
             <span>
-              판매자가 표시한 &ldquo;할인율&rdquo;이 아닌, 실제 가격 변동
-              데이터를 기준으로 진짜 특가만 선별합니다.
+              가격 이력이 충분한 상품은 평균 가격과 추적 최저가를 비교합니다.
+              이력이 부족한 할인 상품은 별도로 표시하며 구매 판정을 단정하지 않습니다.
             </span>
           </li>
         </ul>
@@ -95,8 +95,8 @@ export default function AboutPage() {
             },
             {
               icon: "✈️",
-              title: "여행 특가",
-              desc: "항공권·숙소 최저가 비교",
+              title: "여행 탐색",
+              desc: "최근 조회된 항공권 요금과 예약처 비교 (상품 가격판정과 별개)",
             },
             {
               icon: "🛒",
@@ -123,8 +123,9 @@ export default function AboutPage() {
         <p className="mt-2 leading-7 text-gray-700">
           이 사이트의 일부 링크는 제휴 마케팅 링크입니다. 링크를 통해
           구매하시면 사이트 운영에 도움이 되는 소정의 수수료를 받을 수 있습니다.
-          가격 데이터와 추천은 제휴 관계에 영향받지 않으며, 실제 가격 이력
-          데이터만을 기준으로 합니다.
+          가격 그래프와 평균·최저가는 수집된 가격 이력으로 계산합니다. DROP SCORE에는
+          가격 하락폭 외에도 추적 기간, 판매처, 관심도 등이 반영됩니다. 제휴 링크가
+          있는 상품도 있으며, 가격 이력이 부족한 할인 상품은 검증 딜과 구분합니다.
         </p>
       </section>
 

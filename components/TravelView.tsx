@@ -112,13 +112,17 @@ export default function TravelView({
           </Link>
         ))}
       </div>
+      <p className="mb-4 text-xs leading-5 text-gray-500">
+        여행 요금은 쇼핑 상품의 가격 이력·DROP SCORE 판정 대상이 아닙니다.
+        항공권은 최근 조회 요금이며, 숙소·여행딜은 외부 예약처에서 조건과 최종 가격을 확인해 주세요.
+      </p>
 
       {tab === "flight" && (
         <FlightsView region={region} origin={origin} destination={destination} />
       )}
       {tab === "stay" && (
         <div>
-          <SectionTitle>🏨 여행지별 숙소 — 그 도시 실제 호텔·요금 바로 보기</SectionTitle>
+          <SectionTitle>🏨 여행지별 숙소 검색</SectionTitle>
           <StayDestinations region={region} />
           <SectionTitle>🔎 숙소 가격비교 사이트</SectionTitle>
           <PartnerGrid partners={STAY_PARTNERS} />

@@ -27,10 +27,12 @@ export async function generateMetadata({
   params: { slug: string };
 }): Promise<Metadata> {
   const cat = SHOPPING_CATS.find((c) => c.slug === params.slug);
-  if (!cat) return { title: "카테고리 없음" };
+  if (!cat) return { title: "카테고리 없음", robots: { index: false, follow: false } };
+  const deals = await getDeals({ category: cat.slug });
   return {
     title: `${cat.name} 최저가·특가·핫딜 — 떨어졌다`,
-    description: `${cat.name} 카테고리에서 평소 판매가보다 진짜 싸진 것만 모았어요. 가격 추적으로 지금이 살 때인지 알려드립니다.`,
+    description: `${cat.name} 상품의 현재 가격, 실제 추적 기간, 평균 대비 변화를 확인하세요. 이력이 부족한 상품은 별도로 안내합니다.`,
+    robots: { index: deals.length > 0, follow: true },
     alternates: { canonical: `${SITE_URL}/category/${cat.slug}` },
   };
 }
@@ -175,7 +177,7 @@ export default async function CategoryPage({
         </h1>
       </div>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-xs text-gray-400">
-        <p>가격을 추적해 평소보다 진짜 떨어진 것만</p>
+        <p>수집한 가격 이력과 현재 가격을 함께 확인하세요</p>
         {lastUpdate && (
           <p className="flex items-center gap-1.5 whitespace-nowrap" suppressHydrationWarning>
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" aria-hidden="true" />

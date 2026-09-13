@@ -1,12 +1,17 @@
 import type { Metadata } from "next";
 import Home from "../page";
 import { SITE_URL } from "@/lib/site";
+import { getDeals } from "@/lib/deals";
 
-export const metadata: Metadata = {
-  title: "지금 가격 급락",
-  description: "판매자 정가가 아닌 실제 가격 이력의 평균보다 크게 떨어진 상품을 확인하세요.",
-  alternates: { canonical: `${SITE_URL}/price-drop` },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const hasDeals = (await getDeals({ priceStatus: "plunge" })).length > 0;
+  return {
+    title: "지금 가격 급락",
+    description: "판매자 정가가 아닌 실제 가격 이력의 평균보다 크게 떨어진 상품을 확인하세요.",
+    alternates: { canonical: `${SITE_URL}/price-drop` },
+    robots: { index: hasDeals, follow: true },
+  };
+}
 
 export default function PriceDropPage({ searchParams }: { searchParams: Record<string, string | undefined> }) {
   return <Home searchParams={{ ...searchParams, ps: "plunge" }} />;

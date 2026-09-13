@@ -64,10 +64,11 @@ export async function generateMetadata({
     };
   if (cat?.dealType === "flight")
     return {
-      title: "여행 특가 — 항공권 최저가·숙소",
+      title: "여행 — 항공권 조회·숙소·여행딜",
       description:
-        "한국 출발 항공권 최저가를 노선·날짜별로. 평소보다 떨어진 여행 특가를 한눈에.",
+        "한국 출발 항공권의 최근 조회 요금과 숙소·여행 예약처를 확인하세요. 표시 요금은 예약 시 달라질 수 있습니다.",
       alternates: { canonical: "/?category=flight" },
+      robots: { index: false, follow: true },
     };
   if (cat?.dealType === "auction")
     return {
@@ -77,8 +78,9 @@ export async function generateMetadata({
   if (cat && cat.dealType === "shopping")
     return {
       title: `${cat.name} 최저가·특가·핫딜`,
-      description: `${cat.name} 카테고리에서 평소 판매가보다 진짜 싸진 것만 모았어요. 가격 추적으로 지금이 살 때인지 알려드립니다.`,
+      description: `${cat.name} 상품의 가격 이력과 추적 기간을 확인하세요.`,
       alternates: { canonical: `/category/${cat.slug}` },
+      robots: { index: false, follow: true },
     };
   return {};
 }
@@ -324,7 +326,7 @@ export default async function Home({
 
       <div className="mb-5">
         <SearchBar initial={q} />
-        {!q && <p className="mt-2 text-center text-xs font-medium text-gray-500">판매자 할인율이 아니라 실제 가격 이력으로 판단합니다.</p>}
+        {!q && <p className="mt-2 text-center text-xs font-medium text-gray-500">가격 이력이 있는 상품은 평소 가격과 비교하고, 신규 할인은 별도로 표시합니다.</p>}
       </div>
 
       {trackedMatches.length > 0 && (
@@ -439,6 +441,26 @@ export default async function Home({
           </>
         )}
       </section>
+
+      {isDefaultHome && (
+        <section className="mt-10 rounded-xl border border-gray-200 bg-white p-5 text-sm leading-7 text-gray-700">
+          <h2 className="text-base font-extrabold text-gray-900">가격은 어떻게 판단하나요?</h2>
+          <p className="mt-2">
+            같은 상품에서 실제로 확인한 가격을 시간순으로 모아 평균과 최저가를 계산합니다.
+            90일치 기록이 없다면 ‘90일 최저가’ 대신 실제 추적 기간을 표시합니다.
+            추적 기간이 짧거나 가격 확인 횟수가 적은 상품은 확정적인 구매 판정 대신
+            데이터 수집 중이라고 안내합니다.
+          </p>
+          <p className="mt-2">
+            검증된 베스트딜은 가격 이력이 쌓인 상품 중 평균보다 내려간 가격을 보여줍니다.
+            새로 발견한 할인은 판매처가 표시한 할인 정보일 수 있으므로 평소보다 싼지
+            아직 확인되지 않았습니다. 배송비·쿠폰·옵션에 따라 결제 가격은 달라질 수 있습니다.
+          </p>
+          <Link href="/about" className="mt-2 inline-block font-bold text-brand hover:underline">
+            가격 판정 기준 자세히 보기 →
+          </Link>
+        </section>
+      )}
     </div>
   );
 }
