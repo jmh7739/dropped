@@ -4,6 +4,7 @@ const SERVICE_LINKS = [
   { href: "/", label: "베스트딜" },
   { href: "/?category=flight", label: "여행 특가" },
   { href: "/guides", label: "가격 비교 가이드" },
+  { href: "/insights", label: "실제 가격 추적 사례" },
   { href: "/about", label: "사이트 소개" },
 ];
 

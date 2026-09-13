@@ -17,6 +17,7 @@ import { PAGE_SIZE } from "@/lib/nav";
 import { CATEGORIES } from "@/lib/types";
 import { getTrendingProducts } from "@/lib/trends";
 import TrendingProducts from "@/components/TrendingProducts";
+import AdSenseScript from "@/components/AdSenseScript";
 
 export const dynamic = "force-dynamic";
 
@@ -308,6 +309,7 @@ export default async function Home({
 
   return (
     <div>
+      {Object.keys(searchParams).length === 0 && trackedDeals.filter(isVerifiedBestDeal).length >= 3 && <AdSenseScript />}
       {demoBanner}
 
       <div className="mb-5">
@@ -445,6 +447,7 @@ export default async function Home({
           <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1">
             <Link href="/about" className="font-bold text-brand hover:underline">가격 판정 기준 자세히 보기 →</Link>
             <Link href="/guides" className="font-bold text-brand hover:underline">가격 비교 가이드 →</Link>
+            <Link href="/insights" className="font-bold text-brand hover:underline">실제 가격 추적 사례 →</Link>
           </div>
         </section>
       )}

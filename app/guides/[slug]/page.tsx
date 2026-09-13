@@ -45,6 +45,7 @@ export default function GuidePage({ params }: { params: { slug: string } }) {
               {link.label} →
             </Link>
           ))}
+          <Link href="/insights" className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-brand hover:border-brand/40">실제 상품 가격 추적 사례 →</Link>
         </div>
       </aside>
       <Link href="/guides" className="mt-6 inline-block text-sm font-bold text-gray-500 hover:text-gray-900">← 모든 가이드</Link>

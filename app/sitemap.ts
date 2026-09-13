@@ -4,11 +4,12 @@ import { SITE_URL } from "@/lib/site";
 import { CATEGORIES } from "@/lib/types";
 import { headlineDropRate, isVerifiedBestDeal } from "@/lib/dropMetrics";
 import { GUIDES } from "@/lib/guides";
+import { getPriceInsights } from "@/lib/insights";
 
 export const dynamic = "force-dynamic";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const deals = await getDeals();
+  const [deals, insights] = await Promise.all([getDeals(), getPriceInsights()]);
   const verified = deals.filter(isVerifiedBestDeal);
   const categoryCounts = new Map<string, number>();
   for (const deal of deals) categoryCounts.set(deal.categorySlug, (categoryCounts.get(deal.categorySlug) ?? 0) + 1);
@@ -24,6 +25,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${SITE_URL}/terms`, changeFrequency: "yearly", priority: 0.2 },
     { url: `${SITE_URL}/guides`, changeFrequency: "monthly", priority: 0.6 },
     ...GUIDES.map((guide) => ({ url: `${SITE_URL}/guides/${guide.slug}`, changeFrequency: "monthly" as const, priority: 0.6 })),
+    ...(insights.length >= 3 ? [{ url: `${SITE_URL}/insights`, changeFrequency: "daily" as const, priority: 0.8 }] : []),
     ...(hasDomestic ? [{ url: `${SITE_URL}/deals/domestic`, changeFrequency: "hourly" as const, priority: 0.8 }] : []),
     ...(hasGlobal ? [{ url: `${SITE_URL}/deals/global`, changeFrequency: "hourly" as const, priority: 0.8 }] : []),
     ...(hasLowest ? [{ url: `${SITE_URL}/lowest-price`, changeFrequency: "hourly" as const, priority: 0.9 }] : []),
