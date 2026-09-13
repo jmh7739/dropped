@@ -5,7 +5,7 @@ import { getDeals, getCuratedDeals, getLastPriceUpdate, sortDealList, diversifyT
 import { searchProducts } from "@/lib/products";
 import { timeAgo } from "@/lib/format";
 import { isSupabaseConfigured } from "@/lib/supabase";
-import { isHealthDeal, headlineDropRate, dropScore, isVerifiedBestDeal } from "@/lib/dropMetrics";
+import { isHealthDeal, headlineDropRate, dropScore, isVerifiedBestDeal, isVerifiedListing } from "@/lib/dropMetrics";
 import DealGrid from "@/components/DealGrid";
 import TopDrops from "@/components/TopDrops";
 import ProductSearchResults from "@/components/ProductSearchResults";
@@ -208,18 +208,17 @@ export default async function Home({
       return true;
     });
 
-  const isDefaultListing = !q.trim() && !category && !ps && !hot && !scope;
-  const isDefaultHome = isDefaultListing && page === 1;
+  const isDefaultHome = !q.trim() && !category && !ps && !hot && !scope && page === 1;
   // 기본 홈의 전체 목록은 가격이력으로 검증된 딜만 노출한다. 이력이 짧거나
   // 정가 할인만 있는 상품은 아래 '새로 발견한 할인'에서 별도로 공개한다.
-  const verifiedOnly = isDefaultListing || searchParams.sec === "best";
+  const verifiedOnly = isVerifiedListing({ q, category, ps, hot, sec: searchParams.sec });
   const mainDeals = verifiedOnly
     ? combinedDeals.filter(isVerifiedBestDeal)
     : combinedDeals;
 
   // 건강/보충제는 메인 첫 화면 도배 방지. 카테고리로 직접 들어온 경우에는 그대로 보여준다.
   let healthShown = 0;
-  const listDeals = category === "health"
+  const listDeals = verifiedOnly || category === "health"
     ? mainDeals
     : mainDeals.filter((d) => {
         if (!isHealthDeal(d)) return true;

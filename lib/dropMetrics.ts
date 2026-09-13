@@ -57,6 +57,18 @@ export function isVerifiedBestDeal(d: Deal): boolean {
   return !d.isCurated && (d.trackedDays ?? 0) >= 10 && score >= 50 && headlineDropRate(d) >= 5;
 }
 
+/** 베스트딜 탭은 전체/국내/해외에 관계없이 같은 검증 기준을 사용한다. */
+export function isVerifiedListing(filters: {
+  q?: string;
+  category?: string;
+  ps?: string;
+  hot?: boolean;
+  sec?: string;
+}): boolean {
+  return filters.sec === "best" ||
+    (!filters.q?.trim() && !filters.category && !filters.ps && !filters.hot);
+}
+
 const TRUSTED_PLATFORM_BONUS: Record<Platform, number> = {
   coupang: 8,
   cps: 7,
