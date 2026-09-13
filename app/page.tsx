@@ -356,7 +356,7 @@ export default async function Home({
         <TopDrops deals={goodPrices} header={<h2 className="mb-3 text-lg font-extrabold text-gray-900">💚 지금 사기 좋은 가격 <span className="text-sm font-medium text-gray-400">DROP SCORE 70+</span></h2>} />
       )}
       {newDiscounts.length > 0 && (
-        <TopDrops deals={newDiscounts} header={<div><h2 className="text-lg font-extrabold text-gray-900">🆕 새로 발견한 할인</h2><p className="mb-3 text-xs text-gray-400">가격 이력을 수집 중인 상품입니다. 판매자 표시 할인은 검증된 딜과 분리했어요.</p></div>} />
+        <TopDrops deals={newDiscounts} header={<div><h2 className="text-lg font-extrabold text-gray-900">🆕 새로 발견한 할인</h2><p className="mb-3 text-xs text-gray-400">가격 이력 수집 중</p></div>} />
       )}
 
       <TrendingProducts products={trendingProducts} />
@@ -417,7 +417,7 @@ export default async function Home({
           <div className="rounded-xl border border-dashed border-gray-300 bg-white p-12 text-center text-gray-400">
             {q
               ? trackedMatches.length > 0
-                ? "지금 '특가'로 뜬 건 없어요. 위 추적 상품에서 지금 살 만한지 확인하세요."
+                ? "현재 조건에 맞는 특가가 없습니다."
                 : "검색 결과가 없습니다."
               : "아직 이 조건에 맞는 베스트딜이 없습니다."}
           </div>

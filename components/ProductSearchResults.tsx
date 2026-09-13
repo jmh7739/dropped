@@ -23,10 +23,7 @@ export default function ProductSearchResults({
         <h2 className="text-lg font-extrabold text-gray-900">
           🔎 “{query}” 가격 추적 · 지금 살까?
         </h2>
-        <p className="mt-0.5 text-xs text-gray-400">
-          지금 특가인지와 무관하게, 추적한 가격 이력으로 지금 가격이 살 만한지
-          판정해 드려요.
-        </p>
+        <p className="mt-0.5 text-xs text-gray-400">현재가 · 가격 이력 · 구매 판정</p>
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">

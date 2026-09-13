@@ -72,7 +72,7 @@ export default function PriceReport({
           <span>가격 수집 {stats.points}회</span>
           {lastCheckedAt && <span suppressHydrationWarning>최근 확인 {timeAgo(lastCheckedAt)}</span>}
         </div>
-        {!stats.enoughData && <p className="mt-2 text-xs font-medium text-amber-700">아직 충분한 가격 이력이 없어 구매 판정은 참고용입니다.</p>}
+        {!stats.enoughData && <p className="mt-2 text-xs font-medium text-amber-700">가격 이력 부족 · 판정 참고용</p>}
       </div>
 
       {/* 가격 분석표 */}
@@ -103,8 +103,6 @@ export default function PriceReport({
       <p className="text-[11px] text-gray-400">
         📊 가격 추적 {stats.trackedDays}일 · {stats.points}회 수집 기준.
         {stats.avg30 && ` 현재 가격은 추적 이력 중 하위 ${stats.percentile}% 구간입니다.`}
-        {!stats.enoughData &&
-          " 아직 이력이 짧아 판정 신뢰도가 낮을 수 있어요."}
       </p>
     </div>
   );
