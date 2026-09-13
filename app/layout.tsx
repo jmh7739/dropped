@@ -19,7 +19,6 @@ export const metadata: Metadata = {
     "알리익스프레스 특가", "쿠팡 특가", "오늘의 특가", "항공권 특가",
     "항공권 최저가", "가격 그래프", "가격 이력", "DROP SCORE", "핫딜 모음",
   ],
-  alternates: { canonical: "/" },
   openGraph: {
     title: "떨어졌다 — 가격 이력으로 확인하는 특가·핫딜",
     description:

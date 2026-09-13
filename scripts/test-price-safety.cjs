@@ -32,12 +32,18 @@ async function main() {
   assert.doesNotMatch(dealVerdict({discountVsAvg:20,avg30Price:120,currentPrice:100,isLowestEver:true,
     trackedDays:90,historyPointCount:100}).reason,/역대/);
 
-  const {isVerifiedListing} = load('lib/dropMetrics.ts');
+  const {isVerifiedListing,isVerifiedBestDeal} = load('lib/dropMetrics.ts');
   assert.equal(isVerifiedListing({}), true);
   assert.equal(isVerifiedListing({sec:'best'}), true);
   assert.equal(isVerifiedListing({scope:'domestic'}), true);
   assert.equal(isVerifiedListing({scope:'overseas'}), true);
   assert.equal(isVerifiedListing({q:'ssd',scope:'domestic'}), false);
+  const candidate = {platform:'coupang',categorySlug:'digital',discountVsAvg:30,discountVsList:0,
+    isLowestEver:true,likeCount:0,clickCount:0,baselinePrice:143,currentPrice:100,
+    trackedDays:10,checkedAt:new Date().toISOString(),avg30Price:143,isCurated:false,
+    historyPointCount:9};
+  assert.equal(isVerifiedBestDeal(candidate),false,'9회 관측은 검증 딜이 아님');
+  assert.equal(isVerifiedBestDeal({...candidate,historyPointCount:10}),true);
 
   const rows = Array.from({length:2005}, (_,i) => ({id:i+1,product_id:i%2+1,price:100+i,
     collected_at:new Date(Date.now()-86400000+i*1000).toISOString()}));

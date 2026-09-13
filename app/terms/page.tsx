@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-export const metadata: Metadata = { title: "이용안내·면책" };
+export const metadata: Metadata = { title: "이용안내·면책", alternates: { canonical: "/terms" } };
 
 export default function TermsPage() {
   return (

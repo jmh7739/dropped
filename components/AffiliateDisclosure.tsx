@@ -3,6 +3,7 @@ import Link from "next/link";
 const SERVICE_LINKS = [
   { href: "/", label: "베스트딜" },
   { href: "/?category=flight", label: "여행 특가" },
+  { href: "/guides", label: "가격 비교 가이드" },
   { href: "/about", label: "사이트 소개" },
 ];
 

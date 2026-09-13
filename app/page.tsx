@@ -35,39 +35,32 @@ export async function generateMetadata({
     cc?: string;
     cs?: string;
     bs?: string;
+    tt?: string;
+    region?: string;
+    o?: string;
+    d?: string;
   };
 }): Promise<Metadata> {
   const cat = CATEGORIES.find((c) => c.slug === searchParams.category);
   const q = (searchParams.q ?? "").slice(0, 50).trim();
-  const hasFilter =
-    searchParams.sort !== undefined ||
-    searchParams.ps !== undefined ||
-    searchParams.scope !== undefined ||
-    searchParams.page !== undefined ||
-    searchParams.hot !== undefined ||
-    searchParams.bs !== undefined ||
-    searchParams.cc !== undefined ||
-    searchParams.cs !== undefined;
+  const canonical = cat?.dealType === "shopping"
+    ? `/category/${cat.slug}`
+    : searchParams.sec === "best"
+      ? searchParams.scope === "domestic" ? "/deals/domestic" : searchParams.scope === "overseas" ? "/deals/global" : "/"
+      : searchParams.ps === "lowest" ? "/lowest-price" : searchParams.ps === "plunge" ? "/price-drop" : "/";
+  const hasQuery = Object.keys(searchParams).length > 0;
   if (q)
     return {
       title: `"${q}" 최저가·특가 검색`,
       robots: { index: false, follow: true },
     };
-  if (hasFilter)
-    return { robots: { index: false, follow: true } };
-  if (searchParams.sec === "best")
-    return {
-      title: "베스트딜 — 가격 이력으로 검증한 할인",
-      description:
-        "국내·해외 상품 중 가격 이력, 추적 최저가, 평균가 대비 하락률로 지금 볼 만한 딜만 모았습니다.",
-      alternates: { canonical: "/" },
-    };
+  if (hasQuery && cat?.dealType !== "flight")
+    return { robots: { index: false, follow: true }, alternates: { canonical } };
   if (cat?.dealType === "flight")
     return {
       title: "여행 — 항공권 조회·숙소·여행딜",
       description:
         "한국 출발 항공권의 최근 조회 요금과 숙소·여행 예약처를 확인하세요. 표시 요금은 예약 시 달라질 수 있습니다.",
-      alternates: { canonical: "/?category=flight" },
       robots: { index: false, follow: true },
     };
   if (cat?.dealType === "auction")
@@ -75,14 +68,7 @@ export async function generateMetadata({
       title: "페이지를 찾을 수 없음",
       robots: { index: false, follow: false },
     };
-  if (cat && cat.dealType === "shopping")
-    return {
-      title: `${cat.name} 최저가·특가·핫딜`,
-      description: `${cat.name} 상품의 가격 이력과 추적 기간을 확인하세요.`,
-      alternates: { canonical: `/category/${cat.slug}` },
-      robots: { index: false, follow: true },
-    };
-  return {};
+  return { alternates: { canonical: "/" } };
 }
 
 export default async function Home({
@@ -456,9 +442,10 @@ export default async function Home({
             새로 발견한 할인은 판매처가 표시한 할인 정보일 수 있으므로 평소보다 싼지
             아직 확인되지 않았습니다. 배송비·쿠폰·옵션에 따라 결제 가격은 달라질 수 있습니다.
           </p>
-          <Link href="/about" className="mt-2 inline-block font-bold text-brand hover:underline">
-            가격 판정 기준 자세히 보기 →
-          </Link>
+          <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1">
+            <Link href="/about" className="font-bold text-brand hover:underline">가격 판정 기준 자세히 보기 →</Link>
+            <Link href="/guides" className="font-bold text-brand hover:underline">가격 비교 가이드 →</Link>
+          </div>
         </section>
       )}
     </div>

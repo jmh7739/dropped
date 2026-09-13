@@ -54,7 +54,8 @@ export function lowestPeriodLabel(trackedDays?: number | null): string {
 /** 홈의 '검증된 베스트딜' 최소 게이트. 정가 할인만 있는 큐레이션은 통과하지 않는다. */
 export function isVerifiedBestDeal(d: Deal): boolean {
   const score = dropScore(d).score ?? 0;
-  return !d.isCurated && (d.trackedDays ?? 0) >= 10 && score >= 50 && headlineDropRate(d) >= 5;
+  return !d.isCurated && (d.trackedDays ?? 0) >= 10 &&
+    (d.historyPointCount ?? 0) >= 10 && score >= 50 && headlineDropRate(d) >= 5;
 }
 
 /** 베스트딜 탭은 전체/국내/해외에 관계없이 같은 검증 기준을 사용한다. */

@@ -74,6 +74,35 @@ export default function AboutPage() {
         </ul>
       </section>
 
+      <section className="mt-8 space-y-4 text-sm leading-7 text-gray-700">
+        <h2 className="text-lg font-bold text-gray-900">수집·검증·품질관리</h2>
+        <p>
+          쇼핑 가격 수집 작업은 현재 매시간 실행되도록 설정되어 있습니다. 외부 판매처의
+          응답이나 작업 지연 때문에 모든 상품을 정확히 한 시간 간격으로 확인한다는 뜻은
+          아닙니다. 상품 상세의 ‘최근 확인’ 시간과 가격 수집 횟수가 실제 관측 범위입니다.
+        </p>
+        <p>
+          수집 단계에서 0원 이하 가격, 품절로 표시된 상품, 쿠폰·카드·회원 전용가,
+          옵션의 최저가만 제시된 항목, 기존 기록의 중앙값과 지나치게 벌어진 가격은
+          일반 가격 이력에 넣지 않도록 보류합니다. 조건이나 배송비가 확인되지 않은
+          항목은 경고 대상으로 다루지만 원천 정보가 불완전할 수 있으므로 판매 페이지에서
+          옵션과 최종 결제액을 다시 확인해야 합니다.
+        </p>
+        <p>
+          급락 후보는 판매자 정가가 아니라 수집한 실제 가격의 중앙값과 현재가를 비교하고,
+          가격 변동이 지나치게 크거나 저가가 반복되는 경우도 따로 점검합니다. 상세의
+          구매 판정은 추적 7일 이상과 유효 기록 10회 이상일 때에만 충분한 이력으로
+          취급합니다. ‘검증된 베스트딜’은 이보다 긴 추적 기간과 점수·하락률 기준을
+          추가로 적용합니다.
+        </p>
+        <p>
+          DROP SCORE는 평균 대비 하락폭, 추적 최저 여부, 추적 기간, 마지막 확인 시점,
+          판매처와 이용자 관심도를 함께 반영한 상대 지표입니다. 점수가 높아도 배송비나
+          쿠폰 조건까지 보증하지는 않습니다. 판정 방식은 바뀔 수 있으므로 숫자 하나보다
+          가격 그래프와 수집 범위를 함께 보는 것이 좋습니다.
+        </p>
+      </section>
+
       <section className="mt-8">
         <h2 className="text-lg font-bold">주요 기능</h2>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
@@ -146,6 +175,7 @@ export default function AboutPage() {
       </section>
 
       <div className="mt-10 flex flex-wrap gap-3 text-sm">
+        <Link href="/guides" className="rounded-lg border border-gray-200 bg-white px-4 py-2 font-bold text-brand hover:bg-gray-50">가격 비교 가이드 →</Link>
         <Link
           href="/"
           className="rounded-lg border border-gray-200 bg-white px-4 py-2 font-bold text-gray-700 hover:bg-gray-50"

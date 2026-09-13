@@ -23,16 +23,18 @@ export function generateStaticParams() {
 
 export async function generateMetadata({
   params,
+  searchParams,
 }: {
   params: { slug: string };
+  searchParams: Record<string, string | undefined>;
 }): Promise<Metadata> {
   const cat = SHOPPING_CATS.find((c) => c.slug === params.slug);
   if (!cat) return { title: "카테고리 없음", robots: { index: false, follow: false } };
   const deals = await getDeals({ category: cat.slug });
   return {
-    title: `${cat.name} 최저가·특가·핫딜 — 떨어졌다`,
+    title: `${cat.name} 가격 이력·특가`,
     description: `${cat.name} 상품의 현재 가격, 실제 추적 기간, 평균 대비 변화를 확인하세요. 이력이 부족한 상품은 별도로 안내합니다.`,
-    robots: { index: deals.length > 0, follow: true },
+    robots: { index: deals.length >= 3 && Object.keys(searchParams).length === 0, follow: true },
     alternates: { canonical: `${SITE_URL}/category/${cat.slug}` },
   };
 }

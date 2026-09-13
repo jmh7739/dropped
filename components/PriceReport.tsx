@@ -105,7 +105,7 @@ export default function PriceReport({
 
       <p className="text-[11px] text-gray-400">
         📊 가격 추적 {stats.trackedDays}일 · {stats.points}회 수집 기준.
-        {stats.avg30 && ` 현재 가격은 추적 이력 중 하위 ${stats.percentile}% 구간입니다.`}
+        {stats.avg30 && ` 현재보다 낮았던 관측 기록은 ${stats.percentile}%입니다(같은 가격 제외).`}
       </p>
     </div>
   );

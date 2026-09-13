@@ -6,17 +6,8 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: "*",
       allow: "/",
-      disallow: [
-        "/go/",
-        "/?category=auction",
-        "/?sort=*",
-        "/?ps=*",
-        "/?scope=*",
-        "/?hot=*",
-        "/?page=*",
-        "/?q=*",
-        "/?se=*",
-      ],
+      // 목록 필터 URL은 meta noindex를 읽을 수 있어야 하므로 robots.txt에서 막지 않는다.
+      disallow: ["/go/"],
     },
     sitemap: `${SITE_URL}/sitemap.xml`,
   };

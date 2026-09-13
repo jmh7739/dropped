@@ -11,7 +11,7 @@ export function generateStaticParams() {
   return Object.keys(scopes).map((scope) => ({ scope }));
 }
 
-export async function generateMetadata({ params }: { params: { scope: string } }): Promise<Metadata> {
+export async function generateMetadata({ params, searchParams }: { params: { scope: string }; searchParams: Record<string, string | undefined> }): Promise<Metadata> {
   if (!(params.scope in scopes)) return { robots: { index: false, follow: false } };
   const label = scopes[params.scope as keyof typeof scopes];
   const scope = params.scope === "global" ? "overseas" : "domestic";
@@ -20,7 +20,7 @@ export async function generateMetadata({ params }: { params: { scope: string } }
     title: `${label} 검증 베스트딜`,
     description: `${label} 상품 중 실제 가격 이력으로 검증한 할인만 확인하세요.`,
     alternates: { canonical: `${SITE_URL}/deals/${params.scope}` },
-    robots: { index: hasDeals, follow: true },
+    robots: { index: hasDeals && Object.keys(searchParams).length === 0, follow: true },
   };
 }
 
