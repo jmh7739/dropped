@@ -13,6 +13,7 @@ export default function SortDropdown({
   params,
   basePath = "/",
   className = "",
+  ariaLabel = "정렬",
 }: {
   options: { key: string; label: string }[];
   value: string;
@@ -20,17 +21,19 @@ export default function SortDropdown({
   params: Record<string, string>;
   basePath?: string;
   className?: string;
+  ariaLabel?: string;
 }) {
   const router = useRouter();
 
   return (
     <div className={`relative inline-flex items-center ${className}`}>
       <select
-        aria-label="정렬"
+        aria-label={ariaLabel}
         value={value}
         onChange={(e) => {
           const sp = new URLSearchParams(params);
-          sp.set(param, e.target.value);
+          if (e.target.value) sp.set(param, e.target.value);
+          else sp.delete(param);
           router.push(`${basePath}?${sp.toString()}`);
         }}
         className="cursor-pointer appearance-none rounded-lg border border-gray-200 bg-white py-1.5 pl-3 pr-8 text-sm font-medium text-gray-700 shadow-sm transition hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand/30"

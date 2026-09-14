@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Analytics } from "@vercel/analytics/react";
+import Script from "next/script";
 import "./globals.css";
 import Header from "@/components/Header";
 import AffiliateDisclosure from "@/components/AffiliateDisclosure";
@@ -64,6 +65,13 @@ export default function RootLayout({
           {children}
         </main>
         <AffiliateDisclosure />
+        <Script src="https://www.googletagmanager.com/gtag/js?id=G-JWW2TT83XK" strategy="afterInteractive" />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'G-JWW2TT83XK');`}
+        </Script>
         <Analytics />
       </body>
     </html>

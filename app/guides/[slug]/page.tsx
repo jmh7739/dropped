@@ -9,8 +9,8 @@ export function generateStaticParams() {
   return GUIDES.map((guide) => ({ slug: guide.slug }));
 }
 
-export function generateMetadata({ params }: { params: { slug: string } }): Metadata {
-  const guide = getGuide(params.slug);
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const guide = getGuide((await params).slug);
   if (!guide) return { title: "가이드를 찾을 수 없음", robots: { index: false, follow: false } };
   return {
     title: guide.title,
@@ -19,15 +19,14 @@ export function generateMetadata({ params }: { params: { slug: string } }): Meta
   };
 }
 
-export default function GuidePage({ params }: { params: { slug: string } }) {
-  const guide = getGuide(params.slug);
+export default async function GuidePage({ params }: { params: Promise<{ slug: string }> }) {
+  const guide = getGuide((await params).slug);
   if (!guide) notFound();
 
   return (
     <article className="mx-auto max-w-3xl">
       <Breadcrumb items={[{ label: "홈", href: "/" }, { label: "가격 비교 가이드", href: "/guides" }, { label: guide.title }]} />
-      <p className="text-xs text-gray-500">가격 비교 가이드 · 2026년 9월 14일 작성</p>
-      <h1 className="mt-2 text-2xl font-extrabold leading-snug text-gray-900">{guide.title}</h1>
+      <h1 className="text-2xl font-extrabold leading-snug text-gray-900">{guide.title}</h1>
       <p className="mt-5 text-base leading-8 text-gray-700">{guide.intro}</p>
 
       {guide.sections.map((section) => (
@@ -38,14 +37,14 @@ export default function GuidePage({ params }: { params: { slug: string } }) {
       ))}
 
       <aside className="mt-10 rounded-xl border border-gray-200 bg-white p-5">
-        <h2 className="font-bold text-gray-900">실제 가격 이력으로 확인하기</h2>
+        <h2 className="font-bold text-gray-900">{guide.category === "travel" ? "여행 예약처에서 확인하기" : "실제 가격 이력으로 확인하기"}</h2>
         <div className="mt-3 flex flex-wrap gap-2">
           {guide.links.map((link) => (
             <Link key={link.href} href={link.href} className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-brand hover:border-brand/40">
               {link.label} →
             </Link>
           ))}
-          <Link href="/insights" className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-brand hover:border-brand/40">실제 상품 가격 추적 사례 →</Link>
+          {guide.category !== "travel" && <Link href="/insights" className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-brand hover:border-brand/40">실제 상품 가격 추적 사례 →</Link>}
         </div>
       </aside>
       <Link href="/guides" className="mt-6 inline-block text-sm font-bold text-gray-500 hover:text-gray-900">← 모든 가이드</Link>

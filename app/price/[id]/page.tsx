@@ -27,9 +27,9 @@ function mall(r: { mallName: string | null; platform: string }): string {
 export async function generateMetadata({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }): Promise<Metadata> {
-  const r = await getProductReport(Number(params.id));
+  const r = await getProductReport(Number((await params).id));
   if (!r) return { title: "상품을 찾을 수 없음", robots: { index: false, follow: false } };
   const canonical = `${SITE}/price/${r.id}`;
   const stats = r.currentPrice == null ? null : priceStats(r.history, r.currentPrice);
@@ -37,14 +37,14 @@ export async function generateMetadata({
   const indexable = Boolean(stats?.enoughData && lastCheck > 0 && Date.now() - lastCheck <= 14 * 86400000);
   const period = stats ? `추적 ${stats.trackedDays}일 · ${stats.points}회 가격 확인` : "가격 이력 수집 중";
   return {
-    title: `${r.title} 가격 이력·추적 최저가`,
+    title: `${r.title} 가격 추이 · 추적 최저가 · 평균가`,
     description: r.currentPrice == null
       ? `${r.categoryName} · 가격 이력 수집을 준비하고 있습니다.`
       : `${r.categoryName} · 마지막 확인 가격 ${formatWon(r.currentPrice)} · ${period}. 가격 변동과 수집 시점을 확인하세요.`,
     robots: { index: indexable, follow: true },
     alternates: { canonical },
     openGraph: {
-      title: `${r.title} 가격 이력·추적 최저가`,
+      title: `${r.title} 가격 추이 · 추적 최저가 · 평균가`,
       url: canonical,
       images: r.imageUrl ? [r.imageUrl] : [],
     },
@@ -54,9 +54,9 @@ export async function generateMetadata({
 export default async function ProductPricePage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
-  const r = await getProductReport(Number(params.id));
+  const r = await getProductReport(Number((await params).id));
   if (!r) notFound();
 
   const [relatedDeals] = await Promise.all([
@@ -89,8 +89,29 @@ export default async function ProductPricePage({
           avg30Price: stats.avg30 ?? null,
         })
       : null;
+  const scoreTone = score?.tone ?? (score ? null : verdict ? null : "weak");
+  const scoreClass =
+    scoreTone === "hot"
+      ? "border-green-200 bg-green-100 text-green-800"
+      : scoreTone === "good"
+      ? "border-emerald-200 bg-emerald-100 text-emerald-800"
+      : scoreTone === "ok"
+      ? "border-yellow-200 bg-yellow-100 text-yellow-800"
+      : scoreTone === "weak"
+      ? "border-blue-200 bg-blue-100 text-blue-700"
+      : "border-gray-200 bg-gray-100 text-gray-600";
+  const scoreLabel = score?.label ?? verdict?.title;
+  const scoreEmoji =
+    scoreTone === "hot" || scoreTone === "good"
+      ? "🟢"
+      : scoreTone === "ok"
+      ? "🟡"
+      : scoreTone === "weak"
+      ? "🔵"
+      : "🟠";
 
-  const jsonLd = {
+  const recentlyChecked = r.lastCheckedAt && Date.now() - new Date(r.lastCheckedAt).getTime() <= 86400000;
+  const jsonLd = stats?.enoughData && recentlyChecked && r.hasActiveDeal ? {
     "@context": "https://schema.org",
     "@type": "Product",
     name: r.title,
@@ -103,21 +124,21 @@ export default async function ProductPricePage({
       availability: r.hasActiveDeal
         ? "https://schema.org/InStock"
         : "https://schema.org/LimitedAvailability",
-      url: `${SITE}/price/${r.id}`,
+      url: r.affiliateUrl,
       seller: { "@type": "Organization", name: r.mallName ?? undefined },
     },
-  };
+  } : null;
 
   const categoryHref = `/category/${r.categorySlug}`;
 
   return (
     <div>
-      <script
+      {jsonLd && <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
           __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c").replace(/>/g, "\\u003e"),
         }}
-      />
+      />}
 
       <Breadcrumb
         items={[
@@ -146,7 +167,7 @@ export default async function ProductPricePage({
             </Link>
           </div>
 
-          <h1 className="text-lg font-bold leading-snug">{r.title}</h1>
+          <h1 className="text-lg font-bold leading-snug">{r.title} 가격 추이와 추적 최저가</h1>
           {currentPrice == null ? (
             <div className="mt-3 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-medium text-blue-900">
               요즘 뜨는 상품으로 새로 등록됐습니다. 가격 이력 수집을 준비하고 있습니다.
@@ -158,11 +179,11 @@ export default async function ProductPricePage({
           )}
 
           <div className="mt-3 flex flex-wrap items-center gap-1.5">
-            {verdict && (
+            {(score || verdict) && (
               <span
-                className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-extrabold ${verdict.cls}`}
+                className={`inline-flex items-center gap-1 rounded-full text-xs font-extrabold ${scoreClass}`}
               >
-                {verdict.icon} {verdict.title}
+                {scoreEmoji} {scoreLabel}
               </span>
             )}
             <ShippingBadge fee={r.shippingFee} />

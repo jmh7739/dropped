@@ -3,7 +3,7 @@ import { Deal, mallLabel } from "@/lib/types";
 import { formatWon, headlineDiscount, displayTitle, brandFrom } from "@/lib/format";
 import { averagePeriodLabel, dropScore, lowestPeriodLabel, trackingStage } from "@/lib/dropMetrics";
 import { dealVerdict } from "@/lib/priceReport";
-import { StatusBadge, PriceErrorBadge, ShippingBadge } from "./DiscountBadge";
+import { PriceErrorBadge, ShippingBadge } from "./DiscountBadge";
 import LikeButton from "./LikeButton";
 import BuyButton from "./BuyButton";
 import ShareButton from "./ShareButton";
@@ -16,7 +16,6 @@ export default function DealCard({
   deal: Deal;
   variant?: "gallery" | "list";
 }) {
-  const { rate, basis } = headlineDiscount(deal);
   const saving = (deal.baselinePrice || deal.listPrice) - deal.currentPrice;
   const ended = deal.status === "ended";
   const isCurated = deal.isCurated;
@@ -24,6 +23,23 @@ export default function DealCard({
   const trackedDays = deal.trackedDays;
   const stage = trackingStage(trackedDays);
   const brand = brandFrom(deal.title);
+  const scoreIcon =
+    score.tone === "hot" || score.tone === "good"
+      ? "🟢"
+      : score.tone === "ok"
+      ? "🟡"
+      : score.tone === "weak"
+      ? "🔵"
+      : "🟠";
+  const scoreCls =
+    score.tone === "hot" || score.tone === "good"
+      ? "border-emerald-300 bg-emerald-50 text-emerald-900"
+      : score.tone === "ok"
+      ? "border-amber-300 bg-amber-50 text-amber-900"
+      : score.tone === "weak"
+      ? "border-sky-300 bg-sky-50 text-sky-800"
+      : "border-rose-300 bg-rose-50 text-rose-900";
+  const { rate } = headlineDiscount(deal);
   // 홈/상세 판정 일관성: 카드도 상세와 동일한 buyVerdict(단일 source)로 판정.
   const verdict = !isCurated ? dealVerdict(deal) : null;
 
@@ -78,7 +94,11 @@ export default function DealCard({
           </div>
           <div className="min-w-0 flex-1">
             <div className="mb-0.5 flex flex-wrap items-center gap-1.5 text-[11px] text-gray-400">
-              {isCurated ? curatedBadge : <StatusBadge rate={rate} isLowestEver={deal.isLowestEver} trackedDays={trackedDays} basis={basis} />}
+              {isCurated ? curatedBadge : (
+                <span className={`inline-flex items-center rounded-md px-2 py-1 text-[11px] font-extrabold shadow-sm ${scoreCls}`}>
+                  {scoreIcon} {score.label}
+                </span>
+              )}
               <span className="rounded bg-gray-100 px-1.5 py-0.5 text-gray-600">
                 {mallLabel(deal)}
               </span>
@@ -114,7 +134,7 @@ export default function DealCard({
                 </span>
                 <span className="font-extrabold text-gray-700">DROP {score.score}</span>
                 <span className="text-gray-500">
-                  {verdict.icon} {verdict.title}
+                  {scoreIcon} {score.label}
                 </span>
               </div>
             )}
@@ -163,7 +183,11 @@ export default function DealCard({
             </div>
           )}
           <div className="absolute left-2 top-2 flex flex-col items-start gap-1">
-            {isCurated ? curatedBadge : <StatusBadge rate={rate} isLowestEver={deal.isLowestEver} trackedDays={trackedDays} basis={basis} />}
+            {isCurated ? curatedBadge : (
+              <span className={`inline-flex items-center rounded-md px-2 py-1 text-[11px] font-extrabold shadow-sm ${scoreCls}`}>
+                {scoreIcon} {score.label}
+              </span>
+            )}
             {deal.isPriceError && <PriceErrorBadge />}
           </div>
         </div>
@@ -211,7 +235,7 @@ export default function DealCard({
                   DROP {score.score}
                 </span>
                 <span className="font-bold text-gray-600">
-                  {verdict.icon} {verdict.title}
+                  {scoreIcon} {score.label}
                 </span>
               </div>
             )}

@@ -48,14 +48,16 @@ export function headlineDiscount(d: {
   discountVsList: number;
   avg30Price?: number | null;
   currentPrice?: number;
+  trackedDays?: number | null;
 }): { rate: number; basis: "평균" | "정가" } {
-  if (d.avg30Price && d.currentPrice && d.avg30Price > d.currentPrice) {
+  const days = Math.max(0, d.trackedDays ?? 0);
+  if (days >= 7 && d.avg30Price && d.currentPrice && d.avg30Price > d.currentPrice) {
     return {
       rate: Math.round(((d.avg30Price - d.currentPrice) / d.avg30Price) * 100),
       basis: "평균",
     };
   }
-  if (d.discountVsAvg !== null && d.discountVsAvg > 0) {
+  if (days >= 7 && d.discountVsAvg !== null && d.discountVsAvg > 0) {
     return { rate: Math.round(d.discountVsAvg), basis: "평균" };
   }
   return { rate: Math.round(d.discountVsList), basis: "정가" };
@@ -73,6 +75,17 @@ export function dealStatus(
   basis?: "평균" | "정가"
 ): { label: string; cls: string } {
   const tag = basis === "정가" ? "정가 대비" : "평소 대비";
+  const days = Math.max(0, trackedDays ?? 0);
+  if (days > 0 && days < 7) {
+    return basis === "정가"
+      ? { label: "🕒 정가기준 수집중", cls: "bg-sky-500 text-white" }
+      : { label: `🔵 추적 ${days}일 · 판정 보류`, cls: "bg-sky-500 text-white" };
+  }
+  if (days === 0) {
+    return basis === "정가"
+      ? { label: "🕒 정가기준 수집중", cls: "bg-sky-500 text-white" }
+      : { label: "🔵 추적 1일 미만 · 판정 보류", cls: "bg-sky-500 text-white" };
+  }
   if (rate >= 25)
     return { label: `🔥 ${tag} -${Math.round(rate)}%`, cls: "bg-red-600 text-white" };
   if (isLowestEver && rate >= 12) {

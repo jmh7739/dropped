@@ -63,61 +63,16 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
   return <p className="mb-2 mt-6 text-sm font-bold text-gray-700 first:mt-0">{children}</p>;
 }
 
-const STAY_NOTES = [
-  { region: "국내", check: "주말·공휴일과 평일 요금, 주차·조식 포함 여부", caution: "취소 수수료 적용 시각과 현장 추가요금" },
-  { region: "일본", check: "역까지 이동 시간, 객실 면적, 1인·2인 요금 차이", caution: "도시별 숙박세와 체크인 시간" },
-  { region: "동남아", check: "우기·성수기, 공항 이동비, 세금 포함 총액", caution: "리조트 요금과 무료 취소 가능 기한" },
-  { region: "중화권", check: "교통 접근성, 현지 세금, 객실 인원 기준", caution: "예약 통화와 현장 결제 조건" },
-  { region: "유럽", check: "도시세, 조식·수하물 보관, 교통권 비용", caution: "환율 변동과 체크인 전 취소 조건" },
-  { region: "미주·기타", check: "리조트피·세금, 주차비, 이동 거리", caution: "현장 보증금과 결제 통화" },
-];
-
-function StayAdvice({ region }: { region?: string }) {
-  const notes = region ? STAY_NOTES.filter((item) => item.region === region) : STAY_NOTES;
+function TravelNote({ kind }: { kind: "stay" | "deal" }) {
+  const stay = kind === "stay";
   return (
-    <section className="rounded-xl border border-gray-200 bg-white p-5 text-sm leading-7 text-gray-700">
-      <h2 className="text-base font-extrabold text-gray-900">숙소를 비교할 때 보는 기준</h2>
-      <p className="mt-2">
-        Dropped는 숙소의 지역별 실측 가격대를 아직 수집하지 않습니다. 아래는 요금 순위가
-        아닌 비교 체크리스트입니다. 같은 날짜·인원·객실·취소 조건에서 세금과 추가비용을
-        포함한 총액을 비교하세요. 기준일: 2026년 9월 14일.
-      </p>
-      <div className="mt-4 grid gap-2 sm:grid-cols-2">
-        {notes.map((item) => (
-          <div key={item.region} className="rounded-lg bg-gray-50 p-3">
-            <h3 className="font-bold text-gray-900">{item.region}</h3>
-            <p>비교: {item.check}</p>
-            <p>주의: {item.caution}</p>
-          </div>
-        ))}
-      </div>
-      <p className="mt-3 text-gray-600">
-        예약처를 바꿔 볼 때도 객실 타입과 결제·취소 조건을 같게 맞춰야 가격 차이를
-        비교할 수 있습니다. 예약 페이지의 최종 금액이 이 화면의 어떤 안내보다 우선합니다.
-      </p>
-    </section>
-  );
-}
-
-function ActivityAdvice() {
-  return (
-    <section className="rounded-xl border border-gray-200 bg-white p-5 text-sm leading-7 text-gray-700">
-      <h2 className="text-base font-extrabold text-gray-900">여행딜 비교 기준</h2>
-      <p className="mt-2">
-        액티비티는 상품명보다 포함 범위가 중요합니다. 입장권만 제공하는지, 교통편·가이드·식사가
-        포함되는지 먼저 확인하세요. 같은 장소라도 날짜, 이용 시간, 연령, 환불 가능 여부에 따라
-        가격이 달라집니다. Dropped는 투어·티켓 가격 이력을 아직 수집하지 않아 아래 링크를
-        ‘평소보다 싼 딜’로 판정하지 않습니다. 기준일: 2026년 9월 14일.
-      </p>
-      <div className="mt-4 grid gap-2 sm:grid-cols-3">
-        <div className="rounded-lg bg-gray-50 p-3"><h3 className="font-bold">일본·홍콩 테마파크</h3><p>입장 날짜, 시간 지정, 익스프레스권 포함 여부를 비교하세요.</p></div>
-        <div className="rounded-lg bg-gray-50 p-3"><h3 className="font-bold">동남아 투어</h3><p>픽업 범위, 우천 취소, 현장 추가비용을 확인하세요.</p></div>
-        <div className="rounded-lg bg-gray-50 p-3"><h3 className="font-bold">도시 관광패스</h3><p>유효 기간과 실제 방문할 시설 수로 손익을 계산하세요.</p></div>
-      </div>
-      <p className="mt-3 text-gray-600">
-        해외 예약은 결제 통화와 환율·수수료도 달라질 수 있습니다. 쇼핑 상품의 가격 이력을
-        읽는 방법은 <Link href="/guides/cross-border-cost" className="font-bold text-brand hover:underline">해외 결제 비교 가이드</Link>를 참고하세요.
-      </p>
+    <section className="mt-6 rounded-xl border border-gray-200 bg-white p-4 text-sm leading-6 text-gray-600">
+      <p>{stay
+        ? "같은 날짜·인원·객실·취소 조건에서 세금과 추가요금을 포함한 최종 금액을 비교하세요."
+        : "입장 날짜와 포함 항목, 환불 조건을 확인하세요. 투어·티켓은 가격 이력으로 할인 여부를 판정하지 않습니다."}</p>
+      <Link href={stay ? "/guides/travel-stay" : "/guides/travel-activities"} className="mt-2 inline-block font-bold text-brand hover:underline">
+        {stay ? "숙소 비교 가이드" : "여행딜 비교 가이드"} →
+      </Link>
     </section>
   );
 }
@@ -177,17 +132,17 @@ export default function TravelView({
       )}
       {tab === "stay" && (
         <div>
-          <StayAdvice region={region} />
           <SectionTitle>🏨 지역별 숙소 검색</SectionTitle>
           <StayDestinations region={region} />
           <PartnerSection partners={STAY_PARTNERS} heading="🔎 예약처에서 조건별 총액 확인" />
+          <TravelNote kind="stay" />
         </div>
       )}
       {tab === "deal" && (
         <div>
-          <ActivityAdvice />
           <PartnerSection partners={DEAL_PARTNERS} heading="🎢 지역별 액티비티 검색" />
           <PartnerSection partners={SERVICE_PARTNERS} heading="🧳 여행 준비 예약처" />
+          <TravelNote kind="deal" />
         </div>
       )}
     </div>

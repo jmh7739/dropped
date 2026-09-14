@@ -28,9 +28,6 @@ const shoppingSlugs = [
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false, // X-Powered-By 숨김
-  images: {
-    remotePatterns: [{ protocol: "https", hostname: "**" }],
-  },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },

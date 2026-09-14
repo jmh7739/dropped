@@ -4,9 +4,9 @@ import { safeUrl } from "@/lib/format";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const id = parseInt(params.id, 10);
+  const id = parseInt((await params).id, 10);
   if (isNaN(id) || !supabase) {
     return NextResponse.redirect(new URL("/", request.url));
   }

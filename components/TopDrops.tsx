@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { Deal, mallLabel } from "@/lib/types";
-import { formatWon, headlineDiscount, displayTitle } from "@/lib/format";
-import { StatusBadge } from "./DiscountBadge";
-import { trackingStage } from "@/lib/dropMetrics";
+import { formatWon, displayTitle } from "@/lib/format";
+import { dropScore, trackingStage } from "@/lib/dropMetrics";
 import SafeImage from "./SafeImage";
 
 /**
@@ -24,7 +23,23 @@ export default function TopDrops({
       {header}
       <div className="-mx-1 flex gap-2.5 overflow-x-auto px-1 pb-1">
         {deals.map((d, i) => {
-          const { rate, basis } = headlineDiscount(d);
+          const score = dropScore(d);
+          const scoreIcon =
+            score.tone === "hot" || score.tone === "good"
+              ? "🟢"
+              : score.tone === "ok"
+              ? "🟡"
+              : score.tone === "weak"
+              ? "🔵"
+              : "🟠";
+          const scoreCls =
+            score.tone === "hot" || score.tone === "good"
+              ? "border-emerald-300 bg-emerald-50 text-emerald-900"
+              : score.tone === "ok"
+              ? "border-amber-300 bg-amber-50 text-amber-900"
+              : score.tone === "weak"
+              ? "border-sky-300 bg-sky-50 text-sky-800"
+              : "border-rose-300 bg-rose-50 text-rose-900";
           const curatedDisc =
             d.isCurated && d.listPrice > d.currentPrice
               ? Math.round(((d.listPrice - d.currentPrice) / d.listPrice) * 100)
@@ -53,7 +68,9 @@ export default function TopDrops({
                       </span>
                     )
                   ) : (
-                    <StatusBadge rate={rate} isLowestEver={d.isLowestEver} trackedDays={d.trackedDays} basis={basis} />
+                    <span className={`rounded-md px-1.5 py-0.5 text-[10px] font-extrabold ${scoreCls}`}>
+                      {scoreIcon} {score.label}
+                    </span>
                   )}
                 </span>
               </div>

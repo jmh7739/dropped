@@ -92,7 +92,7 @@ export default function AboutPage() {
           급락 후보는 판매자 정가가 아니라 수집한 실제 가격의 중앙값과 현재가를 비교하고,
           가격 변동이 지나치게 크거나 저가가 반복되는 경우도 따로 점검합니다. 상세의
           구매 판정은 추적 7일 이상과 유효 기록 10회 이상일 때에만 충분한 이력으로
-          취급합니다. ‘검증된 베스트딜’은 이보다 긴 추적 기간과 점수·하락률 기준을
+          취급합니다. ‘검증된 핫딜’은 이보다 긴 추적 기간과 점수·하락률 기준을
           추가로 적용합니다.
         </p>
         <p>
@@ -120,7 +120,7 @@ export default function AboutPage() {
             {
               icon: "✅",
               title: "구매 판정",
-              desc: "🟢 사도 좋은 가격 / 🟡 괜찮은 가격 / 🔴 기다리기",
+              desc: "🔥 매우 좋은 가격 / 🟢 좋은 가격 / 🟡 보통 가격 / 🔴 기다리기",
             },
             {
               icon: "✈️",
@@ -129,7 +129,7 @@ export default function AboutPage() {
             },
             {
               icon: "🛒",
-              title: "베스트딜",
+              title: "핫딜",
               desc: "국내·해외 상품을 좋은 이유 배지와 함께 한곳에서 비교",
             },
           ].map((f) => (
@@ -180,7 +180,7 @@ export default function AboutPage() {
           href="/"
           className="rounded-lg border border-gray-200 bg-white px-4 py-2 font-bold text-gray-700 hover:bg-gray-50"
         >
-          ← 베스트딜 보러가기
+          ← 핫딜 보러가기
         </Link>
         <Link
           href="/privacy"

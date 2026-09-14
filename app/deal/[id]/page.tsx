@@ -8,9 +8,9 @@ export const dynamic = "force-dynamic";
 export default async function DealRedirect({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
-  const deal = await getDeal(Number(params.id));
+  const deal = await getDeal(Number((await params).id));
   if (!deal) notFound();
   permanentRedirect(`/price/${deal.productId}`);
 }

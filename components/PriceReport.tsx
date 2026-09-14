@@ -24,6 +24,13 @@ export default function PriceReport({
   const ageHours = lastCheckedAt ? (Date.now() - new Date(lastCheckedAt).getTime()) / 3600000 : Infinity;
   const confidence = ageHours > 168 ? Math.min(baseConfidence, 20) : ageHours > 24 ? Math.min(baseConfidence, 48) : baseConfidence;
   const confidenceLabel = confidence >= 75 ? "높음" : confidence >= 40 ? "보통" : "낮음";
+  const displayTitle = dropScore?.label ?? verdict.title;
+  const displayIcon =
+    dropScore?.tone === "hot" || dropScore?.tone === "good"
+      ? "🟢"
+      : dropScore?.tone === "ok"
+        ? "🟡"
+        : "🔴";
   const rows: { label: string; value: number | null; hi?: boolean }[] = [
     { label: "마지막 확인가", value: stats.current, hi: true },
     { label: averagePeriodLabel(d), value: stats.avg30 },
@@ -39,8 +46,8 @@ export default function PriceReport({
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <div className="flex items-center gap-2 text-lg font-extrabold">
-              <span>{verdict.icon}</span>
-              <span>{verdict.title}</span>
+              <span>{displayIcon}</span>
+              <span>{displayTitle}</span>
             </div>
             <p className="mt-0.5 text-sm font-medium opacity-90">{verdict.reason}</p>
           </div>

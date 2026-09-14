@@ -35,6 +35,9 @@ export default async function Header() {
           }>
             <SectionNav />
           </Suspense>
+          <Link href="/guides" className="ml-auto shrink-0 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-sm font-bold text-gray-700 hover:border-brand/40 hover:text-brand">
+            가이드
+          </Link>
           <nav className="hidden items-center gap-1 border-l border-gray-200 pl-3 text-sm md:flex">
           {DETAIL_NAV.map((n) => (
             <Link

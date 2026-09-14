@@ -11,7 +11,9 @@ export default function PrivacyPage() {
       <h2 className="mb-1 mt-6 text-base font-bold text-gray-900">자동으로 처리되는 정보</h2>
       <p>
         서비스 품질과 방문 통계를 위해 접속 시각, 기기·브라우저 종류, 방문 페이지 같은
-        기술 정보가 Vercel Analytics를 통해 처리될 수 있습니다. 좋아요 중복 방지를 위해
+        기술 정보가 Vercel Analytics와 Google Analytics 4를 통해 처리될 수 있습니다.
+        Google Analytics 4는 방문 페이지와 기기 정보 등을 Google에 전송하고 방문 분석용
+        쿠키를 사용할 수 있습니다. 좋아요 중복 방지를 위해
         브라우저에 무작위 방문자 식별자와 좋아요 기록을 저장합니다. 이 식별자는 이름이나
         연락처와 연결하지 않습니다.
       </p>

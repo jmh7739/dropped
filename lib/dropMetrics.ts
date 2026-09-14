@@ -54,8 +54,8 @@ export function lowestPeriodLabel(trackedDays?: number | null): string {
 /** 홈의 '검증된 베스트딜' 최소 게이트. 정가 할인만 있는 큐레이션은 통과하지 않는다. */
 export function isVerifiedBestDeal(d: Deal): boolean {
   const score = dropScore(d).score ?? 0;
-  return !d.isCurated && (d.trackedDays ?? 0) >= 10 &&
-    (d.historyPointCount ?? 0) >= 10 && score >= 50 && headlineDropRate(d) >= 5;
+  return !d.isCurated && (d.trackedDays ?? 0) >= 14 &&
+    (d.historyPointCount ?? 0) >= 20 && score >= 50 && headlineDropRate(d) >= 5;
 }
 
 /** 베스트딜 탭은 전체/국내/해외에 관계없이 같은 검증 기준을 사용한다. */
@@ -162,10 +162,9 @@ export function dropScore(d: ScoreInput): DropScoreResult {
   );
 
   if (days < 7) return { score, label: "데이터 수집 중", tone: "weak" };
-  if (score >= 90) return { score, label: "매우 좋은 가격", tone: "hot" };
-  if (score >= 75) return { score, label: "지금 사기 좋음", tone: "good" };
-  if (score >= 50) return { score, label: "괜찮은 가격", tone: "ok" };
-  if (score >= 25) return { score, label: "조금 더 지켜보기", tone: "wait" };
+  if (score >= 80) return { score, label: "매우 좋은 가격", tone: "hot" };
+  if (score >= 60) return { score, label: "좋은 가격", tone: "good" };
+  if (score >= 40) return { score, label: "보통 가격", tone: "ok" };
   return { score, label: "기다리기", tone: "wait" };
 }
 
@@ -194,7 +193,7 @@ export function hotDealScore(d: ScoreInput): number {
   const score = dropScore(d).score ?? 0;
   const rate = headlineDropRate(d);
   const trusted = TRUSTED_PLATFORM_BONUS[d.platform] ?? 4;
-  const engagement = Math.min(30, d.clickCount * 1.5 + d.likeCount * 4);
+  const engagement = Math.min(36, Math.log1p(Math.max(0, d.clickCount)) * 9 + Math.log1p(Math.max(0, d.likeCount)) * 11);
   const healthPenalty = d.categorySlug === "health" ? 30 : 0;
   const base = score * 1.6 + rate * 2.2 + trusted + engagement - healthPenalty;
   const days = d.trackedDays ?? 0;

@@ -63,7 +63,7 @@ export function priceStats(
     percentile: Math.round((lowerCount / prices.length) * 100),
     isLowest: current <= minAll,
     lowestLabel: trackedDays >= 90 ? "90일 최저가" : `추적 ${trackedDays}일 최저가`,
-    enoughData: prices.length >= 10 && trackedDays >= 7,
+    enoughData: prices.length >= 20 && trackedDays >= 14,
   };
 }
 
@@ -96,15 +96,15 @@ export function buyVerdict(
       return {
         tier: "ok",
         icon: "🟡",
-        title: "가격 데이터 수집 중",
-        reason: `아직 추적 기간이 짧아 정확한 판정이 어렵습니다 (${d}% 하락 감지)`,
+        title: "데이터 수집 중",
+        reason: "아직 추적 기간이 짧아 가격 판정이 제한적입니다.",
         cls: OK,
       };
     return {
       tier: "wait",
       icon: "🔴",
       title: "데이터 수집 중",
-      reason: "추적 기간이 짧아 가격 판정을 내리기 이릅니다",
+      reason: "추적 기간이 짧아 가격 판정이 제한적입니다.",
       cls: WAIT,
     };
   }
@@ -112,7 +112,7 @@ export function buyVerdict(
     return {
       tier: "buy",
       icon: "🟢",
-      title: "지금 사도 좋은 가격",
+      title: "좋은 가격",
       reason: `${lowestLabel} · 평균보다 ${d}% 저렴`,
       cls: BUY,
     };
@@ -120,7 +120,7 @@ export function buyVerdict(
     return {
       tier: "buy",
       icon: "🟢",
-      title: "지금 사도 좋은 가격",
+      title: "매우 좋은 가격",
       reason: `평균보다 ${d}% 저렴`,
       cls: BUY,
     };
@@ -128,14 +128,14 @@ export function buyVerdict(
     return {
       tier: "ok",
       icon: "🟡",
-      title: "괜찮은 가격",
+      title: "좋은 가격",
       reason: `평균보다 ${d}% 저렴`,
       cls: OK,
     };
   return {
     tier: "wait",
     icon: "🔴",
-    title: "기다리는 게 좋아요",
+    title: "조금 더 지켜보기",
     reason:
       rate > 0 ? `평균보다 ${d}%로 큰 차이 없음` : "지금은 싸지 않은 편",
     cls: WAIT,
@@ -162,7 +162,7 @@ export function dealVerdict(d: {
     d.avg30Price && d.avg30Price > d.currentPrice
       ? Math.round(((d.avg30Price - d.currentPrice) / d.avg30Price) * 100)
       : Math.max(0, Math.round(d.discountVsAvg ?? 0));
-  const enoughData = points >= 10 && days >= 7;
+  const enoughData = points >= 20 && days >= 14;
   const lowestLabel =
     `추적 ${Math.max(days, 1)}일 중 최저`;
   return buyVerdict(rate, d.isLowestEver, lowestLabel, enoughData);

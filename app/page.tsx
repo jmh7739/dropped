@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getDeals, getCuratedDeals, getLastPriceUpdate, sortDealList, diversifyTop, SortKey, PriceStatusKey } from "@/lib/deals";
+import { getDeals, getCuratedDeals, getLastPriceUpdate, sortDealList, SortKey, PriceStatusKey } from "@/lib/deals";
 import { searchProducts } from "@/lib/products";
 import { timeAgo } from "@/lib/format";
 import { isSupabaseConfigured } from "@/lib/supabase";
-import { isHealthDeal, headlineDropRate, dropScore, isVerifiedBestDeal, isVerifiedListing } from "@/lib/dropMetrics";
+import { isHealthDeal, headlineDropRate, dropScore, hotDealScore, isVerifiedBestDeal, isVerifiedListing } from "@/lib/dropMetrics";
 import DealGrid from "@/components/DealGrid";
-import TopDrops from "@/components/TopDrops";
+import DealCard from "@/components/DealCard";
 import ProductSearchResults from "@/components/ProductSearchResults";
 import SortDropdown from "@/components/SortDropdown";
 import TravelView, { TravelTab } from "@/components/TravelView";
@@ -22,9 +22,9 @@ import AdSenseScript from "@/components/AdSenseScript";
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata({
-  searchParams,
+  searchParams: searchParamsPromise,
 }: {
-  searchParams: {
+  searchParams: Promise<{
     category?: string;
     q?: string;
     sort?: string;
@@ -36,12 +36,18 @@ export async function generateMetadata({
     cc?: string;
     cs?: string;
     bs?: string;
+    hd?: string;
+    hp?: string;
+    hc?: string;
+    hs?: string;
+    hl?: string;
     tt?: string;
     region?: string;
     o?: string;
     d?: string;
-  };
+  }>;
 }): Promise<Metadata> {
+  const searchParams = await searchParamsPromise;
   const cat = CATEGORIES.find((c) => c.slug === searchParams.category);
   const q = (searchParams.q ?? "").slice(0, 50).trim();
   const canonical = cat?.dealType === "shopping"
@@ -73,9 +79,9 @@ export async function generateMetadata({
 }
 
 export default async function Home({
-  searchParams,
+  searchParams: searchParamsPromise,
 }: {
-  searchParams: {
+  searchParams: Promise<{
     category?: string;
     sort?: string;
     hot?: string;
@@ -94,8 +100,14 @@ export default async function Home({
     cc?: string;
     cs?: string;
     bs?: string;
-  };
+    hd?: string;
+    hp?: string;
+    hc?: string;
+    hs?: string;
+    hl?: string;
+  }>;
 }) {
+  const searchParams = await searchParamsPromise;
   const validSlugs = new Set(CATEGORIES.map((c) => c.slug));
   const category = validSlugs.has(searchParams.category ?? "")
     ? searchParams.category
@@ -112,6 +124,12 @@ export default async function Home({
   const sort: SortKey = validDealSorts.includes(searchParams.sort as SortKey)
     ? (searchParams.sort as SortKey)
     : "recent";
+  const hotPage = Math.max(1, parseInt(searchParams.hp ?? "1", 10) || 1);
+  const hotCategory = CATEGORIES.some((c) => c.dealType === "shopping" && c.slug === searchParams.hc)
+    ? searchParams.hc ?? "" : "";
+  const hotSort = ["recommended", "score", "drop", "recent", "price"].includes(searchParams.hs ?? "")
+    ? searchParams.hs ?? "recommended" : "recommended";
+  const hotLowestOnly = searchParams.hl === "1";
   const hot = searchParams.hot === "1";
   const showEnded = searchParams.se === "1";
   const q = (searchParams.q ?? "").slice(0, 100);
@@ -174,6 +192,9 @@ export default async function Home({
   if (showEnded) allParams.se = "1";
   if (ps) allParams.ps = ps;
   if (scope) allParams.scope = scope;
+  if (hotCategory) allParams.hc = hotCategory;
+  if (hotSort !== "recommended") allParams.hs = hotSort;
+  if (hotLowestOnly) allParams.hl = "1";
 
   const [trackedDeals, curatedDealsRaw, lastUpdate, productMatchesRaw, trendingProducts] = await Promise.all([
     getDeals({ category, sort, hotOnly: hot, q, priceStatus: ps, scope }),
@@ -231,71 +252,37 @@ export default async function Home({
     { key: "score", label: "DROP SCORE" },
   ];
 
-  // 상단 추천 스트립 — 최신순 리스트에선 좋은 딜이 아래로 밀리므로
-  // "지금 가장 많이 떨어진" 순(하락률 상위)을 위에 별도로 보여준다.
-  //   실시간 인기(골드박스)는 트래픽 쌓인 뒤로 보류 → 지금은 하락률 휴리스틱만.
-  //   검색·가격상태 필터·인기딜 뷰나 2페이지 이상에선 숨겨 리스트에 집중.
-  const showTopStrip = !q.trim() && !ps && !hot && safePage === 1;
-  const topDrops = showTopStrip
-    ? diversifyTop(
-        trackedDeals
-          .filter((d) => {
-            if (d.status === "ended") return false;
-            if (headlineDropRate(d) < 10) return false;
-            if ((d.trackedDays ?? 0) < 7) return false;
-            const checked = new Date(d.checkedAt ?? d.detectedAt).getTime();
-            return Number.isFinite(checked) && Date.now() - checked <= 24 * 3600 * 1000;
-          })
-          .sort((a, b) => {
-            // 실제 가격이력이 충분한(7일+) 상품을 우선, 그다음 하락률 큰 순.
-            const ea = (a.trackedDays ?? 0) >= 7 ? 1 : 0;
-            const eb = (b.trackedDays ?? 0) >= 7 ? 1 : 0;
-            if (ea !== eb) return eb - ea;
-            return headlineDropRate(b) - headlineDropRate(a);
-          }),
-        8,
-        2
-      )
-    : [];
-
-  const trackedLowest = isDefaultHome
-    ? diversifyTop(
-        trackedDeals
-          .filter((d) => d.isLowestEver && (d.trackedDays ?? 0) >= 7)
-          .sort((a, b) => {
-            // 최저가라는 사실만으로 -1%, -3% 상품이 앞에 오지 않도록
-            // DROP SCORE → 평균 대비 하락률 → 추적기간 순으로 강한 딜을 우선한다.
-            const scoreGap = (dropScore(b).score ?? 0) - (dropScore(a).score ?? 0);
-            if (scoreGap !== 0) return scoreGap;
-            const rateGap = headlineDropRate(b) - headlineDropRate(a);
-            if (rateGap !== 0) return rateGap;
-            return (b.trackedDays ?? 0) - (a.trackedDays ?? 0);
-          }),
-        8,
-        2
-      )
-    : [];
-  const goodPrices = isDefaultHome
-    ? diversifyTop(
-        trackedDeals
-          .filter((d) => (d.trackedDays ?? 0) >= 10 && (dropScore(d).score ?? 0) >= 70)
-          .sort((a, b) => (dropScore(b).score ?? 0) - (dropScore(a).score ?? 0)),
-        8,
-        2
-      )
-    : [];
-  const newDiscounts = isDefaultHome
-    ? diversifyTop(
-        combinedDeals
-          .filter((d) =>
-            d.status !== "ended" &&
-            (d.isCurated ? d.discountVsList >= 40 : (d.trackedDays ?? 0) < 10 && headlineDropRate(d) >= 10)
-          )
-          .sort((a, b) => headlineDropRate(b) - headlineDropRate(a)),
-        8,
-        2
-      )
-    : [];
+  const sortedHotList = (isDefaultHome ? combinedDeals : [])
+    .filter((d) => d.status !== "ended" && (isVerifiedBestDeal(d) ||
+      (d.platform !== "aliexpress" && d.isCurated && d.currentPrice > 0 && d.discountVsList >= 10)))
+    .filter((d) => !hotCategory || d.categorySlug === hotCategory)
+    .filter((d) => !hotLowestOnly || d.isLowestEver)
+    .sort((a, b) => {
+      if (hotSort === "drop") return headlineDropRate(b) - headlineDropRate(a);
+      if (hotSort === "recent") return new Date(b.checkedAt ?? b.detectedAt).getTime() - new Date(a.checkedAt ?? a.detectedAt).getTime();
+      if (hotSort === "price") return a.currentPrice - b.currentPrice;
+      return hotSort === "recommended"
+        ? hotDealScore(b) - hotDealScore(a)
+        : (dropScore(b).score ?? 0) - (dropScore(a).score ?? 0);
+    });
+  // 추천순은 검증된 가격 이력의 순서를 유지하면서 국내몰 할인도 첫 화면에 섞는다.
+  const hotList = hotSort === "recommended" && !hotCategory && !hotLowestOnly
+    ? (() => {
+        const domestic = sortedHotList.filter((d) => d.platform !== "aliexpress");
+        const overseas = sortedHotList.filter((d) => d.platform === "aliexpress");
+        const mixed: typeof sortedHotList = [];
+        while (domestic.length || overseas.length) {
+          const next = mixed.length % 3 === 1 && domestic.length
+            ? domestic.shift()
+            : overseas.shift() ?? domestic.shift();
+          if (next) mixed.push(next);
+        }
+        return mixed;
+      })()
+    : sortedHotList;
+  const hotTotalPages = Math.max(1, Math.ceil(hotList.length / 10));
+  const safeHotPage = Math.min(hotPage, hotTotalPages);
+  const hotItems = hotList.slice((safeHotPage - 1) * 10, safeHotPage * 10);
 
   const hrefFor = (next: Record<string, string | undefined>) => {
     const sp = new URLSearchParams();
@@ -314,47 +301,61 @@ export default async function Home({
 
       <div className="mb-5">
         <SearchBar initial={q} />
-        {!q && <p className="mt-2 text-center text-xs font-medium text-gray-500">가격 이력이 있는 상품은 평소 가격과 비교하고, 신규 할인은 별도로 표시합니다.</p>}
+        {!q && <p className="mt-2 text-center text-xs font-medium text-gray-500">가격 이력으로 확인한 하락과 판매처 표시 할인을 구분해 보여줍니다.</p>}
       </div>
 
       {trackedMatches.length > 0 && (
         <ProductSearchResults rows={trackedMatches} query={q.trim()} />
       )}
 
-      {topDrops.length > 0 && (
-        <TopDrops
-          deals={topDrops}
-          header={
-            <h2 className="mb-3 text-lg font-extrabold text-gray-900">
-              🔥 지금 진짜 떨어진 가격
-            </h2>
-          }
-        />
-      )}
-      {trackedLowest.length > 0 && (
-        <TopDrops
-          deals={trackedLowest}
-          header={
-            <h2 className="mb-3 text-lg font-extrabold text-gray-900">
-              🏆 추적 최저가
-            </h2>
-          }
-        />
-      )}
-      {goodPrices.length > 0 && (
-        <TopDrops deals={goodPrices} header={<h2 className="mb-3 text-lg font-extrabold text-gray-900">💚 지금 사기 좋은 가격 <span className="text-sm font-medium text-gray-400">DROP SCORE 70+</span></h2>} />
-      )}
-      {newDiscounts.length > 0 && (
-        <TopDrops deals={newDiscounts} header={<div><h2 className="text-lg font-extrabold text-gray-900">🆕 새로 발견한 할인</h2><p className="mb-3 text-xs text-gray-400">가격 이력 수집 중</p></div>} />
+      {isDefaultHome && (
+        <section className="mb-8">
+          <div className="mb-3 space-y-2">
+            <h2 className="text-lg font-extrabold text-gray-900">🔥 핫딜</h2>
+            <div className="flex flex-wrap items-center gap-2">
+              <SortDropdown options={catOptions} value={hotCategory} param="hc" params={allParams} ariaLabel="핫딜 카테고리" />
+              <SortDropdown options={[
+                { key: "recommended", label: "추천순 · 국내 포함" },
+                { key: "score", label: "DROP SCORE순" },
+                { key: "drop", label: "하락률 높은순" },
+                { key: "recent", label: "최근 확인순" },
+                { key: "price", label: "낮은 가격순" },
+              ]} value={hotSort} param="hs" params={allParams} ariaLabel="핫딜 정렬" />
+              <Link href={hrefFor({ hl: hotLowestOnly ? undefined : "1", hp: undefined })}
+                aria-pressed={hotLowestOnly}
+                className={`rounded-lg px-3 py-1.5 text-sm font-medium ${hotLowestOnly ? "bg-brand text-white" : "border border-gray-200 bg-white text-gray-600"}`}>
+                추적 최저가만
+              </Link>
+            </div>
+          </div>
+
+          {hotItems.length === 0 ? (
+            <p className="rounded-xl border border-dashed border-gray-300 bg-white p-8 text-center text-sm text-gray-500">이 조건에 맞는 상품이 아직 없습니다.</p>
+          ) : <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+            {hotItems.map((d) => <DealCard key={d.id} deal={d} />)}
+          </div>}
+          {hotTotalPages > 1 && (
+            <nav aria-label="핫딜 페이지" className="mt-3 flex items-center justify-center gap-1.5">
+              {Array.from({ length: hotTotalPages }, (_, i) => (
+                <Link key={i} href={hrefFor({ hp: i === 0 ? undefined : String(i + 1) })}
+                  aria-label={`핫딜 ${i + 1}페이지`} aria-current={safeHotPage === i + 1 ? "page" : undefined}
+                  className={`flex h-7 w-7 items-center justify-center rounded-lg text-xs font-bold ${safeHotPage === i + 1 ? "bg-brand text-white" : "border border-gray-200 bg-white text-gray-500 hover:bg-gray-50"}`}>
+                  {i + 1}
+                </Link>
+              ))}
+            </nav>
+          )}
+        </section>
       )}
 
       <TrendingProducts products={trendingProducts} />
 
-      <section>
+      {!isDefaultHome && (
+        <section>
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
           <div>
             <h1 className="flex items-baseline text-xl font-extrabold text-gray-900">
-              <span>{q ? `"${q}" 검색 결과` : activeCat ? `${activeCat.name} 베스트딜` : verifiedOnly ? "🔥 검증된 베스트딜" : "베스트딜"}</span>
+              <span>{q ? `"${q}" 검색 결과` : activeCat ? `${activeCat.name} 핫딜` : verifiedOnly ? "🔥 검증된 핫딜" : "핫딜"}</span>
               <span className="ml-2 text-sm font-normal text-gray-400">{listCount}개</span>
             </h1>
           </div>
@@ -408,7 +409,7 @@ export default async function Home({
               ? trackedMatches.length > 0
                 ? "현재 조건에 맞는 특가가 없습니다."
                 : "검색 결과가 없습니다."
-              : "아직 이 조건에 맞는 베스트딜이 없습니다."}
+              : "아직 이 조건에 맞는 핫딜이 없습니다."}
           </div>
         ) : (
           <>
@@ -428,29 +429,17 @@ export default async function Home({
             />
           </>
         )}
-      </section>
-
-      {isDefaultHome && (
-        <section className="mt-10 rounded-xl border border-gray-200 bg-white p-5 text-sm leading-7 text-gray-700">
-          <h2 className="text-base font-extrabold text-gray-900">가격은 어떻게 판단하나요?</h2>
-          <p className="mt-2">
-            같은 상품에서 실제로 확인한 가격을 시간순으로 모아 평균과 최저가를 계산합니다.
-            90일치 기록이 없다면 ‘90일 최저가’ 대신 실제 추적 기간을 표시합니다.
-            추적 기간이 짧거나 가격 확인 횟수가 적은 상품은 확정적인 구매 판정 대신
-            데이터 수집 중이라고 안내합니다.
-          </p>
-          <p className="mt-2">
-            검증된 베스트딜은 가격 이력이 쌓인 상품 중 평균보다 내려간 가격을 보여줍니다.
-            새로 발견한 할인은 판매처가 표시한 할인 정보일 수 있으므로 평소보다 싼지
-            아직 확인되지 않았습니다. 배송비·쿠폰·옵션에 따라 결제 가격은 달라질 수 있습니다.
-          </p>
-          <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1">
-            <Link href="/about" className="font-bold text-brand hover:underline">가격 판정 기준 자세히 보기 →</Link>
-            <Link href="/guides" className="font-bold text-brand hover:underline">가격 비교 가이드 →</Link>
-            <Link href="/insights" className="font-bold text-brand hover:underline">실제 가격 추적 사례 →</Link>
-          </div>
         </section>
       )}
+
     </div>
   );
 }
+
+
+
+
+
+
+
+

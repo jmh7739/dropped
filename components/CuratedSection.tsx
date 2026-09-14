@@ -62,7 +62,7 @@ export default async function CuratedSection({
         />
       )}
       <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-xl font-extrabold">🛒 베스트딜</h2>
+        <h2 className="text-xl font-extrabold">🛒 핫딜</h2>
         <div className="flex flex-wrap items-center gap-2">
           {/* 하단 전용 카테고리 드롭다운 (독립) */}
           <SortDropdown
@@ -86,7 +86,7 @@ export default async function CuratedSection({
 
       {deals.length === 0 ? (
         <div className="rounded-xl border border-dashed border-gray-300 bg-white p-8 text-center text-sm text-gray-400">
-          이 카테고리엔 베스트딜이 없어요.
+          이 카테고리엔 핫딜이 없어요.
         </div>
       ) : (
         <DealGrid deals={deals} />

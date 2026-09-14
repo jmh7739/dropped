@@ -25,16 +25,17 @@ export async function generateMetadata({
   params,
   searchParams,
 }: {
-  params: { slug: string };
-  searchParams: Record<string, string | undefined>;
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<Record<string, string | undefined>>;
 }): Promise<Metadata> {
-  const cat = SHOPPING_CATS.find((c) => c.slug === params.slug);
+  const [routeParams, query] = await Promise.all([params, searchParams]);
+  const cat = SHOPPING_CATS.find((c) => c.slug === routeParams.slug);
   if (!cat) return { title: "카테고리 없음", robots: { index: false, follow: false } };
   const deals = await getDeals({ category: cat.slug });
   return {
     title: `${cat.name} 가격 이력·특가`,
     description: `${cat.name} 상품의 현재 가격, 실제 추적 기간, 평균 대비 변화를 확인하세요. 이력이 부족한 상품은 별도로 안내합니다.`,
-    robots: { index: deals.length >= 3 && Object.keys(searchParams).length === 0, follow: true },
+    robots: { index: deals.length >= 3 && Object.keys(query).length === 0, follow: true },
     alternates: { canonical: `${SITE_URL}/category/${cat.slug}` },
   };
 }
@@ -43,25 +44,26 @@ export default async function CategoryPage({
   params,
   searchParams,
 }: {
-  params: { slug: string };
-  searchParams: { sort?: string; ps?: string; scope?: string; page?: string };
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<{ sort?: string; ps?: string; scope?: string; page?: string }>;
 }) {
-  const cat = SHOPPING_CATS.find((c) => c.slug === params.slug);
+  const [routeParams, query] = await Promise.all([params, searchParams]);
+  const cat = SHOPPING_CATS.find((c) => c.slug === routeParams.slug);
   if (!cat) notFound();
 
   const validSorts: SortKey[] = ["discount", "popular", "discount_asc", "price_asc", "price_desc", "recent"];
-  const sort: SortKey = validSorts.includes(searchParams.sort as SortKey)
-    ? (searchParams.sort as SortKey)
+  const sort: SortKey = validSorts.includes(query.sort as SortKey)
+    ? (query.sort as SortKey)
     : "discount";
   const validPs = new Set<PriceStatusKey>(["plunge", "lowest", "bigdrop", "fresh"]);
-  const ps = validPs.has(searchParams.ps as PriceStatusKey)
-    ? (searchParams.ps as PriceStatusKey)
+  const ps = validPs.has(query.ps as PriceStatusKey)
+    ? (query.ps as PriceStatusKey)
     : undefined;
   const scope =
-    searchParams.scope === "domestic" || searchParams.scope === "overseas"
-      ? searchParams.scope
+    query.scope === "domestic" || query.scope === "overseas"
+      ? query.scope
       : undefined;
-  const page = Math.max(1, parseInt(searchParams.page ?? "1", 10) || 1);
+  const page = Math.max(1, parseInt(query.page ?? "1", 10) || 1);
 
   const basePath = `/category/${cat.slug}`;
 

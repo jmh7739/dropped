@@ -11,20 +11,22 @@ export function generateStaticParams() {
   return Object.keys(scopes).map((scope) => ({ scope }));
 }
 
-export async function generateMetadata({ params, searchParams }: { params: { scope: string }; searchParams: Record<string, string | undefined> }): Promise<Metadata> {
-  if (!(params.scope in scopes)) return { robots: { index: false, follow: false } };
-  const label = scopes[params.scope as keyof typeof scopes];
-  const scope = params.scope === "global" ? "overseas" : "domestic";
+export async function generateMetadata({ params, searchParams }: { params: Promise<{ scope: string }>; searchParams: Promise<Record<string, string | undefined>> }): Promise<Metadata> {
+  const [routeParams, query] = await Promise.all([params, searchParams]);
+  if (!(routeParams.scope in scopes)) return { robots: { index: false, follow: false } };
+  const label = scopes[routeParams.scope as keyof typeof scopes];
+  const scope = routeParams.scope === "global" ? "overseas" : "domestic";
   const hasDeals = (await getDeals({ scope })).some(isVerifiedBestDeal);
   return {
-    title: `${label} 검증 베스트딜`,
+    title: `${label} 검증 핫딜`,
     description: `${label} 상품 중 실제 가격 이력으로 검증한 할인만 확인하세요.`,
-    alternates: { canonical: `${SITE_URL}/deals/${params.scope}` },
-    robots: { index: hasDeals && Object.keys(searchParams).length === 0, follow: true },
+    alternates: { canonical: `${SITE_URL}/deals/${routeParams.scope}` },
+    robots: { index: hasDeals && Object.keys(query).length === 0, follow: true },
   };
 }
 
-export default function ScopedDealsPage({ params, searchParams }: { params: { scope: string }; searchParams: Record<string, string | undefined> }) {
-  if (!(params.scope in scopes)) notFound();
-  return <Home searchParams={{ ...searchParams, scope: params.scope === "global" ? "overseas" : "domestic", sec: "best" }} />;
+export default async function ScopedDealsPage({ params, searchParams }: { params: Promise<{ scope: string }>; searchParams: Promise<Record<string, string | undefined>> }) {
+  const [routeParams, query] = await Promise.all([params, searchParams]);
+  if (!(routeParams.scope in scopes)) notFound();
+  return <Home searchParams={Promise.resolve({ ...query, scope: routeParams.scope === "global" ? "overseas" : "domestic", sec: "best" })} />;
 }

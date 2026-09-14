@@ -8,7 +8,11 @@ import type { TrendingProduct } from "@/lib/trends";
 
 const PAGE_SIZE = 10;
 
-export default function TrendingProducts({ products }: { products: TrendingProduct[] }) {
+export default function TrendingProducts({
+  products,
+}: {
+  products: TrendingProduct[];
+}) {
   const [page, setPage] = useState(0);
   if (!products.length) return null;
 
@@ -34,8 +38,7 @@ export default function TrendingProducts({ products }: { products: TrendingProdu
               className="aspect-square w-full object-cover"
             />
             <div className="p-3">
-              <span className="text-[11px] font-bold text-brand">#{product.keyword}</span>
-              <h3 className="mt-1 line-clamp-2 text-sm font-bold leading-5 text-gray-900 group-hover:text-brand">
+              <h3 className="line-clamp-2 text-sm font-bold leading-5 text-gray-900 group-hover:text-brand">
                 {displayTitle(product.title)}
               </h3>
             </div>
