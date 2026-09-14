@@ -119,6 +119,8 @@ export function displayTitle(raw: string, maxLen = 60): string {
     .replace(/\s+([,.)\]])/g, "$1") // 괄호/노이즈 제거 후 생긴 ' ,' → ','
     .replace(/([([])\s+/g, "$1")
     .replace(/,\s*(?=,)/g, "") // 중복 콤마 정리
+    .replace(/([가-힣])([A-Za-z0-9])/g, "$1 $2")
+    .replace(/([A-Za-z0-9])([가-힣])/g, "$1 $2")
     .replace(/\s{2,}/g, " ")
     .replace(/^[\s:·\-,]+/, "")
     .replace(/[\s:·\-,]+$/, "")
