@@ -9,6 +9,7 @@ import { PLATFORM_LABEL, Platform } from "@/lib/types";
 import { dropScore } from "@/lib/dropMetrics";
 import PriceChart from "@/components/PriceChart";
 import PriceReport from "@/components/PriceReport";
+import PriceWatch from "@/components/PriceWatch";
 import LikeButton from "@/components/LikeButton";
 import BuyButton from "@/components/BuyButton";
 import ShareButton from "@/components/ShareButton";
@@ -240,6 +241,8 @@ export default async function ProductPricePage({
           <p className="mt-2 text-center text-[11px] text-gray-400">
             제휴 링크입니다. 구매 시 판매 페이지에서 최종 가격을 확인하세요.
           </p>
+          <PriceWatch productId={r.id} currentPrice={currentPrice}
+            lowestPrice={stats?.minAll ?? null} checkedAt={r.lastCheckedAt} />
         </div>
       </div>
 

@@ -9,6 +9,7 @@ const SERVICE_LINKS = [
 ];
 
 const MARKET_LINKS = [
+  { href: "https://dropped.kr", name: "Dropped", description: "가격 이력과 핫딜" },
   {
     href: "https://toolmarket.kr",
     name: "Tool Market",
@@ -19,6 +20,10 @@ const MARKET_LINKS = [
     name: "Signal Market",
     description: "코인 시장 신호",
   },
+  { href: "https://playmkt.kr", name: "PlayMarket", description: "오늘의 콘텐츠" },
+  { href: "https://jobmarket.kr", name: "JobMarket", description: "검증된 채용공고" },
+  { href: "https://lifemkt.kr", name: "LifeMarket", description: "생활정보와 일정" },
+  { href: "https://tripmkt.kr", name: "TripMarket", description: "여행 일정" },
 ];
 
 function BrandMark() {
@@ -75,11 +80,12 @@ export default function AffiliateDisclosure() {
 
           <nav aria-label="AI MARKET 서비스">
             <p className="text-xs font-extrabold tracking-[0.16em] text-red-400">AI MARKET</p>
-            <div className="mt-3 grid gap-2">
+            <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-1">
               {MARKET_LINKS.map((item) => (
                 <a
                   key={item.href}
                   href={item.href}
+                  aria-current={item.href === "https://dropped.kr" ? "page" : undefined}
                   className="group flex items-center justify-between rounded-lg border border-gray-800 bg-gray-900/70 px-3.5 py-3 transition hover:border-gray-700 hover:bg-gray-900"
                   aria-label={`${item.name} — ${item.description}`}
                 >
