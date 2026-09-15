@@ -106,7 +106,7 @@ export default function DealCard({
               {trackingChip}
               <ShippingBadge fee={deal.shippingFee} />
             </div>
-            <h3 className="truncate text-sm font-medium text-gray-900">
+            <h3 className="line-clamp-2 text-sm font-medium leading-snug text-gray-900">
               {displayTitle(deal.title)}
             </h3>
             <div className="flex items-baseline gap-1.5">

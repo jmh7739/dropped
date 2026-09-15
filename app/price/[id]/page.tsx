@@ -38,14 +38,14 @@ export async function generateMetadata({
   const indexable = Boolean(stats?.enoughData && lastCheck > 0 && Date.now() - lastCheck <= 14 * 86400000);
   const period = stats ? `추적 ${stats.trackedDays}일 · ${stats.points}회 가격 확인` : "가격 이력 수집 중";
   return {
-    title: `${r.title} 가격 추이 · 추적 최저가 · 평균가`,
+    title: stats?.enoughData ? `${r.title} 가격 추이 · 추적 최저가 · 평균가` : `${r.title} 마지막 확인 가격`,
     description: r.currentPrice == null
       ? `${r.categoryName} · 가격 이력 수집을 준비하고 있습니다.`
       : `${r.categoryName} · 마지막 확인 가격 ${formatWon(r.currentPrice)} · ${period}. 가격 변동과 수집 시점을 확인하세요.`,
     robots: { index: indexable, follow: true },
     alternates: { canonical },
     openGraph: {
-      title: `${r.title} 가격 추이 · 추적 최저가 · 평균가`,
+      title: stats?.enoughData ? `${r.title} 가격 추이 · 추적 최저가 · 평균가` : `${r.title} 마지막 확인 가격`,
       url: canonical,
       images: r.imageUrl ? [r.imageUrl] : [],
     },
@@ -168,7 +168,7 @@ export default async function ProductPricePage({
             </Link>
           </div>
 
-          <h1 className="text-lg font-bold leading-snug">{r.title} 가격 추이와 추적 최저가</h1>
+          <h1 className="text-lg font-bold leading-snug">{r.title}{stats?.enoughData ? ' 가격 추이와 추적 최저가' : ' 마지막 확인 가격'}</h1>
           {currentPrice == null ? (
             <div className="mt-3 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-medium text-blue-900">
               요즘 뜨는 상품으로 새로 등록됐습니다. 가격 이력 수집을 준비하고 있습니다.
@@ -180,7 +180,7 @@ export default async function ProductPricePage({
           )}
 
           <div className="mt-3 flex flex-wrap items-center gap-1.5">
-            {(score || verdict) && (
+            {stats?.enoughData && (score || verdict) && (
               <span
                 className={`inline-flex items-center gap-1 rounded-full text-xs font-extrabold ${scoreClass}`}
               >
@@ -217,15 +217,13 @@ export default async function ProductPricePage({
           {stats && (
             <div className="mt-4 rounded-xl border border-gray-200 bg-white p-4">
               <h2 className="text-sm font-extrabold text-gray-900">이 상품의 가격 이력</h2>
-              <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-2 text-sm">
+              {stats.enoughData ? <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-2 text-sm">
                 <div><dt className="text-gray-500">관측 범위</dt><dd className="font-bold">{stats.trackedDays}일 · {stats.points}회</dd></div>
                 <div><dt className="text-gray-500">{stats.trackedDays >= 30 ? "30일 평균" : `추적 ${stats.trackedDays}일 평균`}</dt><dd className="font-bold">{stats.avg30 != null ? formatWon(stats.avg30) : "자료 없음"}</dd></div>
                 <div><dt className="text-gray-500">{stats.lowestLabel}</dt><dd className="font-bold">{formatWon(stats.trackedDays >= 90 ? stats.min90 ?? stats.minAll : stats.minAll)}</dd></div>
                 <div><dt className="text-gray-500">가격 위치</dt><dd className="font-bold">더 낮았던 기록 {stats.percentile}%</dd></div>
-              </dl>
-              <p className="mt-2 text-xs text-gray-500">
-                {stats.enoughData ? `DROP SCORE ${score?.score ?? "-"} · 기록된 가격 기준` : "추적 초기 · 데이터 신뢰도 낮음 · 구매 판정 참고용"}
-              </p>
+              </dl> : <p className="mt-2 text-sm text-gray-600">추적 {stats.trackedDays}일 · 가격 확인 {stats.points}회. 평소보다 싼지 판단하기에는 이력이 부족합니다.</p>}
+              {stats.enoughData && <p className="mt-2 text-xs text-gray-500">DROP SCORE {score?.score ?? "-"} · 기록된 가격 기준</p>}
             </div>
           )}
 
@@ -246,7 +244,7 @@ export default async function ProductPricePage({
         </div>
       </div>
 
-      {stats && verdict && (
+      {stats?.enoughData && verdict && (
         <section className="mt-8">
           <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
             <h2 className="text-base font-bold">🧾 가격 리포트 — 지금 살까?</h2>
