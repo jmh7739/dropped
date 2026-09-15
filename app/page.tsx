@@ -18,6 +18,7 @@ import { CATEGORIES } from "@/lib/types";
 import { getTrendingProducts } from "@/lib/trends";
 import TrendingProducts from "@/components/TrendingProducts";
 import AdSenseScript from "@/components/AdSenseScript";
+import SavedPriceWatches from "@/components/SavedPriceWatches";
 
 export const dynamic = "force-dynamic";
 
@@ -272,9 +273,9 @@ export default async function Home({
         const overseas = sortedHotList.filter((d) => d.platform === "aliexpress");
         const mixed: typeof sortedHotList = [];
         while (domestic.length || overseas.length) {
-          const next = mixed.length % 3 === 1 && domestic.length
-            ? domestic.shift()
-            : overseas.shift() ?? domestic.shift();
+          const next = mixed.length % 3 === 2 && overseas.length
+            ? overseas.shift()
+            : domestic.shift() ?? overseas.shift();
           if (next) mixed.push(next);
         }
         return mixed;
@@ -307,6 +308,8 @@ export default async function Home({
       {trackedMatches.length > 0 && (
         <ProductSearchResults rows={trackedMatches} query={q.trim()} />
       )}
+
+      {isDefaultHome && <SavedPriceWatches />}
 
       {isDefaultHome && (
         <section className="mb-8">

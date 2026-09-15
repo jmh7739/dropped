@@ -242,7 +242,7 @@ export default async function ProductPricePage({
             제휴 링크입니다. 구매 시 판매 페이지에서 최종 가격을 확인하세요.
           </p>
           <PriceWatch productId={r.id} currentPrice={currentPrice}
-            lowestPrice={stats?.minAll ?? null} checkedAt={r.lastCheckedAt} />
+            lowestPrice={stats?.min90 ?? stats?.minAll ?? null} checkedAt={r.lastCheckedAt} />
         </div>
       </div>
 

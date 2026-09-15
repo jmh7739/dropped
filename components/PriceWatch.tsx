@@ -58,7 +58,7 @@ export default function PriceWatch({ productId, currentPrice, lowestPrice, check
       </label>
       <label className="flex min-h-10 items-center gap-2 text-sm text-gray-700">
         <input type="checkbox" checked={lowest} onChange={e => setLowest(e.target.checked)} />
-        추적 최저가 도달
+        최근 90일 추적 최저가 도달
       </label>
       <button type="button" onClick={save} disabled={!valid} className="rounded-lg bg-gray-900 px-4 py-2 text-sm font-bold text-white disabled:opacity-50">저장</button>
       {watch && <button type="button" onClick={remove} className="rounded-lg border border-gray-300 px-4 py-2 text-sm">삭제</button>}
