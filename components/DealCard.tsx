@@ -21,6 +21,7 @@ export default function DealCard({
   const isCurated = deal.isCurated;
   const score = dropScore(deal);
   const trackedDays = deal.trackedDays;
+  const scoreReady = (trackedDays ?? 0) >= 14 && (deal.historyPointCount ?? 0) >= 20;
   const stage = trackingStage(trackedDays);
   const brand = brandFrom(deal.title);
   const scoreIcon =
@@ -94,11 +95,11 @@ export default function DealCard({
           </div>
           <div className="min-w-0 flex-1">
             <div className="mb-0.5 flex flex-wrap items-center gap-1.5 text-[11px] text-gray-400">
-              {isCurated ? curatedBadge : (
+              {isCurated ? curatedBadge : scoreReady ? (
                 <span className={`inline-flex items-center rounded-md px-2 py-1 text-[11px] font-extrabold shadow-sm ${scoreCls}`}>
                   {scoreIcon} {score.label}
                 </span>
-              )}
+              ) : null}
               <span className="rounded bg-gray-100 px-1.5 py-0.5 text-gray-600">
                 {mallLabel(deal)}
               </span>
@@ -127,7 +128,7 @@ export default function DealCard({
                 <span className="text-[11px] text-gray-400">· {deal.unitPrice}</span>
               )}
             </div>
-            {!isCurated && score.score !== null && verdict && (
+            {!isCurated && scoreReady && score.score !== null && verdict && (
               <div className="mt-1 flex flex-wrap items-center gap-x-2 text-[11px]">
                 <span className="text-gray-500">
                   {deal.isLowestEver ? lowestPeriodLabel(trackedDays) : averagePeriodLabel(trackedDays)}
@@ -183,11 +184,11 @@ export default function DealCard({
             </div>
           )}
           <div className="absolute left-2 top-2 flex flex-col items-start gap-1">
-            {isCurated ? curatedBadge : (
+            {isCurated ? curatedBadge : scoreReady ? (
               <span className={`inline-flex items-center rounded-md px-2 py-1 text-[11px] font-extrabold shadow-sm ${scoreCls}`}>
                 {scoreIcon} {score.label}
               </span>
-            )}
+            ) : null}
             {deal.isPriceError && <PriceErrorBadge />}
           </div>
         </div>
@@ -229,7 +230,7 @@ export default function DealCard({
             {!isCurated && deal.isLowestEver && (
               <div className="mt-0.5 text-[11px] font-bold text-amber-700">🏆 {lowestPeriodLabel(trackedDays)}</div>
             )}
-            {!isCurated && score.score !== null && verdict && (
+            {!isCurated && scoreReady && score.score !== null && verdict && (
               <div className="mt-1.5 flex items-center gap-1 text-[11px]">
                 <span className="rounded bg-gray-900 px-1.5 py-0.5 font-extrabold text-white">
                   DROP {score.score}
