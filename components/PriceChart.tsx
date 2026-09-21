@@ -20,9 +20,7 @@ export default function PriceChart({
   width?: number;
   height?: number;
 }) {
-  const [range, setRange] = useState<7 | 30 | 90 | "all">(
-    history.length > 12 ? 30 : "all"
-  );
+  const [range, setRange] = useState<7 | 30 | 90 | "all">("all");
   const filtered = useMemo(() => {
     if (range === "all" || history.length === 0) return history;
     const newest = Math.max(...history.map((h) => new Date(h.collectedAt).getTime()));
@@ -68,16 +66,16 @@ export default function PriceChart({
 
   const lastIdx = n - 1;
   const minIdx = prices.indexOf(min);
+  const newest = Math.max(...history.map((item) => new Date(item.collectedAt).getTime()));
   const options: { label: string; value: 7 | 30 | 90 | "all" }[] = [
-    { label: "7일", value: 7 },
-    { label: "30일", value: 30 },
-    { label: "90일", value: 90 },
+    ...([7, 30, 90] as const).filter(days => history.filter(item => newest - new Date(item.collectedAt).getTime() <= days * 86400000).length >= 2 &&
+      history.some(item => newest - new Date(item.collectedAt).getTime() > days * 86400000)).map(days => ({ label: `${days}일`, value: days })),
     { label: "전체", value: "all" },
   ];
 
   return (
     <div>
-      <div className="mb-3 flex flex-wrap gap-1">
+      {options.length > 1 && <div className="mb-3 flex flex-wrap gap-1">
         {options.map((option) => (
           <button
             key={option.label}
@@ -92,7 +90,7 @@ export default function PriceChart({
             {option.label}
           </button>
         ))}
-      </div>
+      </div>}
       <div className="w-full overflow-x-auto">
       <svg
         viewBox={`0 0 ${w} ${h}`}

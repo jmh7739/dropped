@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
         checkedAt: last?.collectedAt ?? null,
       };
     });
-    return NextResponse.json({ items }, { headers: { "Cache-Control": "private, max-age=300" } });
+    return NextResponse.json({ items }, { headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600" } });
   } catch {
     return NextResponse.json({ items: [], unavailable: true }, { status: 503 });
   }

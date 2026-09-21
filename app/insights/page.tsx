@@ -7,7 +7,7 @@ import { formatWon } from "@/lib/format";
 import { getPriceInsights } from "@/lib/insights";
 import { SITE_URL } from "@/lib/site";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 1800;
 
 export async function generateMetadata(): Promise<Metadata> {
   const insights = await getPriceInsights();

@@ -8,7 +8,7 @@ import { getPriceInsights } from "@/lib/insights";
 import { priceStats } from "@/lib/priceReport";
 import { readPriceHistory } from "@/lib/priceHistory";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 3600;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // A failed upstream price-history request must never turn the whole sitemap

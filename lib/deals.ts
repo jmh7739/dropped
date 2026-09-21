@@ -66,6 +66,13 @@ function rowToDeal(row: any, history: PricePoint[]): Deal {
   };
 }
 
+const ACTIVE_CHECK_MAX_AGE_MS = 72 * 60 * 60 * 1000;
+
+function recentlyChecked(deal: Deal, now = Date.now()): boolean {
+  const checked = Date.parse(deal.checkedAt ?? deal.detectedAt);
+  return Number.isFinite(checked) && now - checked <= ACTIVE_CHECK_MAX_AGE_MS;
+}
+
 export function sortDealList(deals: Deal[], sort: SortKey): Deal[] {
   // 종료된 딜은 항상 맨 뒤로
   const active = deals.filter((d) => d.status !== "ended");
@@ -274,7 +281,9 @@ export async function getDeals(opts: GetDealsOpts = {}): Promise<Deal[]> {
     console.error("getDeals error:", error?.message);
     return [];
   }
-  let deals = data.map((row) => rowToDeal(row, []));
+  // DB 상태가 active여도 수집기가 멈추면 품절·종료 상품이 계속 남을 수 있다.
+  // 최근 72시간 안에 판매 페이지가 다시 확인된 상품만 목록에 노출한다.
+  let deals = data.map((row) => rowToDeal(row, [])).filter((deal) => recentlyChecked(deal));
   // 가격 상태 필터는 종료딜엔 의미없음 → 활성만 대상으로 거른다.
   if (priceStatus)
     deals = deals.filter(
@@ -301,7 +310,10 @@ export async function getCuratedDeals(
     console.error("getCuratedDeals error:", error?.message);
     return [];
   }
-  const deals = dedupSimilar(data.map((row) => rowToDeal(row, [])), sort);
+  const deals = dedupSimilar(
+    data.map((row) => rowToDeal(row, [])).filter((deal) => recentlyChecked(deal)),
+    sort,
+  );
   return sortActive(deals, sort);
 }
 
@@ -364,7 +376,8 @@ async function getPriceHistory(productId: number): Promise<PricePoint[]> {
 export async function getRelatedDeals(
   categorySlug: string,
   excludeProductId: number,
-  limit = 6
+  limit = 6,
+  referenceTitle = "",
 ): Promise<Deal[]> {
   if (!supabase || !categorySlug) return [];
   const { data } = await supabase
@@ -376,8 +389,40 @@ export async function getRelatedDeals(
     .limit(limit * 3);
   if (!data) return [];
   const deals = data.map((row) => rowToDeal(row, []));
+  const families = [
+    /방향제|디퓨저|탈취제/,
+    /블랙박스|대시캠|dashcam|70mai/i,
+    /점프스타터|배터리|긴급시동/,
+    /에어\s*더스터|압축\s*공기|키보드\s*클리너|먼지\s*제거기/,
+    /키보드|키캡|기계식|저소음\s*축/,
+    /충전기|보조배터리|충전\s*케이블|멀티포트/,
+    /태블릿|휴대용\s*모니터|포터블\s*모니터/,
+    /ssd|외장하드|메모리카드|저장장치/i,
+    /키친타올|화장지|휴지|티슈/,
+    /새우|수산|오징어|생선|해산물/,
+    /세제|섬유유연제|세탁/,
+    /청소기|밀대|걸레|청소포/,
+    /냄비|프라이팬|후라이팬|조리도구/,
+  ];
+  const referenceFamily = families.find((pattern) => pattern.test(referenceTitle));
+  const keywords = (title: string) => new Set(
+    title
+      .toLocaleLowerCase('ko')
+      .replace(/[^0-9a-z가-힣]+/gi, ' ')
+      .split(/\s+/)
+      .filter((word) => word.length >= 2 && !['무료배송', '국내배송', '정품', '공식', '특가', '할인'].includes(word)),
+  );
+  const referenceKeywords = keywords(referenceTitle);
+  const sharesKeyword = (title: string) => {
+    if (!referenceKeywords.size) return false;
+    const candidate = keywords(title);
+    return [...referenceKeywords].some((word) => candidate.has(word));
+  };
+  const comparable = referenceFamily
+    ? deals.filter((deal) => referenceFamily.test(deal.title))
+    : deals.filter((deal) => sharesKeyword(deal.title));
   return diversifyTop(
-    deals.sort((a, b) => hotDealScore(b) - hotDealScore(a)),
+    comparable.sort((a, b) => hotDealScore(b) - hotDealScore(a)),
     limit,
     limit,
   );

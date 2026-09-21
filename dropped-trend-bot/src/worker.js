@@ -124,7 +124,9 @@ async function saveRealtimeTrends(db, collected) {
     const affiliateUrl = await enqueueIfMissing(db, keywordQueueItem(item));
     rows.push({ keyword: item.keyword, normalized_keyword: item.normalizedKeyword, rank, previous_rank: previousRank, rank_change: movement.rankChange, status: movement.status, hot_score: item.displayScore, category: item.category, affiliate_search_url: affiliateUrl, collected_at: collectedAt });
   }
-  const ready = rows.length === config.REALTIME_TREND_LIMIT && rows.every(row => row.affiliate_search_url);
+  // Trend freshness must not depend on the local Coupang Partners helper.
+  // Missing affiliate URLs fall back to Dropped's internal product search.
+  const ready = rows.length === config.REALTIME_TREND_LIMIT;
   const { error } = await db.from("realtime_trends").insert(rows.map(row => ({ ...row, is_published: ready })));
   if (error) throw error;
   return rows;

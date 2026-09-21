@@ -121,7 +121,7 @@ export default function DealCard({
               )}
               {saving > 0 && (
                 <span className="text-[11px] font-semibold text-blue-600">
-                  {formatWon(saving).replace("원", "")}원↓
+                  {formatWon(saving)} 할인
                 </span>
               )}
               {deal.unitPrice && (
@@ -214,7 +214,7 @@ export default function DealCard({
               </span>
               {saving > 0 && (
                 <span className="text-[11px] font-semibold text-blue-600">
-                  {formatWon(saving).replace("원", "")}원↓
+                  {formatWon(saving)} 할인
                 </span>
               )}
             </div>

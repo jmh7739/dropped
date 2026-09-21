@@ -31,13 +31,51 @@ async function waitUntilLoaded(tabId, timeoutMs = 20000) {
   throw new Error("쿠팡 파트너스 페이지 로딩 시간 초과");
 }
 
+function tabUrl(tab) {
+  return String(tab?.pendingUrl || tab?.url || "");
+}
+
+function isPartnersUrl(url) {
+  try {
+    return new URL(url).hostname === "partners.coupang.com";
+  } catch (_) {
+    return false;
+  }
+}
+
+function isCoupangLoginUrl(url) {
+  try {
+    return new URL(url).hostname === "login.coupang.com";
+  } catch (_) {
+    return false;
+  }
+}
+
 async function getPartnersTab() {
-  const tabs = await chrome.tabs.query({ url: "https://partners.coupang.com/*" });
-  let tab = tabs.find(item => String(item.url || "").includes("link-to-any-page")) || tabs[0];
-  if (!tab?.id) tab = await chrome.tabs.create({ url: PARTNERS_URL, active: false });
-  else if (!String(tab.url || "").includes("link-to-any-page")) tab = await chrome.tabs.update(tab.id, { url: PARTNERS_URL, active: false });
-  await waitUntilLoaded(tab.id);
-  return tab;
+  // 파트너스가 로그인 화면으로 리다이렉트되면 URL이 login.coupang.com으로 바뀐다.
+  // 이 탭을 놓치면 매 알람마다 새 탭을 만드는 루프가 생기므로 전체 탭에서 함께 찾는다.
+  const tabs = await chrome.tabs.query({});
+  const partnersTabs = tabs.filter(item => isPartnersUrl(tabUrl(item)));
+  let tab = partnersTabs.find(item => tabUrl(item).includes("link-to-any-page")) || partnersTabs[0];
+
+  if (!tab?.id) {
+    const loginTab = tabs.find(item => isCoupangLoginUrl(tabUrl(item)));
+    if (loginTab?.id) {
+      throw new Error("쿠팡 파트너스 로그인이 필요합니다. 기존 쿠팡 로그인 탭에서 직접 로그인해주세요.");
+    }
+    throw new Error("쿠팡 파트너스 탭이 없습니다. 자동으로 열지 않으므로 필요할 때 직접 열어주세요.");
+  }
+
+  if (!tabUrl(tab).includes("link-to-any-page")) tab = await chrome.tabs.update(tab.id, { url: PARTNERS_URL, active: false });
+
+  const loadedTab = await waitUntilLoaded(tab.id);
+  if (isCoupangLoginUrl(tabUrl(loadedTab))) {
+    throw new Error("쿠팡 파트너스 로그인이 필요합니다. 열린 로그인 탭에서 직접 로그인해주세요.");
+  }
+  if (!isPartnersUrl(tabUrl(loadedTab))) {
+    throw new Error("쿠팡 파트너스 페이지를 열지 못했습니다. 열린 쿠팡 탭을 확인해주세요.");
+  }
+  return loadedTab;
 }
 
 async function request(options = {}) {
@@ -100,11 +138,11 @@ async function runAffiliateQueue() {
 }
 
 chrome.runtime.onInstalled.addListener(() => {
-  chrome.alarms.create(ALARM_NAME, { delayInMinutes: 0.2, periodInMinutes: 1 });
+  chrome.alarms.create(ALARM_NAME, { delayInMinutes: 0.2, periodInMinutes: 5 });
   runAffiliateQueue();
 });
 chrome.runtime.onStartup.addListener(() => {
-  chrome.alarms.create(ALARM_NAME, { delayInMinutes: 0.2, periodInMinutes: 1 });
+  chrome.alarms.create(ALARM_NAME, { delayInMinutes: 0.2, periodInMinutes: 5 });
   runAffiliateQueue();
 });
 chrome.alarms.onAlarm.addListener(alarm => {
@@ -115,5 +153,5 @@ chrome.storage.onChanged.addListener((changes, area) => {
 });
 
 // 수동 재로드에서도 즉시 알람을 복구하고 첫 대기열을 처리한다.
-chrome.alarms.create(ALARM_NAME, { delayInMinutes: 0.2, periodInMinutes: 1 });
+chrome.alarms.create(ALARM_NAME, { delayInMinutes: 0.2, periodInMinutes: 5 });
 runAffiliateQueue();

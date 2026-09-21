@@ -1,6 +1,6 @@
 import { formatWon } from "@/lib/format";
 import type { DropScoreResult } from "@/lib/dropMetrics";
-import { averagePeriodLabel, lowestPeriodLabel, trackingStage } from "@/lib/dropMetrics";
+import { averagePeriodLabel, lowestPeriodLabel } from "@/lib/dropMetrics";
 import { PriceStats, Verdict } from "@/lib/priceReport";
 import { timeAgo } from "@/lib/format";
 
@@ -19,7 +19,6 @@ export default function PriceReport({
   lastCheckedAt?: string | null;
 }) {
   const d = stats.trackedDays;
-  const stage = trackingStage(d);
   const baseConfidence = d >= 90 && stats.points >= 60 ? 90 : d >= 30 && stats.points >= 30 ? 78 : d >= 7 && stats.points >= 10 ? 48 : 20;
   const ageHours = lastCheckedAt ? (Date.now() - new Date(lastCheckedAt).getTime()) / 3600000 : Infinity;
   const confidence = ageHours > 168 ? Math.min(baseConfidence, 20) : ageHours > 24 ? Math.min(baseConfidence, 48) : baseConfidence;
@@ -57,9 +56,6 @@ export default function PriceReport({
               <div className="text-2xl font-extrabold leading-none">
                 {dropScore.score !== null ? dropScore.score : "-"}
               </div>
-              <div className="mt-1 text-xs font-semibold opacity-80">
-                {dropScore.label}
-              </div>
             </div>
           )}
         </div>
@@ -69,7 +65,7 @@ export default function PriceReport({
         <div className="flex items-center justify-between gap-3">
           <div>
             <div className="text-sm font-extrabold text-gray-900">가격판정 신뢰도</div>
-            <div className="mt-0.5 text-xs text-gray-500">{stage.icon} {stage.label}</div>
+            <div className="mt-0.5 text-xs text-gray-500">추적 {d}일 · 가격 확인 {stats.points}회</div>
           </div>
           <span className="text-sm font-extrabold text-gray-700">{confidenceLabel}</span>
         </div>

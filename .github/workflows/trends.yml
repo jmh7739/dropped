@@ -1,6 +1,9 @@
 name: 실시간 인기·트렌드 상품 자동 갱신
 
 on:
+  schedule:
+    # 매시간 수집하고, UTC 0/4/8/12/16/20시에는 관련 상품도 함께 갱신한다.
+    - cron: "17 * * * *"
   workflow_dispatch:
     inputs:
       mode:
@@ -43,5 +46,15 @@ jobs:
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          TREND_MODE: ${{ inputs.mode || 'all' }}
-        run: node src/worker.js "$TREND_MODE"
+          REQUESTED_MODE: ${{ inputs.mode || '' }}
+        shell: bash
+        run: |
+          if [ -n "$REQUESTED_MODE" ]; then
+            MODE="$REQUESTED_MODE"
+          elif [ $((10#$(date -u +%H) % 4)) -eq 0 ]; then
+            MODE="all"
+          else
+            MODE="realtime"
+          fi
+          echo "Dropped trend mode: $MODE"
+          node src/worker.js "$MODE"

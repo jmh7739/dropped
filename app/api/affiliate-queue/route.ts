@@ -45,8 +45,7 @@ export async function POST(request: NextRequest) {
     const snapshots = [...new Set((unpublished || []).map(row => row.collected_at))];
     for (const collectedAt of snapshots) {
       const { count: total } = await db.from("realtime_trends").select("id", { count: "exact", head: true }).eq("collected_at", collectedAt);
-      const { count: missing } = await db.from("realtime_trends").select("id", { count: "exact", head: true }).eq("collected_at", collectedAt).is("affiliate_search_url", null);
-      if (total === 20 && missing === 0) await db.from("realtime_trends").update({ is_published: true }).eq("collected_at", collectedAt);
+      if (total === 20) await db.from("realtime_trends").update({ is_published: true }).eq("collected_at", collectedAt);
     }
   }
   if (status === "success" && item.type === "product") {

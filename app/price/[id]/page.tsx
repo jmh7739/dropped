@@ -61,7 +61,7 @@ export default async function ProductPricePage({
   if (!r) notFound();
 
   const [relatedDeals] = await Promise.all([
-    getRelatedDeals(r.categorySlug, r.id, 6),
+    getRelatedDeals(r.categorySlug, r.id, 6, r.title),
   ]);
 
   const currentPrice = r.currentPrice;
@@ -145,7 +145,7 @@ export default async function ProductPricePage({
         items={[
           { label: "홈", href: "/" },
           { label: r.categoryName, href: categoryHref },
-          { label: r.title },
+          { label: r.title.length > 50 ? `${r.title.slice(0, 47)}…` : r.title },
         ]}
       />
 
@@ -168,7 +168,7 @@ export default async function ProductPricePage({
             </Link>
           </div>
 
-          <h1 className="text-lg font-bold leading-snug">{r.title}{stats?.enoughData ? ' 가격 추이와 추적 최저가' : ' 마지막 확인 가격'}</h1>
+          <h1 className="break-words text-lg font-bold leading-snug">{r.title}</h1>
           {currentPrice == null ? (
             <div className="mt-3 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-medium text-blue-900">
               요즘 뜨는 상품으로 새로 등록됐습니다. 가격 이력 수집을 준비하고 있습니다.
@@ -223,7 +223,6 @@ export default async function ProductPricePage({
                 <div><dt className="text-gray-500">{stats.lowestLabel}</dt><dd className="font-bold">{formatWon(stats.trackedDays >= 90 ? stats.min90 ?? stats.minAll : stats.minAll)}</dd></div>
                 <div><dt className="text-gray-500">가격 위치</dt><dd className="font-bold">더 낮았던 기록 {stats.percentile}%</dd></div>
               </dl> : <p className="mt-2 text-sm text-gray-600">추적 {stats.trackedDays}일 · 가격 확인 {stats.points}회. 평소보다 싼지 판단하기에는 이력이 부족합니다.</p>}
-              {stats.enoughData && <p className="mt-2 text-xs text-gray-500">DROP SCORE {score?.score ?? "-"} · 기록된 가격 기준</p>}
             </div>
           )}
 
@@ -240,7 +239,7 @@ export default async function ProductPricePage({
             제휴 링크입니다. 구매 시 판매 페이지에서 최종 가격을 확인하세요.
           </p>
           <PriceWatch productId={r.id} currentPrice={currentPrice}
-            lowestPrice={stats?.min90 ?? stats?.minAll ?? null} checkedAt={r.lastCheckedAt} />
+            lowestPrice={stats?.min90 ?? stats?.minAll ?? null} checkedAt={r.lastCheckedAt} trackedDays={stats?.trackedDays ?? null} />
         </div>
       </div>
 
@@ -260,21 +259,17 @@ export default async function ProductPricePage({
         </section>
       )}
 
-      {r.history.length > 0 ? <section className="mt-8">
+      {r.history.length >= 3 && (stats?.trackedDays ?? 0) >= 2 && <section className="mt-8">
         <h2 className="mb-2 text-base font-bold">📉 가격 변동 그래프</h2>
         <div className="rounded-xl border border-gray-200 bg-white p-4">
           <PriceChart history={r.history} />
         </div>
-      </section> : (
-        <section className="mt-8 rounded-xl border border-dashed border-gray-300 bg-white p-6 text-center text-sm text-gray-500">
-          가격 이력이 쌓이면 변동 그래프와 구매 판단을 제공합니다.
-        </section>
-      )}
+      </section>}
 
       {relatedDeals.length > 0 && (
         <section className="mt-10">
           <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-base font-bold">📦 {r.categoryName} 카테고리 특가</h2>
+            <h2 className="text-base font-bold">📦 비슷한 상품 특가</h2>
             <Link
               href={categoryHref}
               className="text-sm text-gray-500 hover:text-gray-800"

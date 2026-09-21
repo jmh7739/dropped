@@ -2,8 +2,7 @@ import { getDeals } from "@/lib/deals";
 import { formatWon } from "@/lib/format";
 import { SITE_URL as SITE } from "@/lib/site";
 
-// Supabase 읽기가 no-store라 요청 시 렌더(dynamic). 최신 딜을 항상 반영.
-export const dynamic = "force-dynamic";
+export const revalidate = 600;
 
 function esc(s: string): string {
   return (s || "")
@@ -46,7 +45,7 @@ export async function GET() {
   return new Response(xml, {
     headers: {
       "Content-Type": "application/xml; charset=utf-8",
-      "Cache-Control": "public, max-age=600",
+      "Cache-Control": "public, s-maxage=600, stale-while-revalidate=1200",
     },
   });
 }

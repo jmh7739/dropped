@@ -20,7 +20,7 @@ import TrendingProducts from "@/components/TrendingProducts";
 import AdSenseScript from "@/components/AdSenseScript";
 import SavedPriceWatches from "@/components/SavedPriceWatches";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 export async function generateMetadata({
   searchParams: searchParamsPromise,
@@ -203,7 +203,7 @@ export default async function Home({
     getLastPriceUpdate(),
     // 검색 시: 활성 딜뿐 아니라 '가격 추적 중인 상품'도 찾아 지금 살지 판정.
     q.trim().length >= 2 ? searchProducts(q, 24) : Promise.resolve([]),
-    !q.trim() && !category && page === 1 ? getTrendingProducts() : Promise.resolve([]),
+    !q.trim() && !category && page === 1 ? getTrendingProducts(20) : Promise.resolve([]),
   ]);
 
   const term = q.trim().toLowerCase();

@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 
 type Watch = { target: number | null; lowest: boolean };
 
-export default function PriceWatch({ productId, currentPrice, lowestPrice, checkedAt }: {
-  productId: number; currentPrice: number | null; lowestPrice: number | null; checkedAt: string | null;
+export default function PriceWatch({ productId, currentPrice, lowestPrice, checkedAt, trackedDays }: {
+  productId: number; currentPrice: number | null; lowestPrice: number | null; checkedAt: string | null; trackedDays?: number | null;
 }) {
   const key = `dropped_price_watch_${productId}`;
   const [watch, setWatch] = useState<Watch | null>(null);
@@ -33,6 +33,9 @@ export default function PriceWatch({ productId, currentPrice, lowestPrice, check
       (watch.lowest && lowestPrice !== null && currentPrice <= lowestPrice)));
   const price = Number(target.replaceAll(",", ""));
   const valid = (!target.trim() || (Number.isSafeInteger(price) && price > 0)) && (Boolean(target.trim()) || lowest);
+  const lowestLabel = (trackedDays ?? 0) >= 90
+    ? "최근 90일 추적 최저가 도달"
+    : `현재 추적기간${trackedDays ? ` ${trackedDays}일` : ""} 최저가 도달`;
 
   function save() {
     if (!valid) return;
@@ -45,8 +48,8 @@ export default function PriceWatch({ productId, currentPrice, lowestPrice, check
   }
 
   return <section className="mt-5 rounded-xl border border-gray-200 bg-white p-4" aria-label="가격 관심 조건">
-    <h2 className="font-bold text-gray-900">관심 가격 저장</h2>
-    <p className="mt-1 text-sm text-gray-600">이 기기에 저장하고 다시 방문했을 때 최근 수집 가격과 비교합니다. 이메일·푸시 알림은 아직 제공하지 않습니다.</p>
+    <h2 className="font-bold text-gray-900">내 가격 기준 저장</h2>
+    <p className="mt-1 text-sm text-gray-600">다음에 이 페이지를 열면 저장한 기준과 마지막 수집 가격을 비교합니다. 자동 알림은 보내지 않습니다.</p>
     {loaded && watch && <p role="status" className={`mt-3 rounded-lg p-3 text-sm font-semibold ${reached ? "bg-green-50 text-green-900" : "bg-gray-50 text-gray-700"}`}>
       {reached ? "저장한 가격 조건에 도달했습니다. 판매처의 실시간 가격을 확인하세요." : "아직 저장한 가격 조건에 도달하지 않았습니다."}
       {checkedAt && <span className="block font-normal">가격 수집 시점: {checkedAt.slice(0, 10)}</span>}
@@ -58,9 +61,9 @@ export default function PriceWatch({ productId, currentPrice, lowestPrice, check
       </label>
       <label className="flex min-h-10 items-center gap-2 text-sm text-gray-700">
         <input type="checkbox" checked={lowest} onChange={e => setLowest(e.target.checked)} />
-        최근 90일 추적 최저가 도달
+        {lowestLabel}
       </label>
-      <button type="button" onClick={save} disabled={!valid} className="rounded-lg bg-gray-900 px-4 py-2 text-sm font-bold text-white disabled:opacity-50">저장</button>
+      <button type="button" onClick={save} disabled={!valid} className="rounded-lg bg-gray-900 px-4 py-2 text-sm font-bold text-white disabled:opacity-50">기준 저장</button>
       {watch && <button type="button" onClick={remove} className="rounded-lg border border-gray-300 px-4 py-2 text-sm">삭제</button>}
     </div>
   </section>;

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import type { RealtimeTrend } from "@/lib/trends";
 
 const PAGE_SIZE = 10;
@@ -50,6 +51,16 @@ function TrendRow({ trend, asLink }: { trend: RealtimeTrend; asLink?: boolean })
       </a>
     );
   }
+  if (asLink) {
+    return (
+      <Link
+        href={`/?q=${encodeURIComponent(trend.keyword)}`}
+        className="flex min-w-0 items-center gap-2 hover:text-brand"
+      >
+        {inner}
+      </Link>
+    );
+  }
   return <span className="flex min-w-0 items-center gap-2">{inner}</span>;
 }
 
@@ -78,6 +89,15 @@ export default function RealtimeTrendTicker({
   const current = trends[index] ?? trends[0];
   const pageCount = Math.ceil(trends.length / PAGE_SIZE);
   const visible = trends.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE);
+  const collectedAt = trends[0]?.collectedAt;
+  const updatedLabel = collectedAt
+    ? new Intl.DateTimeFormat("ko-KR", {
+        timeZone: "Asia/Seoul",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      }).format(new Date(collectedAt))
+    : "";
 
   return (
     <div className="relative ml-auto w-[min(320px,52vw)]">
@@ -117,7 +137,9 @@ export default function RealtimeTrendTicker({
           <div className="absolute right-0 top-full z-40 mt-1 w-full min-w-[280px] rounded-xl border border-gray-200 bg-white p-2 shadow-xl">
             <div className="flex items-center justify-between px-1.5 pb-1.5">
               <span className="text-[11px] font-extrabold text-gray-700">실시간 급상승 검색어</span>
-              <span className="text-[10px] text-gray-400">쇼핑 트렌드</span>
+              <span className="text-[10px] text-gray-400" suppressHydrationWarning>
+                {updatedLabel ? `${updatedLabel} 갱신` : "매시간 갱신"}
+              </span>
             </div>
             <ol className="space-y-0.5">
               {visible.map((trend) => (
