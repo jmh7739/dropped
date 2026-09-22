@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Deal, mallLabel } from "@/lib/types";
-import { formatWon, headlineDiscount, displayTitle, brandFrom } from "@/lib/format";
+import { formatWon, headlineDiscount, displayTitle, brandFrom, listDiscountRate } from "@/lib/format";
 import { averagePeriodLabel, dropScore, lowestPeriodLabel, trackingStage } from "@/lib/dropMetrics";
 import { dealVerdict } from "@/lib/priceReport";
 import { PriceErrorBadge, ShippingBadge } from "./DiscountBadge";
@@ -46,9 +46,8 @@ export default function DealCard({
 
   // 국내몰 추천: 제휴사 실판매가 기준 할인(원가→할인가). 있으면 할인율·원가 표시.
   const curatedDisc =
-    isCurated && deal.listPrice > deal.currentPrice
-      ? Math.round(((deal.listPrice - deal.currentPrice) / deal.listPrice) * 100)
-      : 0;
+    isCurated ? listDiscountRate(deal.listPrice, deal.currentPrice) : 0;
+  const displayRate = isCurated ? curatedDisc : rate;
   const curatedBadge =
     curatedDisc > 0 ? (
       <span className="rounded-md bg-blue-600 px-2 py-1 text-[11px] font-extrabold text-white shadow-sm">
@@ -224,7 +223,7 @@ export default function DealCard({
             {strikePrice > deal.currentPrice && (
               <div className="mt-0.5 text-[11px] text-gray-500">
                 {isCurated ? "정가" : averagePeriodLabel(trackedDays)} {formatWon(strikePrice)}
-                {rate > 0 && <span className="ml-1 font-bold text-blue-600">↓{Math.round(rate)}%</span>}
+                {displayRate > 0 && <span className="ml-1 font-bold text-blue-600">↓{displayRate}%</span>}
               </div>
             )}
             {!isCurated && deal.isLowestEver && (

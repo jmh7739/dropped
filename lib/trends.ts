@@ -33,7 +33,10 @@ function usableProductImage(value: unknown): string {
 
 function blockedTrendKeyword(value: unknown): boolean {
   const keyword = String(value || "").toLowerCase().replace(/[^0-9a-z가-힣]/gi, "");
-  return /(에어컨|냉난방기|전자레인지|전자렌지|정수기|공기청정기|세탁기|냉장고|음식물처리기|비데|안마의자)$/.test(keyword) || /a4용지|복사용지|빨래건조대|의류건조대/.test(keyword) || keyword === "건조대" || keyword === "가습기" || keyword === "수건";
+  const companyOnly = /^(?:삼성전기|삼성전자|lg전자|엘지전자|sk하이닉스|현대자동차|현대차|기아|포스코홀딩스|현대모비스|한화오션|두산에너빌리티)$/.test(keyword)
+    || /(?:그룹|홀딩스|증권|건설|중공업|바이오로직스|모비스|전기|전자)$/.test(keyword)
+    || /(?:주가|실적|공시|배당|채용|회장|대표|노조|파업)$/.test(keyword);
+  return companyOnly || /(에어컨|냉난방기|전자레인지|전자렌지|정수기|공기청정기|세탁기|냉장고|음식물처리기|비데|안마의자)$/.test(keyword) || /a4용지|복사용지|빨래건조대|의류건조대/.test(keyword) || keyword === "건조대" || keyword === "가습기" || keyword === "수건";
 }
 
 function blockedSeasonalProduct(value: unknown): boolean {
@@ -59,18 +62,24 @@ export async function getRealtimeTrends(): Promise<RealtimeTrend[]> {
   if (!latest?.length) return [];
   const { data, error } = await supabase.from("realtime_trends").select("keyword,normalized_keyword,rank,previous_rank,rank_change,status,hot_score,category,affiliate_search_url,collected_at").eq("collected_at", latest[0].collected_at).eq("is_published", true).order("rank").limit(20);
   if (error || !data) return [];
-  return data.filter((row: any) => !blockedTrendKeyword(row.keyword)).map((row: any) => ({
-    keyword: row.keyword,
-    normalizedKeyword: row.normalized_keyword,
-    rank: row.rank,
-    previousRank: row.previous_rank,
-    rankChange: row.rank_change,
-    status: row.status,
-    hotScore: Number(row.hot_score),
-    category: row.category || "",
-    affiliateUrl: row.affiliate_search_url || null,
-    collectedAt: row.collected_at,
-  }));
+  return data
+    .filter((row: any) => !blockedTrendKeyword(row.keyword))
+    .map((row: any, index: number) => {
+      const rank = index + 1;
+      const rankShiftedByFilter = Number(row.rank) !== rank;
+      return {
+        keyword: row.keyword,
+        normalizedKeyword: row.normalized_keyword,
+        rank,
+        previousRank: rankShiftedByFilter ? null : row.previous_rank,
+        rankChange: rankShiftedByFilter ? 0 : row.rank_change,
+        status: rankShiftedByFilter ? "same" as const : row.status,
+        hotScore: Number(row.hot_score),
+        category: row.category || "",
+        affiliateUrl: row.affiliate_search_url || null,
+        collectedAt: row.collected_at,
+      };
+    });
 }
 
 export async function getTrendingProducts(limit = 30): Promise<TrendingProduct[]> {

@@ -16,6 +16,14 @@ export function formatPercent(v: number | null | undefined): string {
   return `${Math.round(v)}%`;
 }
 
+/** 정가와 현재가에서 직접 계산한 단일 할인율. DB의 파생 할인율은 화면에 그대로 쓰지 않는다. */
+export function listDiscountRate(listPrice: number | null | undefined, currentPrice: number | null | undefined): number {
+  const list = Number(listPrice ?? 0);
+  const current = Number(currentPrice ?? 0);
+  if (!Number.isFinite(list) || !Number.isFinite(current) || list <= 0 || current <= 0 || current >= list) return 0;
+  return Math.max(0, Math.min(99, Math.round(((list - current) / list) * 100)));
+}
+
 /** "3시간 전", "2일 전" 같은 상대 시간 */
 export function timeAgo(iso: string): string {
   const then = new Date(iso).getTime();

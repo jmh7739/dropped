@@ -2,6 +2,7 @@ import { supabase } from "./supabase";
 import { Deal, PricePoint, HOT_LIKE_THRESHOLD } from "./types";
 import { headlineDropRate, hotDealScore, dropScore } from "./dropMetrics";
 import { readPriceHistory } from "./priceHistory";
+import { listDiscountRate } from "./format";
 
 export type SortKey =
   | "discount" // 하락률 높은순 (기본)
@@ -13,7 +14,7 @@ export type SortKey =
   | "recent"; // 최신순
 
 export const DEAL_SORTS: { key: SortKey; label: string }[] = [
-  { key: "discount", label: "할인율 높은순" },
+  { key: "discount", label: "가격이력 우선" },
   { key: "popular", label: "인기순" },
   { key: "discount_asc", label: "할인률 낮은순" },
   { key: "price_asc", label: "가격 낮은순" },
@@ -23,6 +24,8 @@ export const DEAL_SORTS: { key: SortKey; label: string }[] = [
 
 /** DB 행 → Deal 매핑 */
 function rowToDeal(row: any, history: PricePoint[]): Deal {
+  const listPrice = Number(row.list_price ?? 0);
+  const currentPrice = Number(row.current_price ?? 0);
   return {
     id: row.deal_id,
     productId: row.product_id,
@@ -36,10 +39,10 @@ function rowToDeal(row: any, history: PricePoint[]): Deal {
     productUrl: row.product_url ?? "#",
     categorySlug: row.category_slug ?? "",
     categoryName: row.category_name ?? "기타",
-    listPrice: row.list_price ?? 0,
-    currentPrice: row.current_price,
+    listPrice,
+    currentPrice,
     baselinePrice: row.baseline_price ?? 0,
-    discountVsList: Number(row.discount_vs_list ?? 0),
+    discountVsList: listDiscountRate(listPrice, currentPrice),
     discountVsAvg:
       row.discount_vs_avg !== null ? Number(row.discount_vs_avg) : null,
     isLowestEver: Boolean(row.is_lowest_ever),
@@ -64,6 +67,14 @@ function rowToDeal(row: any, history: PricePoint[]): Deal {
     // baseline 없음 = 가격추적 급락딜이 아닌 'MD 추천 특가'(국내몰 큐레이션)
     isCurated: row.baseline_price == null,
   };
+}
+
+/** 판매처 가격과 저장된 할인율이 서로 맞지 않거나 과도한 정가 할인인 신규 상품은 공개하지 않는다. */
+export function isTrustworthyCuratedPrice(row: any): boolean {
+  const computed = listDiscountRate(row.list_price, row.current_price);
+  const stored = Number(row.discount_vs_list ?? 0);
+  if (computed < 10 || computed > 75) return false;
+  return stored <= 0 || Math.abs(stored - computed) <= 3;
 }
 
 const ACTIVE_CHECK_MAX_AGE_MS = 72 * 60 * 60 * 1000;
@@ -118,7 +129,26 @@ function sortActive(deals: Deal[], sort: SortKey): Deal[] {
       return arr.sort((a, b) => b.currentPrice - a.currentPrice);
     case "discount":
     default:
-      return arr.sort((a, b) => headlineRate(b) - headlineRate(a));
+      // 판매처가 제시한 큰 정가 할인보다 실제 가격 이력이 쌓인 상품을 먼저 보여준다.
+      // 같은 신뢰 구간 안에서만 하락률을 비교해 신규 -80% 상품이 홈을 지배하지 않게 한다.
+      return arr.sort((a, b) => {
+        const maturity = (deal: Deal) => {
+          const days = deal.trackedDays ?? 0;
+          const points = deal.historyPointCount ?? 0;
+          if (!deal.isCurated && days >= 90 && points >= 20) return 4;
+          if (!deal.isCurated && days >= 30 && points >= 20) return 3;
+          if (!deal.isCurated && days >= 14 && points >= 10) return 2;
+          if (!deal.isCurated && points > 0) return 1;
+          return 0;
+        };
+        const confidence = maturity(b) - maturity(a);
+        if (confidence !== 0) return confidence;
+        const domestic = Number(b.platform !== "aliexpress") - Number(a.platform !== "aliexpress");
+        if (domestic !== 0) return domestic;
+        const rate = headlineRate(b) - headlineRate(a);
+        if (rate !== 0) return rate;
+        return (dropScore(b).score ?? -1) - (dropScore(a).score ?? -1);
+      });
   }
 }
 
@@ -311,7 +341,7 @@ export async function getCuratedDeals(
     return [];
   }
   const deals = dedupSimilar(
-    data.map((row) => rowToDeal(row, [])).filter((deal) => recentlyChecked(deal)),
+    data.filter(isTrustworthyCuratedPrice).map((row) => rowToDeal(row, [])).filter((deal) => recentlyChecked(deal)),
     sort,
   );
   return sortActive(deals, sort);

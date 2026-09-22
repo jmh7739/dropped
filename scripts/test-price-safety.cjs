@@ -14,6 +14,10 @@ function load(file, dependencies = {}) {
 }
 
 async function main() {
+  const { listDiscountRate } = load('lib/format.ts');
+  assert.equal(listDiscountRate(14530, 9030), 38, 'badge and detail discount must use the same price calculation');
+  assert.equal(listDiscountRate(100, 120), 0, 'invalid list price must not create a discount');
+
   const { priceStats, dealVerdict } = load('lib/priceReport.ts');
   const now = Date.now();
   const at = days => new Date(now - days * 86400000).toISOString();

@@ -21,9 +21,9 @@ export default function ProductSearchResults({
     <section className="mb-8">
       <div className="mb-3">
         <h2 className="text-lg font-extrabold text-gray-900">
-          🔎 “{query}” 가격 추적 · 지금 살까?
+          “{query}” 추가 가격 추적 상품
         </h2>
-        <p className="mt-0.5 text-xs text-gray-400">현재가 · 가격 이력 · 구매 판정</p>
+        <p className="mt-0.5 text-xs text-gray-500">위 검색 결과와 별도로, 가격 이력이 있는 관련 상품을 최대 8개 보여드립니다.</p>
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">

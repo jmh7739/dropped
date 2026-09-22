@@ -244,12 +244,14 @@ export default async function Home({
 
   // 검색 결과의 '추적 상품' 중, 이미 위/아래 활성 딜로 나온 것은 중복 제거.
   const dealProductIds = new Set(listDeals.map((d) => d.productId));
-  const trackedMatches = productMatchesRaw.filter((r) => !dealProductIds.has(r.id));
+  const trackedMatches = productMatchesRaw
+    .filter((r) => !dealProductIds.has(r.id))
+    .slice(0, 8);
 
   const sortOptions = [
     { key: "popular", label: "추천" },
     { key: "recent", label: "최신" },
-    { key: "discount", label: "할인/하락률" },
+    { key: "discount", label: "가격이력 우선" },
     { key: "score", label: "DROP SCORE" },
   ];
 
@@ -262,25 +264,22 @@ export default async function Home({
       if (hotSort === "drop") return headlineDropRate(b) - headlineDropRate(a);
       if (hotSort === "recent") return new Date(b.checkedAt ?? b.detectedAt).getTime() - new Date(a.checkedAt ?? a.detectedAt).getTime();
       if (hotSort === "price") return a.currentPrice - b.currentPrice;
-      return hotSort === "recommended"
-        ? hotDealScore(b) - hotDealScore(a)
-        : (dropScore(b).score ?? 0) - (dropScore(a).score ?? 0);
+      if (hotSort === "recommended") {
+        const verifiedFirst = Number(isVerifiedBestDeal(b)) - Number(isVerifiedBestDeal(a));
+        return verifiedFirst || hotDealScore(b) - hotDealScore(a);
+      }
+      return (dropScore(b).score ?? 0) - (dropScore(a).score ?? 0);
     });
-  // 추천순은 검증된 가격 이력의 순서를 유지하면서 국내몰 할인도 첫 화면에 섞는다.
-  const hotList = hotSort === "recommended" && !hotCategory && !hotLowestOnly
-    ? (() => {
-        const domestic = sortedHotList.filter((d) => d.platform !== "aliexpress");
-        const overseas = sortedHotList.filter((d) => d.platform === "aliexpress");
-        const mixed: typeof sortedHotList = [];
-        while (domestic.length || overseas.length) {
-          const next = mixed.length % 3 === 2 && overseas.length
-            ? overseas.shift()
-            : domestic.shift() ?? overseas.shift();
-          if (next) mixed.push(next);
-        }
-        return mixed;
-      })()
-    : sortedHotList;
+  // 첫 상품은 검증된 가격 이력을 유지하되, 국내 딜도 첫 화면에 섞어 긴 해외 상품명만 이어지지 않게 한다.
+  const hotList = hotSort === "recommended" ? (() => {
+    const remaining = [...sortedHotList];
+    const result = remaining.splice(0, 1);
+    for (const position of [1, 3]) {
+      const domesticIndex = remaining.findIndex((deal) => deal.platform !== "aliexpress");
+      if (domesticIndex >= 0) result.splice(position, 0, remaining.splice(domesticIndex, 1)[0]);
+    }
+    return [...result, ...remaining];
+  })() : sortedHotList;
   const hotTotalPages = Math.max(1, Math.ceil(hotList.length / 10));
   const safeHotPage = Math.min(hotPage, hotTotalPages);
   const hotItems = hotList.slice((safeHotPage - 1) * 10, safeHotPage * 10);
@@ -300,14 +299,21 @@ export default async function Home({
       {Object.keys(searchParams).length === 0 && trackedDeals.filter(isVerifiedBestDeal).length >= 3 && <AdSenseScript />}
       {demoBanner}
 
+      {isDefaultHome && (
+        <header className="mb-5">
+          <h1 className="text-2xl font-black leading-tight text-gray-950 sm:text-3xl">
+            진짜 가격이 떨어진 상품을 찾습니다
+          </h1>
+          <p className="mt-2 text-sm leading-6 text-gray-600">
+            표시 할인율만 믿지 않고 평균가·최저가·가격 이력을 비교해 지금 싼 상품을 먼저 보여드립니다.
+          </p>
+        </header>
+      )}
+
       <div className="mb-5">
         <SearchBar initial={q} />
         {!q && <p className="mt-2 text-center text-xs font-medium text-gray-500">가격 이력으로 확인한 하락과 판매처 표시 할인을 구분해 보여줍니다.</p>}
       </div>
-
-      {trackedMatches.length > 0 && (
-        <ProductSearchResults rows={trackedMatches} query={q.trim()} />
-      )}
 
       {isDefaultHome && <SavedPriceWatches />}
 
@@ -333,7 +339,11 @@ export default async function Home({
           </div>
 
           {hotItems.length === 0 ? (
-            <p className="rounded-xl border border-dashed border-gray-300 bg-white p-8 text-center text-sm text-gray-500">이 조건에 맞는 상품이 아직 없습니다.</p>
+            <div className="rounded-xl border border-dashed border-gray-300 bg-white p-8 text-center">
+              <p className="text-sm font-semibold text-gray-700">이 조건에 맞는 검증 상품이 아직 없습니다.</p>
+              <p className="mt-2 text-xs leading-5 text-gray-500">가격 기록이 더 쌓인 상품부터 순서대로 공개합니다.</p>
+              <Link href="/" className="mt-4 inline-flex min-h-11 items-center rounded-lg bg-gray-900 px-4 text-sm font-bold text-white">전체 핫딜 보기</Link>
+            </div>
           ) : <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
             {hotItems.map((d) => <DealCard key={d.id} deal={d} />)}
           </div>}
@@ -408,11 +418,12 @@ export default async function Home({
 
         {paginatedList.length === 0 ? (
           <div className="rounded-xl border border-dashed border-gray-300 bg-white p-12 text-center text-gray-400">
-            {q
+            <p>{q
               ? trackedMatches.length > 0
                 ? "현재 조건에 맞는 특가가 없습니다."
                 : "검색 결과가 없습니다."
-              : "아직 이 조건에 맞는 핫딜이 없습니다."}
+              : "아직 이 조건에 맞는 핫딜이 없습니다."}</p>
+            <Link href="/" className="mt-4 inline-flex min-h-11 items-center rounded-lg bg-gray-900 px-4 text-sm font-bold text-white">필터 초기화</Link>
           </div>
         ) : (
           <>
@@ -433,6 +444,10 @@ export default async function Home({
           </>
         )}
         </section>
+      )}
+
+      {!isDefaultHome && trackedMatches.length > 0 && (
+        <ProductSearchResults rows={trackedMatches} query={q.trim()} />
       )}
 
     </div>

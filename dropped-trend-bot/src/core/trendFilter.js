@@ -7,6 +7,13 @@ const LOW_SIGNAL_PATTERNS = [
   /빨래건조대|의류건조대|^건조대$/,
   /^가습기$|^수건$/,
 ];
+// 브랜드명이 들어 있어도 상품이 아니라 회사 자체를 뜻하는 검색어는 제외한다.
+// 예: "삼성전기"를 "삼성" 브랜드 상품으로 오인하면 쇼핑 급상승 목록의 신뢰도가 떨어진다.
+const COMPANY_ONLY_PATTERNS = [
+  /^(?:삼성전기|삼성전자|lg전자|엘지전자|sk하이닉스|현대자동차|현대차|기아|포스코홀딩스|현대모비스|한화오션|두산에너빌리티)$/,
+  /(?:그룹|홀딩스|증권|건설|중공업|바이오로직스|모비스|전기|전자)$/,
+];
+const COMPANY_NEWS_PATTERN = /(?:주가|실적|공시|배당|채용|회장|대표|노조|파업)$/;
 const SERVICE_PATTERNS = [
   /여행|투어|크루즈|배편|항공권|렌터카|렌트카|렌트|대여|숙박|호텔|리조트|펜션|예약/,
   /공연|연극|뮤지컬|콘서트|전시|관람권|입장권|체험권|이용권/,
@@ -39,7 +46,7 @@ function isServiceKeyword(keyword) {
 
 function isHardExcluded(keyword) {
   const value = normalizeKeyword(keyword);
-  return !value || value.length < 2 || /^\d+$/.test(value) || HARD_EXCLUDE.has(value) || LOW_SIGNAL_PATTERNS.some(pattern => pattern.test(value)) || isServiceKeyword(value);
+  return !value || value.length < 2 || /^\d+$/.test(value) || HARD_EXCLUDE.has(value) || LOW_SIGNAL_PATTERNS.some(pattern => pattern.test(value)) || COMPANY_ONLY_PATTERNS.some(pattern => pattern.test(value)) || COMPANY_NEWS_PATTERN.test(value) || isServiceKeyword(value);
 }
 
 function genericPenalty(keyword) {
