@@ -24,10 +24,10 @@ function Movement({ trend }: { trend: RealtimeTrend }) {
   if (trend.status === "NEW")
     return <span className="text-[11px] font-extrabold text-brand">NEW</span>;
   if (trend.status === "up")
-    return <span className="text-[11px] font-bold text-red-500">▲{trend.rankChange}</span>;
+    return <span className="text-[11px] font-bold text-red-700">▲{trend.rankChange}</span>;
   if (trend.status === "down")
-    return <span className="text-[11px] font-bold text-blue-500">▼{Math.abs(trend.rankChange || 0)}</span>;
-  return <span className="text-[11px] font-bold text-gray-400">-</span>;
+    return <span className="text-[11px] font-bold text-blue-700">▼{Math.abs(trend.rankChange || 0)}</span>;
+  return <span className="text-[11px] font-bold text-gray-600">-</span>;
 }
 
 /** 순위/키워드/증감 한 줄. asLink=true면 제휴 검색으로 이동(펼친 목록에서만). */
@@ -108,7 +108,7 @@ export default function RealtimeTrendTicker({
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
       >
-        <span className="flex shrink-0 items-center gap-1 font-extrabold text-red-500">
+        <span className="flex shrink-0 items-center gap-1 font-extrabold text-red-700">
           <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-red-500" aria-hidden="true" />
           실시간
         </span>
@@ -116,7 +116,7 @@ export default function RealtimeTrendTicker({
           <TrendRow trend={current} />
         </span>
         <span
-          className={`shrink-0 text-gray-400 transition-transform ${open ? "rotate-180" : ""}`}
+          className={`shrink-0 text-gray-600 transition-transform ${open ? "rotate-180" : ""}`}
           aria-hidden="true"
         >
           ⌄
@@ -167,6 +167,9 @@ export default function RealtimeTrendTicker({
                 ))}
               </div>
             )}
+            <p className="mt-1.5 border-t border-gray-100 px-2 pt-1.5 text-[10px] leading-4 text-gray-400">
+              ▲ 상승 · ▼ 하락 · NEW 새 진입 · - 이전 비교 순위 없음
+            </p>
           </div>
         </>
       )}
