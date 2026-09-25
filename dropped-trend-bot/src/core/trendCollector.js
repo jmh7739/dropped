@@ -1,11 +1,11 @@
 const config = require("./config");
 const { normalizeKeyword } = require("./text");
-const { isHardExcluded } = require("./trendFilter");
+const { isLikelyShoppingKeyword } = require("./trendFilter");
 
 function selectHotTrends(candidates, limit = config.REALTIME_TREND_LIMIT) {
   const bestByKeyword = new Map();
   for (const item of candidates) {
-    if (isHardExcluded(item.keyword)) continue;
+    if (!isLikelyShoppingKeyword(item.keyword)) continue;
     const key = item.normalizedKeyword || normalizeKeyword(item.keyword);
     const existing = bestByKeyword.get(key);
     if (!existing || item.trendScore > existing.trendScore) bestByKeyword.set(key, { ...item, normalizedKeyword: key });

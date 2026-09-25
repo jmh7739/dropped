@@ -14,6 +14,14 @@ const COMPANY_ONLY_PATTERNS = [
   /(?:그룹|홀딩스|증권|건설|중공업|바이오로직스|모비스|전기|전자)$/,
 ];
 const COMPANY_NEWS_PATTERN = /(?:주가|실적|공시|배당|채용|회장|대표|노조|파업)$/;
+// 검색량은 높아도 구매할 상품을 가리키지 않는 자연·관람 이슈는 제외한다.
+// 꽃다발·화분처럼 명시적인 상품어는 막지 않고, 식물명 단독이나 축제/개화 정보만 거른다.
+const NON_COMMERCE_TREND_PATTERNS = [
+  /^(?:상사화|꽃무릇|벚꽃|진달래|개나리|유채꽃|코스모스|억새|단풍)$/,
+  /(?:꽃축제|벚꽃축제|불꽃축제|축제일정|개화시기|개화상황|단풍시기|명소|날씨|차례상|제사상|명절음식|연휴)$/,
+  /(?:경기결과|경기일정|중계|스코어|순위|출연진|재방송|몇부작|프로필|근황|사건|사고|논란)$/,
+  /(?:아시안게임|올림픽|월드컵|대통령|국회의원|금리|환율|코스피|코스닥)$/,
+];
 const SERVICE_PATTERNS = [
   /여행|투어|크루즈|배편|항공권|렌터카|렌트카|렌트|대여|숙박|호텔|리조트|펜션|예약/,
   /공연|연극|뮤지컬|콘서트|전시|관람권|입장권|체험권|이용권/,
@@ -46,7 +54,7 @@ function isServiceKeyword(keyword) {
 
 function isHardExcluded(keyword) {
   const value = normalizeKeyword(keyword);
-  return !value || value.length < 2 || /^\d+$/.test(value) || HARD_EXCLUDE.has(value) || LOW_SIGNAL_PATTERNS.some(pattern => pattern.test(value)) || COMPANY_ONLY_PATTERNS.some(pattern => pattern.test(value)) || COMPANY_NEWS_PATTERN.test(value) || isServiceKeyword(value);
+  return !value || value.length < 2 || /^\d+$/.test(value) || HARD_EXCLUDE.has(value) || LOW_SIGNAL_PATTERNS.some(pattern => pattern.test(value)) || COMPANY_ONLY_PATTERNS.some(pattern => pattern.test(value)) || COMPANY_NEWS_PATTERN.test(value) || NON_COMMERCE_TREND_PATTERNS.some(pattern => pattern.test(value)) || isServiceKeyword(value);
 }
 
 function genericPenalty(keyword) {
@@ -73,7 +81,9 @@ function hasMatchingBrand(keyword, title) {
 
 function isLikelyShoppingKeyword(keyword) {
   const value = normalizeKeyword(keyword);
-  return !isHardExcluded(value) && (hasBrandSignal(value) || SHOPPING_INTENT.test(value));
+  const matchingBrand = BRANDS.find(brand => value.includes(normalizeKeyword(brand)));
+  const qualifiedBrand = matchingBrand && value.length >= normalizeKeyword(matchingBrand).length + 2;
+  return !isHardExcluded(value) && (Boolean(qualifiedBrand) || SHOPPING_INTENT.test(value));
 }
 
 module.exports = {

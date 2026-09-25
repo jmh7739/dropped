@@ -6,13 +6,18 @@ test("서비스/여행형 키워드를 제외한다", () => {
   ["부산요트투어", "일본여행", "식전영상", "연극예매", "렌터카", "캠핑카렌트"].forEach(value => assert.equal(isHardExcluded(value), true));
 });
 
+test("상품이 아닌 자연·축제형 급상승어를 제외한다", () => {
+  ["상사화", "꽃무릇", "벚꽃축제", "단풍시기", "서울날씨", "추석차례상", "아시안게임", "야구경기결과", "환율"].forEach(value => assert.equal(isHardExcluded(value), true));
+  ["장미꽃다발", "꽃무늬원피스", "포켓몬카드30주년"].forEach(value => assert.equal(isHardExcluded(value), false));
+});
+
 test("범용 가전·사무·생활용품 키워드를 제외한다", () => {
   ["에어컨", "캐리어냉난방기", "전자레인지", "전자렌지", "A4용지", "복사용지", "빨래건조대", "가습기", "청호나이스정수기", "수건"].forEach(value => assert.equal(isHardExcluded(value), true));
   ["닌텐도스위치2", "AHC아이크림", "스팸선물세트", "나이키운동화"].forEach(value => assert.equal(isHardExcluded(value), false));
 });
 
 test("Google 급상승에서는 사람·뉴스·A4 용지를 빼고 상품형 검색어만 허용한다", () => {
-  ["이서진", "손예진 아들", "한화 대 SSG", "A4용지", "전자레인지", "삼성전기", "삼성전자 주가"].forEach(value => assert.equal(isLikelyShoppingKeyword(value), false));
+  ["이서진", "손예진 아들", "한화 대 SSG", "A4용지", "전자레인지", "삼성전기", "삼성전자 주가", "삼성", "애플", "정관장", "추석차례상"].forEach(value => assert.equal(isLikelyShoppingKeyword(value), false));
   ["아디다스 운동화", "아이폰 듀오", "추석 선물세트", "AHC 아이크림", "삼성 갤럭시 S26"].forEach(value => assert.equal(isLikelyShoppingKeyword(value), true));
 });
 
@@ -77,10 +82,16 @@ test("네이버 이미지 프록시를 쿠팡 CDN 원본 주소로 바꾼다", (
 });
 
 test("카테고리 강제 균등 없이 독점만 제한한다", () => {
-  const candidates = Array.from({ length: 8 }, (_, index) => ({ keyword: `브랜드모델${index}`, normalizedKeyword: `브랜드모델${index}`, category: index < 6 ? "디지털" : "식품", trendScore: 100 - index, currentRank: index + 1 }));
+  const keywords = ["갤럭시S26", "아이폰17", "닌텐도스위치2", "소니헤드폰", "삼성노트북", "애플아이패드", "추석선물세트", "정관장홍삼"];
+  const candidates = keywords.map((keyword, index) => ({ keyword, normalizedKeyword: keyword.toLowerCase(), category: index < 6 ? "디지털" : "식품", trendScore: 100 - index, currentRank: index + 1 }));
   const selected = selectHotTrends(candidates, 6);
   assert.equal(selected.filter(item => item.category === "디지털").length, 4);
   assert.equal(selected.length, 6);
+});
+
+test("최종 인기 검색어 선발에서도 비상품 키워드를 제거한다", () => {
+  const rows = ["상사화", "추석차례상", "아시안게임", "닌텐도스위치2", "헤라블랙쿠션"].map((keyword, index) => ({ keyword, normalizedKeyword: keyword, category: "생활", trendScore: 100 - index, currentRank: index + 1 }));
+  assert.deepEqual(selectHotTrends(rows, 20).map((item) => item.keyword), ["닌텐도스위치2", "헤라블랙쿠션"]);
 });
 
 test("트렌드 상품을 카테고리 라운드로빈으로 다양하게 선발한다", () => {
