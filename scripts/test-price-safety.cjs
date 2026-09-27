@@ -14,6 +14,22 @@ function load(file, dependencies = {}) {
 }
 
 async function main() {
+  const { deriveUnitPrice } = load('lib/unitPrice.ts');
+  for (const [title, price, expected] of [
+    ['무라벨 2L, 12개', 12360, '1L당 515원'],
+    ['500ml 40개입', 14930, '1L당 747원'],
+    ['900ml 12병', 12900, '1L당 1,194원'],
+    ['2L 24펫', 19900, '1L당 415원'],
+    ['2리터 12개', 12360, '1L당 515원'],
+    ['500ml x 40', 14930, '1L당 747원'],
+    ['2L', 1000, '1L당 500원'],
+    ['2L/500ml 선택', 1000, null],
+    ['500ml 1+1', 1000, null],
+    ['500ml 묶음', 1000, null],
+    ['2L 12개 x 2박스', 1000, null],
+    ['500ml 0개', 1000, null],
+  ]) assert.equal(deriveUnitPrice(title, price), expected, title);
+  assert.equal(deriveUnitPrice('2L 12개', 12360, '1L당 6,180원'), '1L당 515원');
   const { listDiscountRate } = load('lib/format.ts');
   assert.equal(listDiscountRate(14530, 9030), 38, 'badge and detail discount must use the same price calculation');
   assert.equal(listDiscountRate(100, 120), 0, 'invalid list price must not create a discount');

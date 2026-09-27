@@ -27,7 +27,9 @@ function Movement({ trend }: { trend: RealtimeTrend }) {
     return <span className="text-[11px] font-bold text-red-700">▲{trend.rankChange}</span>;
   if (trend.status === "down")
     return <span className="text-[11px] font-bold text-blue-700">▼{Math.abs(trend.rankChange || 0)}</span>;
-  return <span className="text-[11px] font-bold text-gray-600">-</span>;
+  if (trend.previousRank == null)
+    return <span className="text-[10px] font-bold text-gray-500">비교 없음</span>;
+  return <span className="text-[10px] font-bold text-gray-600">변동 없음</span>;
 }
 
 /** 순위/키워드/증감 한 줄. asLink=true면 제휴 검색으로 이동(펼친 목록에서만). */
@@ -48,6 +50,7 @@ function TrendRow({ trend, asLink }: { trend: RealtimeTrend; asLink?: boolean })
         className="flex min-w-0 items-center gap-2 hover:text-brand"
       >
         {inner}
+        <span className="shrink-0 text-[10px] text-gray-500">제휴 검색 ↗</span>
       </a>
     );
   }
@@ -58,6 +61,7 @@ function TrendRow({ trend, asLink }: { trend: RealtimeTrend; asLink?: boolean })
         className="flex min-w-0 items-center gap-2 hover:text-brand"
       >
         {inner}
+        <span className="shrink-0 text-[10px] text-gray-500">사이트 검색 →</span>
       </Link>
     );
   }
@@ -168,7 +172,7 @@ export default function RealtimeTrendTicker({
               </div>
             )}
             <p className="mt-1.5 border-t border-gray-100 px-2 pt-1.5 text-[10px] leading-4 text-gray-400">
-              ▲ 상승 · ▼ 하락 · NEW 새 진입 · - 이전 비교 순위 없음
+              ▲ 상승 · ▼ 하락 · NEW 새 진입 · 변동 없음은 직전 순위와 동일
             </p>
           </div>
         </>

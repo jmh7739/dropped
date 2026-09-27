@@ -19,6 +19,7 @@ type ScoreInput = Pick<
 export type DropScoreResult = {
   score: number | null;
   label: string;
+  reason: string;
   tone: "hot" | "good" | "ok" | "wait" | "weak";
 };
 
@@ -89,6 +90,23 @@ export function headlineDropRate(d: {
   return Math.max(0, d.discountVsAvg ?? d.discountVsList ?? 0);
 }
 
+export function averageComparisonText(d: {
+  avg30Price?: number | null;
+  currentPrice?: number;
+  discountVsAvg?: number | null;
+}): string {
+  if (d.avg30Price && d.currentPrice && d.avg30Price > 0) {
+    const difference = ((d.currentPrice - d.avg30Price) / d.avg30Price) * 100;
+    const percentage = Math.round(Math.abs(difference) * 10) / 10;
+    if (Math.abs(difference) < 0.05) return "추적 평균과 같고";
+    return difference < 0
+      ? `추적 평균보다 ${percentage}% 낮고`
+      : `추적 평균보다 ${percentage}% 높고`;
+  }
+  if ((d.discountVsAvg ?? 0) > 0) return `추적 평균보다 ${Math.round(d.discountVsAvg! * 10) / 10}% 낮고`;
+  return "평균 비교 자료가 부족하고";
+}
+
 export function dropBasis(d: {
   discountVsAvg: number | null;
   avg30Price?: number | null;
@@ -122,7 +140,12 @@ export function dropScore(d: ScoreInput): DropScoreResult {
     (d.avg30Price != null && d.currentPrice > 0 && d.avg30Price > d.currentPrice) ||
     (d.discountVsAvg !== null && d.discountVsAvg > 0);
   if (!hasAvg && !d.baselinePrice) {
-    return { score: null, label: "데이터 부족", tone: "weak" };
+    return {
+      score: null,
+      label: "데이터 부족",
+      reason: "평균 가격 기준이 충분하지 않아 판정을 보류합니다.",
+      tone: "weak",
+    };
   }
 
   const rate = headlineDropRate(d);
@@ -161,11 +184,19 @@ export function dropScore(d: ScoreInput): DropScoreResult {
     )
   );
 
-  if (days < 7) return { score, label: "데이터 수집 중", tone: "weak" };
-  if (score >= 80) return { score, label: "매우 좋은 가격", tone: "hot" };
-  if (score >= 60) return { score, label: "좋은 가격", tone: "good" };
-  if (score >= 40) return { score, label: "보통 가격", tone: "ok" };
-  return { score, label: "기다리기", tone: "wait" };
+  const summary = `${averageComparisonText(d)} ${days}일 동안 추적한 가격입니다.`;
+  if (days < 7) {
+    return {
+      score,
+      label: "데이터 수집 중",
+      reason: "추적 기간이 짧아 가격 판정을 보류합니다.",
+      tone: "weak",
+    };
+  }
+  if (score >= 80) return { score, label: "매우 좋음", reason: `${summary} 종합 점수가 매우 좋은 구간입니다.`, tone: "hot" };
+  if (score >= 60) return { score, label: "괜찮음", reason: `${summary} 종합 점수가 괜찮은 구간입니다.`, tone: "good" };
+  if (score >= 40) return { score, label: "보통", reason: `${summary} 가격 이력과 최신성을 종합하면 보통 구간입니다.`, tone: "ok" };
+  return { score, label: "기다림", reason: `${summary} 현재는 조금 더 기다려 볼 구간입니다.`, tone: "wait" };
 }
 
 export function dataConfidence(d: Pick<Deal, "trackedDays" | "checkedAt" | "platform">): number {

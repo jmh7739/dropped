@@ -12,9 +12,11 @@ import SafeImage from "./SafeImage";
 export default function DealCard({
   deal,
   variant = "gallery",
+  priorityImage = false,
 }: {
   deal: Deal;
   variant?: "gallery" | "list";
+  priorityImage?: boolean;
 }) {
   const saving = (deal.baselinePrice || deal.listPrice) - deal.currentPrice;
   const ended = deal.status === "ended";
@@ -67,6 +69,22 @@ export default function DealCard({
     </span>
   ) : null;
 
+  const trustChip = (
+    <span className={`rounded border px-1.5 py-0.5 text-[10px] font-extrabold ${
+      !isCurated && scoreReady
+        ? "border-emerald-300 bg-emerald-50 text-emerald-900"
+        : isCurated
+          ? "border-blue-300 bg-blue-50 text-blue-900"
+          : "border-amber-300 bg-amber-50 text-amber-900"
+    }`}>
+      {!isCurated && scoreReady
+        ? "✓ 가격 이력 확인됨"
+        : isCurated
+          ? "판매처 정가 기준"
+          : "신규 수집·검증 중"}
+    </span>
+  );
+
   const brandChip = brand ? (
     <span className="rounded bg-gray-900/85 px-1.5 py-0.5 font-bold text-white">
       {brand}
@@ -83,6 +101,7 @@ export default function DealCard({
       >
         <Link
           href={`/price/${deal.productId}`}
+          prefetch={false}
           className="flex min-w-0 flex-1 items-center gap-3"
         >
           <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg bg-gray-100">
@@ -90,6 +109,7 @@ export default function DealCard({
               src={deal.imageUrl}
               alt={deal.title}
               className={`h-full w-full object-cover ${ended ? "grayscale" : ""}`}
+              priority={priorityImage}
             />
           </div>
           <div className="min-w-0 flex-1">
@@ -103,6 +123,7 @@ export default function DealCard({
                 {mallLabel(deal)}
               </span>
               {brandChip}
+              {trustChip}
               {trackingChip}
               <ShippingBadge fee={deal.shippingFee} />
             </div>
@@ -166,7 +187,7 @@ export default function DealCard({
       }`}
     >
       {/* 클릭 → 상세(그래프) */}
-      <Link href={`/price/${deal.productId}`} className="flex flex-1 flex-col">
+      <Link href={`/price/${deal.productId}`} prefetch={false} className="flex flex-1 flex-col">
         <div className="relative aspect-square overflow-hidden bg-gray-100">
           <SafeImage
             src={deal.imageUrl}
@@ -174,6 +195,7 @@ export default function DealCard({
             className={`h-full w-full object-cover transition ${
               ended ? "grayscale" : "group-hover:scale-105"
             }`}
+            priority={priorityImage}
           />
           {ended && (
             <div className="absolute inset-0 flex items-center justify-center bg-black/40">
@@ -198,6 +220,7 @@ export default function DealCard({
               {mallLabel(deal)}
             </span>
             {brandChip}
+            {trustChip}
             {trackingChip}
             <ShippingBadge fee={deal.shippingFee} />
           </div>

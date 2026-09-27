@@ -32,6 +32,18 @@ const shoppingSlugs = [
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false, // X-Powered-By 숨김
+  images: {
+    formats: ["image/avif", "image/webp"],
+    remotePatterns: [
+      { protocol: "https", hostname: "gdimg.gmarket.co.kr" },
+      { protocol: "https", hostname: "contents.lotteon.com" },
+      { protocol: "https", hostname: "thumbnail.coupangcdn.com" },
+      { protocol: "https", hostname: "**.coupangcdn.com" },
+      { protocol: "https", hostname: "ae-pic-a1.aliexpress-media.com" },
+      { protocol: "https", hostname: "ae01.alicdn.com" },
+      { protocol: "https", hostname: "img.alicdn.com" },
+    ],
+  },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },

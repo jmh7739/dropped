@@ -49,14 +49,14 @@ export default function DealGrid({ deals }: { deals: Deal[] }) {
 
       {view === "gallery" ? (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-          {deals.map((deal) => (
-            <DealCard key={deal.id} deal={deal} />
+          {deals.map((deal, index) => (
+            <DealCard key={deal.id} deal={deal} priorityImage={index === 0} />
           ))}
         </div>
       ) : (
         <div className="flex flex-col gap-2">
-          {deals.map((deal) => (
-            <DealCard key={deal.id} deal={deal} variant="list" />
+          {deals.map((deal, index) => (
+            <DealCard key={deal.id} deal={deal} variant="list" priorityImage={index === 0} />
           ))}
         </div>
       )}

@@ -10,21 +10,20 @@ export type PriceInsight = {
   averageGapPercent: number;
 };
 
-// 2026-09-14 실데이터를 확인해 고른 서로 다른 상품. 값은 저장하지 않고 매 요청 시
-// 실제 price_history를 다시 읽는다. 조건에 미달하면 사례에서 자동으로 제외한다.
-const REVIEWED_PRODUCT_IDS = [13208, 7278, 14635, 11589, 14606, 13211];
 const MAX_AGE_MS = 24 * 3600 * 1000;
 
 export const getPriceInsights = cache(async (): Promise<PriceInsight[]> => {
   const deals = await getDeals();
-  const byId = new Map(deals.map((deal) => [deal.productId, deal]));
-  const eligibleIds = REVIEWED_PRODUCT_IDS.filter((id) => {
-    const deal = byId.get(id);
+  // 고정 ID 목록은 실제 검증 상품이 바뀌면 사례 페이지를 비워 버린다.
+  // 현재 공개 중인 딜에서 화면에 밝힌 기준을 그대로 적용해 사례를 고른다.
+  const eligibleIds = deals.filter((deal) => {
     const checkedAt = deal?.checkedAt ? new Date(deal.checkedAt).getTime() : 0;
     return Boolean(deal && deal.status === "active" && !deal.isPriceError &&
       (deal.trackedDays ?? 0) >= 14 && (deal.historyPointCount ?? 0) >= 20 &&
       checkedAt > 0 && Date.now() - checkedAt <= MAX_AGE_MS);
-  });
+  }).sort((a, b) => (b.historyPointCount ?? 0) - (a.historyPointCount ?? 0))
+    .slice(0, 12)
+    .map((deal) => deal.productId);
 
   const reports = await Promise.all(eligibleIds.map((id) => getProductReport(id)));
   const insights: PriceInsight[] = [];

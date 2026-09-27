@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 
 function directImageUrl(value: string): string {
-  const raw = String(value || "").trim();
+  const raw = String(value || "").trim().replace(/^http:\/\//i, "https://");
   try {
     const parsed = new URL(raw);
     const source = parsed.hostname === "search.pstatic.net" && parsed.pathname === "/sunny"
@@ -24,10 +24,12 @@ export default function SafeImage({
   src,
   alt,
   className,
+  priority = false,
 }: {
   src: string;
   alt: string;
   className?: string;
+  priority?: boolean;
 }) {
   const resolvedSrc = directImageUrl(src);
   const [failed, setFailed] = useState(!resolvedSrc);
@@ -52,10 +54,11 @@ export default function SafeImage({
     <img
       src={resolvedSrc}
       alt={alt}
-      loading="lazy"
+      loading={priority ? "eager" : "lazy"}
+      fetchPriority={priority ? "high" : "auto"}
       decoding="async"
-      // 알리/CDN이 리퍼러 검사로 핫링크 차단(400/403)하는 경우가 많음 →
-      //   리퍼러를 안 보내면 상당수 정상 로드된다.
+      // 상품 CDN은 원본이 정상이어도 Vercel 이미지 변환 한도나 리퍼러 검사로
+      // 실패할 수 있으므로 원본을 브라우저에서 직접 불러온다.
       referrerPolicy="no-referrer"
       onError={() => setFailed(true)}
       className={className}

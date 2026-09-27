@@ -21,7 +21,9 @@ export default function SavedPriceWatches() {
         if (!key?.startsWith("dropped_price_watch_")) continue;
         const id = Number(key.slice("dropped_price_watch_".length));
         if (!Number.isSafeInteger(id) || id <= 0) continue;
-        const watch = JSON.parse(localStorage.getItem(key) ?? "{}") as Partial<Watch>;
+        let watch: Partial<Watch>;
+        try { watch = JSON.parse(localStorage.getItem(key) ?? "{}"); } catch { continue; }
+        if (!watch || typeof watch !== 'object') continue;
         if ((watch.target === null || Number.isSafeInteger(watch.target) && (watch.target ?? 0) > 0) && typeof watch.lowest === "boolean")
           saved.push({ id, target: watch.target ?? null, lowest: watch.lowest });
       }
@@ -40,7 +42,7 @@ export default function SavedPriceWatches() {
   if (!ready || !watches.length) return null;
   return <section className="mb-8 rounded-xl border border-emerald-200 bg-emerald-50/60 p-4" aria-label="관심상품 가격변동">
     <h2 className="text-lg font-extrabold text-gray-900">⭐ 관심상품 가격변동</h2>
-    <p className="mt-1 text-sm text-gray-600">이 기기에 저장한 목표 가격·최근 90일 최저가 조건과 수집 가격을 비교합니다. 판매처 가격은 구매 전에 다시 확인하세요.</p>
+    <p className="mt-1 text-sm text-gray-600">이 기기의 저장 기준 최대 12개를 보여줍니다. 목표 가격·추적기간 최저가(최대 최근 90일)와 수집 가격을 비교하며, 자동 알림은 보내지 않습니다.</p>
     {unavailable && <p className="mt-3 text-sm text-gray-600">지금 가격 확인이 지연되고 있습니다. 상품 상세에서 다시 확인해 주세요.</p>}
     <div className="mt-3 grid gap-2 sm:grid-cols-2">{watches.map(watch => {
       const item = items.find(p => p.id === watch.id);
@@ -55,7 +57,7 @@ export default function SavedPriceWatches() {
           {watch.target != null && ` · 목표 ${formatWon(watch.target)}`}
         </span>
         <span className={`mt-1 block text-xs font-bold ${reached ? "text-emerald-700" : "text-gray-500"}`}>
-          {reached ? "저장한 가격 조건 도달 · 판매처 확인" : "가격 조건 확인 중"}
+          {reached ? "저장한 가격 조건 도달 · 판매처 확인" : item?.price != null ? "아직 저장한 가격 조건에 미도달" : "최근 가격 확인 불가 · 상세에서 재확인"}
           {item?.checkedAt && ` · ${item.checkedAt.slice(0, 10)} 수집`}
         </span>
       </Link>;

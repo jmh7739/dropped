@@ -12,22 +12,36 @@
     "trend:realtime": "node dropped-trend-bot/src/worker.js realtime",
     "trend:products": "node dropped-trend-bot/src/worker.js products",
     "trend:all": "node dropped-trend-bot/src/worker.js all",
-    "trend:scheduler": "node dropped-trend-bot/src/scheduler.js"
+    "trend:scheduler": "node dropped-trend-bot/src/scheduler.js",
+    "dev:vinext": "vite dev --port 3001",
+    "build:vinext": "vite build",
+    "start:vinext": "wrangler dev --config dist/server/wrangler.json",
+    "deploy:vinext": "vinext-cloudflare deploy --config dist/server/wrangler.json"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.116.0",
     "@vercel/analytics": "^1.3.1",
+    "@vinext/cloudflare": "1.0.0-beta.11",
     "next": "16.3.5",
     "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "react-dom": "19.2.8",
+    "react-server-dom-webpack": "19.2.8",
+    "vinext": "1.0.0-beta.13"
   },
   "devDependencies": {
-    "@types/node": "20.14.0",
+    "@cloudflare/vite-plugin": "1.56.0",
+    "@cloudflare/workers-types": "5.20260921.1",
+    "@types/node": "22.19.19",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "6.0.2",
+    "@vitejs/plugin-rsc": "0.5.34",
     "autoprefixer": "10.4.19",
     "postcss": "^8.5.24",
     "tailwindcss": "3.4.6",
-    "typescript": "5.5.3"
-  }
+    "typescript": "5.5.3",
+    "vite": "8.3.0",
+    "wrangler": "4.142.0"
+  },
+  "type": "module"
 }

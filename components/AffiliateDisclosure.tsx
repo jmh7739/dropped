@@ -93,7 +93,7 @@ export default function AffiliateDisclosure() {
                     <span className="block text-sm font-bold text-gray-200 group-hover:text-white">
                       {item.name}
                     </span>
-                    <span className="mt-0.5 block text-xs text-gray-500">{item.description}</span>
+                    <span className="mt-0.5 block text-xs text-gray-400">{item.description}</span>
                   </span>
                   <span className="text-gray-600 transition group-hover:translate-x-0.5 group-hover:text-gray-300" aria-hidden="true">
                     ↗
@@ -104,7 +104,7 @@ export default function AffiliateDisclosure() {
           </nav>
         </div>
 
-        <div className="mt-9 border-t border-gray-800 pt-6 text-xs leading-relaxed text-gray-500">
+        <div className="mt-9 border-t border-gray-800 pt-6 text-xs leading-relaxed text-gray-400">
           <p>
             이 사이트는 제휴마케팅 활동을 통해 일정액의 수수료를 지급받을 수 있습니다.
             가격·할인 정보는 수집 시점 기준이며, 구매 전 판매 페이지에서 최종 가격을 확인해 주세요.

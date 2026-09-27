@@ -203,7 +203,7 @@ export default async function Home({
     getLastPriceUpdate(),
     // 검색 시: 활성 딜뿐 아니라 '가격 추적 중인 상품'도 찾아 지금 살지 판정.
     q.trim().length >= 2 ? searchProducts(q, 24) : Promise.resolve([]),
-    !q.trim() && !category && page === 1 ? getTrendingProducts(20) : Promise.resolve([]),
+    !q.trim() && !category && page === 1 ? getTrendingProducts(40) : Promise.resolve([]),
   ]);
 
   const term = q.trim().toLowerCase();
@@ -244,8 +244,10 @@ export default async function Home({
 
   // 검색 결과의 '추적 상품' 중, 이미 위/아래 활성 딜로 나온 것은 중복 제거.
   const dealProductIds = new Set(listDeals.map((d) => d.productId));
+  const dealFingerprints = new Set(listDeals.map((d) => `${d.title.toLowerCase().replace(/[^0-9a-z가-힣]/gi, '')}|${(d.mallName ?? d.platform).toLowerCase()}|${d.currentPrice}`));
   const trackedMatches = productMatchesRaw
     .filter((r) => !dealProductIds.has(r.id))
+    .filter((r) => !dealFingerprints.has(`${r.title.toLowerCase().replace(/[^0-9a-z가-힣]/gi, '')}|${(r.mallName ?? r.platform).toLowerCase()}|${r.currentPrice}`))
     .slice(0, 8);
 
   const sortOptions = [
@@ -270,19 +272,17 @@ export default async function Home({
       }
       return (dropScore(b).score ?? 0) - (dropScore(a).score ?? 0);
     });
-  // 첫 상품은 검증된 가격 이력을 유지하되, 국내 딜도 첫 화면에 섞어 긴 해외 상품명만 이어지지 않게 한다.
-  const hotList = hotSort === "recommended" ? (() => {
-    const remaining = [...sortedHotList];
-    const result = remaining.splice(0, 1);
-    for (const position of [1, 3]) {
-      const domesticIndex = remaining.findIndex((deal) => deal.platform !== "aliexpress");
-      if (domesticIndex >= 0) result.splice(position, 0, remaining.splice(domesticIndex, 1)[0]);
-    }
-    return [...result, ...remaining];
-  })() : sortedHotList;
-  const hotTotalPages = Math.max(1, Math.ceil(hotList.length / 10));
+  const verifiedHotList = sortedHotList.filter(isVerifiedBestDeal);
+  const newlyFoundHotList = sortedHotList.filter((deal) => !isVerifiedBestDeal(deal));
+  const hotTotalPages = Math.max(1, Math.ceil(verifiedHotList.length / 8));
   const safeHotPage = Math.min(hotPage, hotTotalPages);
-  const hotItems = hotList.slice((safeHotPage - 1) * 10, safeHotPage * 10);
+  const hotItems = verifiedHotList.slice((safeHotPage - 1) * 8, safeHotPage * 8);
+  const trackingItems = safeHotPage === 1
+    ? newlyFoundHotList.filter((deal) => !deal.isCurated && (deal.historyPointCount ?? 0) > 0).slice(0, 8)
+    : [];
+  const sellerDiscountItems = safeHotPage === 1
+    ? newlyFoundHotList.filter((deal) => deal.isCurated || (deal.historyPointCount ?? 0) === 0).slice(0, 8)
+    : [];
 
   const hrefFor = (next: Record<string, string | undefined>) => {
     const sp = new URLSearchParams();
@@ -320,7 +320,8 @@ export default async function Home({
       {isDefaultHome && (
         <section className="mb-8">
           <div className="mb-3 space-y-2">
-            <h2 className="text-lg font-extrabold text-gray-900">🔥 핫딜</h2>
+            <h2 className="text-lg font-extrabold text-gray-900">🔥 가격 이력으로 확인한 핫딜</h2>
+            <p className="text-xs leading-5 text-gray-500">평균가·최저가와 비교할 수 있는 상품만 이 구역에 표시합니다.</p>
             <div className="flex flex-wrap items-center gap-2">
               <SortDropdown options={catOptions} value={hotCategory} param="hc" params={allParams} ariaLabel="핫딜 카테고리" />
               <SortDropdown options={[
@@ -331,7 +332,7 @@ export default async function Home({
                 { key: "price", label: "낮은 가격순" },
               ]} value={hotSort} param="hs" params={allParams} ariaLabel="핫딜 정렬" />
               <Link href={hrefFor({ hl: hotLowestOnly ? undefined : "1", hp: undefined })}
-                aria-pressed={hotLowestOnly}
+                aria-current={hotLowestOnly ? "true" : undefined}
                 className={`rounded-lg px-3 py-1.5 text-sm font-medium ${hotLowestOnly ? "bg-brand text-white" : "border border-gray-200 bg-white text-gray-600"}`}>
                 추적 최저가만
               </Link>
@@ -342,10 +343,10 @@ export default async function Home({
             <div className="rounded-xl border border-dashed border-gray-300 bg-white p-8 text-center">
               <p className="text-sm font-semibold text-gray-700">이 조건에 맞는 검증 상품이 아직 없습니다.</p>
               <p className="mt-2 text-xs leading-5 text-gray-500">가격 기록이 더 쌓인 상품부터 순서대로 공개합니다.</p>
-              <Link href="/" className="mt-4 inline-flex min-h-11 items-center rounded-lg bg-gray-900 px-4 text-sm font-bold text-white">전체 핫딜 보기</Link>
+              {trackingItems.length > 0 ? <a href="#price-tracking" className="mt-4 inline-flex min-h-11 items-center rounded-lg bg-gray-900 px-4 text-sm font-bold text-white">가격 추적 상품 보기</a> : <Link href="/?sort=latest" className="mt-4 inline-flex min-h-11 items-center rounded-lg bg-gray-900 px-4 text-sm font-bold text-white">최근 수집 상품 탐색</Link>}
             </div>
           ) : <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-            {hotItems.map((d) => <DealCard key={d.id} deal={d} />)}
+            {hotItems.map((d, index) => <DealCard key={d.id} deal={d} priorityImage={index === 0} />)}
           </div>}
           {hotTotalPages > 1 && (
             <nav aria-label="핫딜 페이지" className="mt-3 flex items-center justify-center gap-1.5">
@@ -358,10 +359,49 @@ export default async function Home({
               ))}
             </nav>
           )}
+
+          {trackingItems.length > 0 && (
+            <div id="price-tracking" className="mt-8 scroll-mt-24 border-t border-gray-200 pt-6">
+              <h3 className="text-base font-extrabold text-gray-900">가격 추적 중인 상품</h3>
+              <p className="mb-3 mt-1 text-xs leading-5 text-gray-500">
+                실제 가격을 기록하고 있지만 아직 14일·20회 검증 기준을 채우지 못했습니다. 카드에서 추적 일수와 관측 상태를 확인할 수 있습니다.
+              </p>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                {trackingItems.map((deal) => <DealCard key={deal.id} deal={deal} />)}
+              </div>
+            </div>
+          )}
+
+          {sellerDiscountItems.length > 0 && (
+            <div className="mt-8 border-t border-gray-200 pt-6">
+              <h3 className="text-base font-extrabold text-gray-900">판매처 표시 할인</h3>
+              <p className="mb-3 mt-1 text-xs leading-5 text-gray-500">
+                판매처가 표시한 정가 기준 할인입니다. 가격 이력이 쌓이기 전까지 검증 핫딜과 섞지 않습니다.
+              </p>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                {sellerDiscountItems.map((deal) => <DealCard key={deal.id} deal={deal} />)}
+              </div>
+            </div>
+          )}
+
         </section>
       )}
 
       <TrendingProducts products={trendingProducts} />
+
+      {isDefaultHome && (
+        <section className="mb-8 rounded-2xl border border-blue-100 bg-blue-50/60 p-5">
+          <p className="text-xs font-extrabold uppercase tracking-wide text-blue-700">가격 검증 기준</p>
+          <h2 className="mt-1 text-lg font-extrabold text-gray-950">가격 이력이 충분한 상품만 검증 완료로 표시합니다</h2>
+          <p className="mt-2 text-sm leading-6 text-gray-700">
+            판매처의 정가 할인은 가격 이력 검증과 구분합니다. 옵션 변경·품절·짧은 추적 기간 때문에 가격이 떨어진 것처럼 보이는 사례도 숨기지 않고 설명합니다.
+          </p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Link href="/guides/price-drop-failures" className="rounded-lg bg-gray-950 px-4 py-2 text-sm font-bold text-white">가격 판단 실패 사례</Link>
+            <Link href="/guides" className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-bold text-gray-800">가격 비교 기준 전체</Link>
+          </div>
+        </section>
+      )}
 
       {!isDefaultHome && (
         <section>

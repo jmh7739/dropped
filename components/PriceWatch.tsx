@@ -12,6 +12,7 @@ export default function PriceWatch({ productId, currentPrice, lowestPrice, check
   const [target, setTarget] = useState("");
   const [lowest, setLowest] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const [message, setMessage] = useState('');
 
   useEffect(() => {
     try {
@@ -40,15 +41,17 @@ export default function PriceWatch({ productId, currentPrice, lowestPrice, check
   function save() {
     if (!valid) return;
     const next = { target: target.trim() ? price : null, lowest };
-    try { localStorage.setItem(key, JSON.stringify(next)); setWatch(next); } catch { /* Storage may be disabled. */ }
+    try { localStorage.setItem(key, JSON.stringify(next)); setWatch(next); setMessage('이 기기에 저장했습니다. 홈의 관심상품 가격변동에서 다시 확인하세요.'); } catch { setMessage('저장하지 못했습니다. 브라우저 저장공간 설정을 확인해 주세요.'); }
   }
   function remove() {
-    try { localStorage.removeItem(key); } catch { /* Storage may be disabled. */ }
+    try { localStorage.removeItem(key); } catch { setMessage('삭제하지 못했습니다. 브라우저 저장공간 설정을 확인해 주세요.'); return; }
     setWatch(null); setTarget(""); setLowest(false);
+    setMessage('저장 기준을 삭제했습니다.');
   }
 
   return <section className="mt-5 rounded-xl border border-gray-200 bg-white p-4" aria-label="가격 관심 조건">
     <h2 className="font-bold text-gray-900">내 가격 기준 저장</h2>
+    {message && <p role="status" className="mt-2 text-sm text-gray-700">{message}</p>}
     <p className="mt-1 text-sm text-gray-600">다음에 이 페이지를 열면 저장한 기준과 마지막 수집 가격을 비교합니다. 자동 알림은 보내지 않습니다.</p>
     {loaded && watch && <p role="status" className={`mt-3 rounded-lg p-3 text-sm font-semibold ${reached ? "bg-green-50 text-green-900" : "bg-gray-50 text-gray-700"}`}>
       {reached ? "저장한 가격 조건에 도달했습니다. 판매처의 실시간 가격을 확인하세요." : "아직 저장한 가격 조건에 도달하지 않았습니다."}

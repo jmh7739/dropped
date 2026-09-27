@@ -3,6 +3,7 @@ import { Deal, PricePoint, HOT_LIKE_THRESHOLD } from "./types";
 import { headlineDropRate, hotDealScore, dropScore } from "./dropMetrics";
 import { readPriceHistory } from "./priceHistory";
 import { listDiscountRate } from "./format";
+import { deriveUnitPrice } from "./unitPrice";
 
 export type SortKey =
   | "discount" // 하락률 높은순 (기본)
@@ -32,7 +33,7 @@ function rowToDeal(row: any, history: PricePoint[]): Deal {
     platform: row.platform,
     mallName: row.mall_name ?? null,
     shippingFee: row.shipping_fee ?? null,
-    unitPrice: row.unit_price ?? null,
+    unitPrice: deriveUnitPrice(row.title ?? "", currentPrice, row.unit_price),
     title: row.title,
     imageUrl: row.image_url ?? "",
     affiliateUrl: row.affiliate_url ?? row.product_url ?? "#",
@@ -420,6 +421,7 @@ export async function getRelatedDeals(
   if (!data) return [];
   const deals = data.map((row) => rowToDeal(row, []));
   const families = [
+    /삼다수|생수|먹는\s*샘물|광천수|미네랄\s*워터|무라벨\s*(?:생수|물)/,
     /방향제|디퓨저|탈취제/,
     /블랙박스|대시캠|dashcam|70mai/i,
     /점프스타터|배터리|긴급시동/,

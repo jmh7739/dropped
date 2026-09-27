@@ -43,3 +43,6 @@ dropped-trend-bot/browser-profile/
 dropped-trend-bot/results/
 dropped-trend-bot/**/.env
 dropped-trend-bot/**/.env.local
+/dist/
+.vinext/
+.wrangler/

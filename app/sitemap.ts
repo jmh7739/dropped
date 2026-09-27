@@ -52,7 +52,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // candidate histories separately, using the same threshold as /price/[id].
   const candidates = [...new Set(deals
     .filter((deal) => deal.status === "active" && !deal.isPriceError &&
-      (deal.trackedDays ?? 0) >= 14 && (deal.historyPointCount ?? 0) >= 20)
+      (deal.historyPointCount ?? 0) >= 3)
     .map((deal) => deal.productId))];
   const indexableProducts = new Map<number, string>();
   for (let offset = 0; offset < candidates.length; offset += 25) {

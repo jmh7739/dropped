@@ -81,7 +81,15 @@ function trendProductMatches(keywordValue: unknown, titleValue: unknown): boolea
   const title = String(titleValue || "").toLowerCase().replace(/[^0-9a-z가-힣]/gi, "");
   if (!keyword || !title) return false;
   const mentionedBrands = TREND_BRANDS.filter((brand) => keyword.includes(brand));
-  return mentionedBrands.length === 0 || mentionedBrands.every((brand) => title.includes(brand));
+  if (mentionedBrands.length && !mentionedBrands.every((brand) => title.includes(brand))) return false;
+  const requiredIntents = ['카드', '스위치', '게임기', '운동화', '이어폰', '헤드폰', '노트북', '태블릿', '모니터']
+    .filter((intent) => keyword.includes(intent));
+  if (requiredIntents.some((intent) => !title.includes(intent))) return false;
+  if (/\d+주년/.test(keyword)) {
+    const anniversary = keyword.match(/\d+주년/)?.[0];
+    if (anniversary && !title.includes(anniversary)) return false;
+  }
+  return true;
 }
 
 export async function getRealtimeTrends(): Promise<RealtimeTrend[]> {
@@ -111,10 +119,10 @@ export async function getRealtimeTrends(): Promise<RealtimeTrend[]> {
     .slice(0, 20);
 }
 
-export async function getTrendingProducts(limit = 30): Promise<TrendingProduct[]> {
+export async function getTrendingProducts(limit = 40): Promise<TrendingProduct[]> {
   if (!supabase) return [];
-  const cutoff = new Date(Date.now() - 72 * 60 * 60 * 1000).toISOString();
-  const { data, error } = await supabase.from("trending_products").select("keyword,product_score,hot_score,category,updated_at,products(id,title,image_url,list_price,platform)").eq("is_active", true).gte("updated_at", cutoff).order("hot_score", { ascending: false }).order("product_score", { ascending: false }).limit(Math.max(limit * 3, 120));
+  const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  const { data, error } = await supabase.from("trending_products").select("keyword,product_score,hot_score,category,updated_at,products(id,title,image_url,list_price,platform)").eq("is_active", true).gte("updated_at", cutoff).order("hot_score", { ascending: false }).order("product_score", { ascending: false }).limit(Math.max(limit * 5, 200));
   if (error || !data) return [];
   const candidates = data.flatMap((row: any) => {
     if (!likelyProductTrend(row.keyword)) return [];
@@ -132,8 +140,8 @@ export async function getTrendingProducts(limit = 30): Promise<TrendingProduct[]
   for (const product of candidates) {
     const category = product.category || "기타";
     const keyword = product.keyword.toLowerCase().replace(/\s+/g, "");
-    if ((categoryCount.get(category) ?? 0) >= 8) continue;
-    if ((keywordCount.get(keyword) ?? 0) >= 2) continue;
+    if ((categoryCount.get(category) ?? 0) >= 12) continue;
+    if ((keywordCount.get(keyword) ?? 0) >= 3) continue;
     result.push(product);
     categoryCount.set(category, (categoryCount.get(category) ?? 0) + 1);
     keywordCount.set(keyword, (keywordCount.get(keyword) ?? 0) + 1);

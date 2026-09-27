@@ -23,6 +23,7 @@ export default function PriceReport({
   const ageHours = lastCheckedAt ? (Date.now() - new Date(lastCheckedAt).getTime()) / 3600000 : Infinity;
   const confidence = ageHours > 168 ? Math.min(baseConfidence, 20) : ageHours > 24 ? Math.min(baseConfidence, 48) : baseConfidence;
   const confidenceLabel = confidence >= 75 ? "높음" : confidence >= 40 ? "보통" : "낮음";
+  // 카드·상세 상단·리포트가 모두 같은 4단계 판정 문구를 사용한다.
   const displayTitle = dropScore?.label ?? verdict.title;
   const displayIcon =
     dropScore?.tone === "hot" || dropScore?.tone === "good"
@@ -48,7 +49,9 @@ export default function PriceReport({
               <span>{displayIcon}</span>
               <span>{displayTitle}</span>
             </div>
-            <p className="mt-0.5 text-sm font-medium opacity-90">{verdict.reason}</p>
+              <p className="mt-0.5 text-sm font-medium opacity-90">
+                {dropScore?.reason ?? verdict.reason}
+              </p>
           </div>
           {dropScore && (
             <div className="rounded-lg bg-white/70 px-3 py-2 text-right">

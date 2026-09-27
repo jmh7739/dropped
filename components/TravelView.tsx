@@ -25,7 +25,7 @@ const STAY_PARTNERS: Partner[] = [
 const klook = (q: string) =>
   lp("klook", `https://www.klook.com/ko/search/?query=${encodeURIComponent(q)}`);
 
-const DEAL_PARTNERS: Partner[] = [
+const DEFAULT_DEAL_PARTNERS: Partner[] = [
   { icon: "🗼", name: "도쿄 투어·티켓", desc: "디즈니·인기 액티비티", href: klook("도쿄") },
   { icon: "🏯", name: "오사카·교토", desc: "유니버설·간사이", href: klook("오사카") },
   { icon: "🏖️", name: "다낭·베트남", desc: "바나힐·호이안", href: klook("다낭") },
@@ -104,6 +104,24 @@ export default function TravelView({
   origin?: string;
   destination?: string;
 }) {
+  const searchedDestination = (destination || region || "").trim();
+  const dealPartners = searchedDestination
+    ? [
+        { icon: "🎟️", name: `${searchedDestination} 투어·티켓`, desc: "입장권·현지 액티비티 검색", href: klook(searchedDestination) },
+        ...SERVICE_PARTNERS,
+      ]
+    : DEFAULT_DEAL_PARTNERS;
+  const query = new URLSearchParams();
+  if (region) query.set("region", region);
+  if (origin) query.set("o", origin);
+  if (destination) query.set("d", destination);
+  const travelQuery = query.toString();
+  const tabHref = (key: TravelTab) => {
+    const params = new URLSearchParams(travelQuery);
+    params.set("category", "flight");
+    if (key !== "flight") params.set("tt", key);
+    return `/?${params.toString()}`;
+  };
   return (
     <div>
       <Script src="https://tp-em.com/NTY2NTY1.js?t=566565" strategy="afterInteractive" data-cmp-ab="2" />
@@ -111,7 +129,7 @@ export default function TravelView({
         {TABS.map((t) => (
           <Link
             key={t.key}
-            href={t.key === "flight" ? "/?category=flight" : `/?category=flight&tt=${t.key}`}
+            href={tabHref(t.key)}
             className={`rounded-full px-3 py-1.5 text-sm font-medium transition ${
               tab === t.key
                 ? "bg-brand text-white"
@@ -126,6 +144,11 @@ export default function TravelView({
         여행 요금은 쇼핑 상품의 가격 이력·DROP SCORE 판정 대상이 아닙니다.
         항공권은 최근 조회 요금이며, 숙소·여행딜은 외부 예약처에서 조건과 최종 가격을 확인해 주세요.
       </p>
+      <aside className="mb-5 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm leading-6 text-emerald-950">
+        <p className="font-extrabold">여행지를 먼저 정하고 싶다면 TripMarket을 이용하세요.</p>
+        <p className="mt-1">여기서는 예약처의 최근 조회 요금만 확인하고, 여행지 추천과 일정 구성은 TripMarket에서 이어집니다.</p>
+        <a href="https://tripmkt.kr" className="mt-2 inline-flex font-bold underline underline-offset-4">내 조건으로 여행지 추천받기 →</a>
+      </aside>
 
       {tab === "flight" && (
         <FlightsView region={region} origin={origin} destination={destination} />
@@ -140,8 +163,8 @@ export default function TravelView({
       )}
       {tab === "deal" && (
         <div>
-          <PartnerSection partners={DEAL_PARTNERS} heading="🎢 지역별 액티비티 검색" />
-          <PartnerSection partners={SERVICE_PARTNERS} heading="🧳 여행 준비 예약처" />
+          <PartnerSection partners={dealPartners} heading={searchedDestination ? `🎢 ${searchedDestination}에서 확인할 여행 상품` : "🎢 지역별 액티비티 검색"} />
+          {!searchedDestination && <PartnerSection partners={SERVICE_PARTNERS} heading="🧳 여행 준비 예약처" />}
           <TravelNote kind="deal" />
         </div>
       )}

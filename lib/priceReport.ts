@@ -112,7 +112,7 @@ export function buyVerdict(
     return {
       tier: "buy",
       icon: "🟢",
-      title: "좋은 가격",
+      title: rate >= 15 ? "매우 좋음" : "괜찮음",
       reason: `${lowestLabel} · 평균보다 ${d}% 저렴`,
       cls: BUY,
     };
@@ -120,7 +120,7 @@ export function buyVerdict(
     return {
       tier: "buy",
       icon: "🟢",
-      title: "매우 좋은 가격",
+      title: "매우 좋음",
       reason: `평균보다 ${d}% 저렴`,
       cls: BUY,
     };
@@ -128,14 +128,14 @@ export function buyVerdict(
     return {
       tier: "ok",
       icon: "🟡",
-      title: "좋은 가격",
+      title: "괜찮음",
       reason: `평균보다 ${d}% 저렴`,
       cls: OK,
     };
   return {
     tier: "wait",
     icon: "🔴",
-    title: "조금 더 지켜보기",
+    title: "기다림",
     reason:
       rate > 0 ? `평균보다 ${d}%로 큰 차이 없음` : "지금은 싸지 않은 편",
     cls: WAIT,

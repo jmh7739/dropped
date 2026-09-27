@@ -4,6 +4,7 @@ import { priceStats, buyVerdict, VerdictTier } from "./priceReport";
 import { readPriceHistory } from "./priceHistory";
 import { cache } from "react";
 import { averagePeriodLabel, lowestPeriodLabel } from "./dropMetrics";
+import { deriveUnitPrice } from "./unitPrice";
 
 /**
  * SEO용 '상품 가격 페이지' 데이터 — 딜이 끝나도 유지되는 영구 리포트.
@@ -67,7 +68,7 @@ export const getProductReport = cache(async function getProductReport(
     listPrice: p.list_price ?? 0,
     mallName: p.mall_name ?? null,
     shippingFee: p.shipping_fee ?? null,
-    unitPrice: p.unit_price ?? null,
+    unitPrice: deriveUnitPrice(p.title ?? "", Number(lastHistory?.price ?? p.list_price ?? 0), p.unit_price),
     categorySlug: cat?.slug ?? "",
     categoryName: cat?.name ?? "기타",
     currentPrice: lastHistory?.price ?? null,
@@ -91,6 +92,7 @@ export interface ProductSearchRow {
   categorySlug: string;
   categoryName: string;
   currentPrice: number;
+  unitPrice: string | null;
   verdictIcon: string;
   verdictTitle: string;
   verdictTier: VerdictTier;
@@ -120,7 +122,7 @@ export async function searchProducts(
 
   const { data: prods, error } = await supabase
     .from("products")
-    .select("id,title,image_url,mall_name,platform, categories(slug,name)")
+    .select("id,title,image_url,mall_name,platform,unit_price, categories(slug,name)")
     .ilike("title", pattern)
     .limit(40);
   if (error || !prods || prods.length === 0) return [];
@@ -151,6 +153,7 @@ export async function searchProducts(
       categorySlug: cat?.slug ?? "",
       categoryName: cat?.name ?? "기타",
       currentPrice: current,
+      unitPrice: deriveUnitPrice(p.title ?? "", current, p.unit_price),
       verdictIcon: v.icon,
       verdictTitle: v.title,
       verdictTier: v.tier,
