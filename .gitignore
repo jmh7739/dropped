@@ -46,3 +46,4 @@ dropped-trend-bot/**/.env.local
 /dist/
 .vinext/
 .wrangler/
+supabase/.temp/
