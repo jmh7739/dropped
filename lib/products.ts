@@ -103,6 +103,7 @@ export interface ProductSearchRow {
   lowestPrice: number;
   averageLabel: string;
   lowestLabel: string;
+  lastCheckedAt: string;
 }
 
 /**
@@ -164,6 +165,7 @@ export async function searchProducts(
       lowestPrice: stats.trackedDays >= 90 ? (stats.min90 ?? stats.minAll) : stats.minAll,
       averageLabel: averagePeriodLabel(stats.trackedDays),
       lowestLabel: lowestPeriodLabel(stats.trackedDays),
+      lastCheckedAt: history[history.length - 1].collectedAt,
     });
   }
 

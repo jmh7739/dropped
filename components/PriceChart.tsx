@@ -66,6 +66,11 @@ export default function PriceChart({
 
   const lastIdx = n - 1;
   const minIdx = prices.indexOf(min);
+  const latestPoint = chartHistory[lastIdx];
+  const latestLabel = new Date(latestPoint.collectedAt).toLocaleDateString("ko-KR", {
+    month: "short",
+    day: "numeric",
+  });
   const newest = Math.max(...history.map((item) => new Date(item.collectedAt).getTime()));
   const options: { label: string; value: 7 | 30 | 90 | "all" }[] = [
     ...([7, 30, 90] as const).filter(days => history.filter(item => newest - new Date(item.collectedAt).getTime() <= days * 86400000).length >= 2 &&
@@ -136,7 +141,7 @@ export default function PriceChart({
           fill="#9ca3af"
           textAnchor="end"
         >
-          오늘
+          {latestLabel}
         </text>
       </svg>
       <div className="mt-1 flex gap-4 text-xs text-gray-500">
@@ -147,7 +152,7 @@ export default function PriceChart({
           <span className="text-gray-400">┈</span> 평균 {formatWon(avg)}
         </span>
         <span>
-          <span className="text-brand">●</span> 현재 {formatWon(chartHistory[lastIdx].price)}
+          <span className="text-brand">●</span> 마지막 확인 {formatWon(chartHistory[lastIdx].price)}
         </span>
       </div>
       </div>

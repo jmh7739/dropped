@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ProductSearchRow } from "@/lib/products";
 import { PLATFORM_LABEL, Platform } from "@/lib/types";
-import { formatWon } from "@/lib/format";
+import { formatWon, timeAgo } from "@/lib/format";
 import SafeImage from "./SafeImage";
 
 /**
@@ -30,9 +30,9 @@ export default function ProductSearchResults({
     <section className="mb-8">
       <div className="mb-3">
         <h2 className="text-lg font-extrabold text-gray-900">
-          “{query}” 관련 가격 추적 상품 {uniqueRows.length}개
+          현재 특가와 별개로 추적 중인 “{query}” 상품 {uniqueRows.length}개
         </h2>
-        <p className="mt-0.5 text-xs text-gray-500">같은 제목·판매처·가격의 중복 수집 건을 합치고, 가격 이력이 있는 관련 상품을 보여드립니다.</p>
+        <p className="mt-0.5 text-xs leading-5 text-gray-500">위 검색 결과는 지금 판매 중인 특가만 집계합니다. 이 목록은 특가 여부와 관계없이 가격 이력을 가진 상품이며, 같은 제목·판매처·가격의 중복은 합쳤습니다.</p>
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
@@ -68,6 +68,7 @@ export default function ProductSearchResults({
                   <span className="text-gray-500">마지막 확인가</span>
                   <span className="text-base font-extrabold text-brand">{formatWon(r.currentPrice)}</span>
                 </div>
+                <div className="text-right text-[11px] font-semibold text-gray-500" suppressHydrationWarning>확인 {timeAgo(r.lastCheckedAt)}</div>
                 {r.unitPrice && <div className="text-right text-[11px] font-semibold text-gray-500">{r.unitPrice}</div>}
                 {r.averagePrice != null && <div className="flex justify-between gap-2 text-gray-500"><span>{r.averageLabel}</span><strong className="text-gray-700">{formatWon(r.averagePrice)}</strong></div>}
                 <div className="flex justify-between gap-2 text-gray-500"><span>{r.lowestLabel}</span><strong className="text-gray-700">{formatWon(r.lowestPrice)}</strong></div>

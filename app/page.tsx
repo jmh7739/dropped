@@ -463,6 +463,7 @@ export default async function Home({
                 ? "현재 조건에 맞는 특가가 없습니다."
                 : "검색 결과가 없습니다."
               : "아직 이 조건에 맞는 핫딜이 없습니다."}</p>
+            {q && trackedMatches.length > 0 && <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-gray-600">지금 확인된 특가는 없지만, 아래에서 가격 이력을 수집 중인 관련 상품 {trackedMatches.length}개를 비교할 수 있습니다.</p>}
             <Link href="/" className="mt-4 inline-flex min-h-11 items-center rounded-lg bg-gray-900 px-4 text-sm font-bold text-white">필터 초기화</Link>
           </div>
         ) : (
