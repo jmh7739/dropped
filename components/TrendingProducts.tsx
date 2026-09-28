@@ -17,7 +17,6 @@ export default function TrendingProducts({
   const [keyword, setKeyword] = useState("");
   const [category, setCategory] = useState("");
   const [sort, setSort] = useState("trend");
-  if (!products.length) return null;
 
   const keywords = [...new Set(products.map((product) => product.keyword))];
   const categories = [...new Set(products.map((product) => product.category))].sort();
@@ -37,7 +36,7 @@ export default function TrendingProducts({
       new Date(product.updatedAt).getTime() > new Date(latest).getTime()
         ? product.updatedAt
         : latest,
-    products[0].updatedAt,
+    products[0]?.updatedAt ?? new Date(0).toISOString(),
   );
   const updatedLabel = new Intl.DateTimeFormat("ko-KR", {
     timeZone: "Asia/Seoul",
@@ -47,6 +46,8 @@ export default function TrendingProducts({
     minute: "2-digit",
     hour12: false,
   }).format(new Date(newestUpdate));
+
+  if (!products.length) return null;
 
   return (
     <section className="mb-8">

@@ -92,6 +92,16 @@ function trendProductMatches(keywordValue: unknown, titleValue: unknown): boolea
   return true;
 }
 
+function correctedProductCategory(raw: unknown, titleValue: unknown, keywordValue: unknown) {
+  const text = `${titleValue ?? ""} ${keywordValue ?? ""}`.toLowerCase().replace(/\s+/g, "");
+  if (/과자|쿠키|비스킷|산도|초콜릿|사탕|캔디|젤리|라면|커피|차|한우|갈비|과일|굴비|꽃게|대하|식품|간식/.test(text)) return "식품";
+  if (/노트북|태블릿|모니터|스마트폰|아이폰|갤럭시|이어폰|헤드폰|카메라|게임기|플레이스테이션|닌텐도/.test(text)) return "디지털";
+  if (/화장품|스킨|로션|에센스|크림|쿠션|파운데이션|립스틱|샴푸/.test(text)) return "뷰티";
+  if (/기저귀|분유|유모차|카시트|아기|유아/.test(text)) return "육아";
+  if (/운동화|등산화|구두|슬리퍼|샌들|바람막이|패딩|가디건|원피스|재킷|자켓|가방|백팩/.test(text)) return "패션";
+  return String(raw || "기타");
+}
+
 export async function getRealtimeTrends(): Promise<RealtimeTrend[]> {
   if (!supabase) return [];
   const { data: latest } = await supabase.from("realtime_trends").select("collected_at").eq("is_published", true).order("collected_at", { ascending: false }).limit(1);
@@ -131,7 +141,7 @@ export async function getTrendingProducts(limit = 40): Promise<TrendingProduct[]
     const imageUrl = usableProductImage(product?.image_url);
     const price = product?.list_price != null ? Number(product.list_price) : null;
     if (!product || !imageUrl || (price !== null && price < 1000)) return [];
-    return [{ id: product.id, keyword: row.keyword, title: product.title, imageUrl, price, productScore: Number(row.product_score), hotScore: Number(row.hot_score), category: row.category || "기타", updatedAt: row.updated_at, platform: product.platform || "coupang" }];
+    return [{ id: product.id, keyword: row.keyword, title: product.title, imageUrl, price, productScore: Number(row.product_score), hotScore: Number(row.hot_score), category: correctedProductCategory(row.category, product.title, row.keyword), updatedAt: row.updated_at, platform: product.platform || "coupang" }];
   });
 
   const result: TrendingProduct[] = [];
