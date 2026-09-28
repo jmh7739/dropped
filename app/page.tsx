@@ -270,8 +270,10 @@ export default async function Home({
   ];
 
   const sortedHotList = (isDefaultHome ? combinedDeals : [])
-    .filter((d) => d.status !== "ended" && (isVerifiedBestDeal(d) ||
-      (d.platform !== "aliexpress" && d.isCurated && d.currentPrice > 0 && d.discountVsList >= 10)))
+    .filter((d) => d.status !== "ended" && (
+      (!d.isCurated && (d.historyPointCount ?? 0) > 0) ||
+      (d.platform !== "aliexpress" && d.isCurated && d.currentPrice > 0 && d.discountVsList >= 10)
+    ))
     .filter((d) => !hotCategory || d.categorySlug === hotCategory)
     .filter((d) => !hotLowestOnly || d.isLowestEver)
     .filter((d) => !hotScope || (hotScope === "overseas" ? d.platform === "aliexpress" : d.platform !== "aliexpress"))
