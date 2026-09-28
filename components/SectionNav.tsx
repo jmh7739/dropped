@@ -5,7 +5,7 @@ import { usePathname, useSearchParams } from "next/navigation";
 
 const SECTIONS = [
   { href: "/", label: "핫딜", key: "hotdeal" },
-  { href: "/tracking", label: "추적상품", key: "tracking" },
+  { href: "/tracking", label: "전체상품", key: "tracking" },
   { href: "/?category=flight", label: "여행딜", key: "travel" },
 ] as const;
 

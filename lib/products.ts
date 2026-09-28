@@ -16,6 +16,23 @@ function canonicalMallName(mallName: string | null | undefined, platform: string
   return raw || (platform === "aliexpress" ? "AliExpress" : null);
 }
 
+export function usableProductTitle(title: string): boolean {
+  const value = title.trim();
+  return value.length >= 4 && !/^[A-Z]{2,}[A-Z0-9_-]*\d{3,}[A-Z0-9_-]*$/.test(value);
+}
+
+export function normalizeProductImage(url: string | null | undefined): string {
+  const value = (url ?? "").trim();
+  return value.startsWith("//") ? `https:${value}` : value;
+}
+
+export function productImageQuality(url: string): number {
+  if (!/^https?:\/\//i.test(url)) return 0;
+  if (/img\.linkprice\.com\/files\/glink\//i.test(url)) return 0;
+  if (/(?:^|[_-])120(?:x|_)60(?:\.|[_-])/i.test(url)) return 0;
+  return 2;
+}
+
 /**
  * SEO용 '상품 가격 페이지' 데이터 — 딜이 끝나도 유지되는 영구 리포트.
  *   products + price_history에서 직접 뽑아, 검색 유입용 canonical 페이지를 만든다.
@@ -139,30 +156,29 @@ export const getRecentlyTrackedProducts = cache(async function getRecentlyTracke
   const ids = prods.map((p: any) => p.id);
   const since = new Date(Date.now() - 90 * 86400000).toISOString();
   const byProduct = await readPriceHistory(ids, since);
-  const rows: TrackedProductRow[] = [];
-  const seen = new Set<string>();
+  const candidates = new Map<string, { row: TrackedProductRow; imageQuality: number }>();
   const gameSoftware = /(?:steam|스팀\s*(?:키|코드|게임)|pc\s*게임|게임\s*타이틀|(?:ps4|ps5|playstation|플레이스테이션)\s*(?:게임|타이틀|소프트)|(?:닌텐도\s*스위치|nintendo\s*switch)\s*(?:게임|타이틀|소프트))/i;
 
   for (const p of prods as any[]) {
-    if (!p.title || gameSoftware.test(p.title)) continue;
+    if (!p.title || gameSoftware.test(p.title) || !usableProductTitle(p.title)) continue;
     const history = byProduct.get(p.id);
     if (!history?.length) continue;
     const current = history[history.length - 1].price;
     const stats = priceStats(history, current);
     if (!stats || current <= 0) continue;
     const mallName = canonicalMallName(p.mall_name, p.platform);
-    const fingerprint = `${p.title.replace(/[^0-9a-z가-힣]/gi, "").toLowerCase()}|${(mallName ?? p.platform).toLowerCase()}|${current}`;
-    if (seen.has(fingerprint)) continue;
-    seen.add(fingerprint);
+    const imageUrl = normalizeProductImage(p.image_url);
+    const imageQuality = productImageQuality(imageUrl);
+    const fingerprint = `${p.title.replace(/[^0-9a-z가-힣]/gi, "").toLowerCase()}|${(mallName ?? p.platform).toLowerCase()}`;
     const rate = stats.avg30 && stats.avg30 > current
       ? Math.round(((stats.avg30 - current) / stats.avg30) * 100)
       : 0;
     const v = buyVerdict(rate, stats.isLowest, stats.lowestLabel, stats.enoughData);
     const cat = p.categories;
-    rows.push({
+    const row: TrackedProductRow = {
       id: p.id,
       title: p.title,
-      imageUrl: p.image_url ?? "",
+      imageUrl,
       mallName,
       platform: p.platform,
       categorySlug: cat?.slug ?? "",
@@ -181,9 +197,14 @@ export const getRecentlyTrackedProducts = cache(async function getRecentlyTracke
       lowestLabel: lowestPeriodLabel(stats.trackedDays),
       lastCheckedAt: history[history.length - 1].collectedAt,
       createdAt: p.created_at,
-    });
+    };
+    const existing = candidates.get(fingerprint);
+    if (!existing || imageQuality > existing.imageQuality) candidates.set(fingerprint, { row, imageQuality });
   }
-  return rows;
+  return [...candidates.values()]
+    .filter((candidate) => candidate.imageQuality > 0)
+    .map((candidate) => candidate.row)
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 });
 
 /**
@@ -214,6 +235,8 @@ export async function searchProducts(
 
   const rows: ProductSearchRow[] = [];
   for (const p of prods as any[]) {
+    const imageUrl = normalizeProductImage(p.image_url);
+    if (!usableProductTitle(p.title ?? "") || productImageQuality(imageUrl) === 0) continue;
     const history = byProduct.get(p.id);
     if (!history || history.length === 0) continue; // 이력 없으면 상세가 404 → 제외
     const current = history[history.length - 1].price;
@@ -228,7 +251,7 @@ export async function searchProducts(
     rows.push({
       id: p.id,
       title: p.title,
-      imageUrl: p.image_url ?? "",
+      imageUrl,
       mallName: canonicalMallName(p.mall_name, p.platform),
       platform: p.platform,
       categorySlug: cat?.slug ?? "",

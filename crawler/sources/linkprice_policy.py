@@ -46,3 +46,19 @@ _GAME_PRODUCT = re.compile(
 def is_game_product(title: object) -> bool:
     """Game software belongs to PlayMarket; peripherals may remain shopping deals."""
     return bool(_GAME_PRODUCT.search(str(title or "")))
+
+
+_INTERNAL_CODE = re.compile(r"^[A-Z]{2,}[A-Z0-9_-]*\d{3,}[A-Z0-9_-]*$")
+_MERCHANT_LOGO = re.compile(r"img\.linkprice\.com/files/glink/", re.IGNORECASE)
+
+
+def usable_product_title(title: object) -> bool:
+    """Reject merchant/internal codes that do not tell a shopper what the item is."""
+    value = str(title or "").strip()
+    return len(value) >= 4 and not bool(_INTERNAL_CODE.fullmatch(value))
+
+
+def usable_product_image(url: object) -> bool:
+    """LinkPrice's small glink images are merchant logos, not product photos."""
+    value = str(url or "").strip()
+    return bool(value) and not bool(_MERCHANT_LOGO.search(value))

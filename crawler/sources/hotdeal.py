@@ -20,7 +20,10 @@ import config
 import affiliate
 from classifier import classify_slug
 from .base import RawDeal
-from .linkprice_policy import MERCHANT_NAMES, approved, is_game_product, product_identity
+from .linkprice_policy import (
+    MERCHANT_NAMES, approved, is_game_product, product_identity,
+    usable_product_image, usable_product_title,
+)
 
 API = "https://api.linkprice.com/ci/hotdeal/data/{aid}"
 
@@ -95,7 +98,8 @@ def fetch() -> list[RawDeal]:
         if category in _SKIP_CATEGORY:
             continue
         name = p.get("product_name", "")
-        if is_game_product(name):
+        image = p.get("product_image", "")
+        if is_game_product(name) or not usable_product_title(name) or not usable_product_image(image):
             continue
         slug = _slug(name, category)
         if not slug:
@@ -116,7 +120,7 @@ def fetch() -> list[RawDeal]:
             platform="cps",
             external_product_id=product_identity(mcode, p.get("product_code")),
             title=name,
-            image_url=p.get("product_image", ""),
+            image_url=image,
             product_url=url,
             affiliate_url=url,   # 이미 우리 제휴ID 포함
             current_price=price,

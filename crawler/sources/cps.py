@@ -19,7 +19,10 @@ import config
 import affiliate
 from classifier import classify_slug
 from .base import RawDeal
-from .linkprice_policy import MERCHANT_NAMES, approved, is_game_product, product_identity
+from .linkprice_policy import (
+    MERCHANT_NAMES, approved, is_game_product, product_identity,
+    usable_product_image, usable_product_title,
+)
 
 API = "https://api.linkprice.com/ci/product/data/{aid}"
 
@@ -81,9 +84,9 @@ def fetch() -> list[RawDeal]:
                 if not price or not url or not product_code:
                     continue
                 name = p.get("p_name", "")
-                if is_game_product(name):
-                    continue
                 img = p.get("img_url", "")
+                if is_game_product(name) or not usable_product_title(name) or not usable_product_image(img):
+                    continue
                 # recommend 혼합 목록은 상품명으로 실제 카테고리 판정(전부 생활 방지)
                 item_slug = classify_slug(name, slug)
                 # 추천 특가는 popular 소스(할인율 있는 것)가 담당 → cps는 추적 풀만.

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getDeals, getCuratedDeals, getLastPriceUpdate, sortDealList, SortKey, PriceStatusKey } from "@/lib/deals";
-import { searchProducts } from "@/lib/products";
+import { normalizeProductImage, productImageQuality, searchProducts, usableProductTitle } from "@/lib/products";
 import { timeAgo } from "@/lib/format";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { isHealthDeal, headlineDropRate, dropScore, hotDealScore, isVerifiedBestDeal, isVerifiedListing } from "@/lib/dropMetrics";
@@ -218,6 +218,7 @@ export default async function Home({
 
   const seen = new Set<number>();
   const combinedDeals = sortDealList([...trackedDeals, ...curatedDeals], sort)
+    .filter((deal) => usableProductTitle(deal.title) && productImageQuality(normalizeProductImage(deal.imageUrl)) > 0)
     .filter((d) => {
       if (seen.has(d.productId)) return false;
       seen.add(d.productId);
@@ -376,7 +377,7 @@ export default async function Home({
             <div className="rounded-xl border border-dashed border-gray-300 bg-white p-8 text-center">
               <p className="text-sm font-semibold text-gray-700">이 조건에 맞는 검증 상품이 아직 없습니다.</p>
               <p className="mt-2 text-xs leading-5 text-gray-500">서로 다른 날짜의 가격 기록이 20일 이상 쌓인 상품부터 검증 완료로 공개합니다.</p>
-              {trackingItems.length > 0 ? <a href="#price-tracking" className="mt-4 inline-flex min-h-11 items-center rounded-lg bg-gray-900 px-4 text-sm font-bold text-white">가격 추적 상품 보기</a> : <Link href="/?sort=latest" className="mt-4 inline-flex min-h-11 items-center rounded-lg bg-gray-900 px-4 text-sm font-bold text-white">최근 수집 상품 탐색</Link>}
+              {trackingItems.length > 0 ? <a href="#price-tracking" className="mt-4 inline-flex min-h-11 items-center rounded-lg bg-gray-900 px-4 text-sm font-bold text-white">검증 대기 상품 보기</a> : <Link href="/tracking" className="mt-4 inline-flex min-h-11 items-center rounded-lg bg-gray-900 px-4 text-sm font-bold text-white">전체 상품 둘러보기</Link>}
             </div>
           ) : <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
             {hotItems.map((d, index) => <DealCard key={d.id} deal={d} priorityImage={index === 0} />)}
@@ -395,7 +396,7 @@ export default async function Home({
 
           {trackingItems.length > 0 && (
             <div id="price-tracking" className="mt-8 scroll-mt-24 border-t border-gray-200 pt-6">
-              <h3 className="text-base font-extrabold text-gray-900">가격 추적 중인 상품</h3>
+              <h3 className="text-base font-extrabold text-gray-900">가격 검증을 기다리는 상품</h3>
               <p className="mb-3 mt-1 text-xs leading-5 text-gray-500">
                 실제 가격을 기록하고 있지만 아직 14일·20관측일 검증 기준을 채우지 못했습니다. 국내 {trackedDomesticCount}개 · 해외 {trackedOverseasCount}개를 추적 중이며, 기본 화면에서는 국내와 해외를 번갈아 보여줍니다.
               </p>

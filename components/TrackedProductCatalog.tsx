@@ -54,7 +54,7 @@ export default function TrackedProductCatalog({ rows }: { rows: TrackedProductRo
       </select>
     </div>
     <p className="mb-3 text-sm font-semibold text-gray-700">조건에 맞는 상품 {filtered.length}개</p>
-    {visible.length ? <ProductSearchResults rows={visible} query={query.trim() || "전체 추적"} /> : <div className="rounded-xl border border-dashed border-gray-300 p-10 text-center text-sm text-gray-500">조건에 맞는 추적 상품이 없습니다.</div>}
+    {visible.length ? <ProductSearchResults rows={visible} query={query.trim()} catalog /> : <div className="rounded-xl border border-dashed border-gray-300 p-10 text-center text-sm text-gray-500">조건에 맞는 상품이 없습니다.</div>}
     {totalPages > 1 && <nav aria-label="추적 상품 페이지" className="mt-4 flex flex-wrap justify-center gap-1.5">
       {Array.from({ length: totalPages }, (_, i) => <button type="button" key={i} onClick={() => setPage(i + 1)} aria-current={safePage === i + 1 ? "page" : undefined} className={`h-9 min-w-9 rounded-lg px-2 text-sm font-bold ${safePage === i + 1 ? "bg-brand text-white" : "border border-gray-200 bg-white text-gray-600"}`}>{i + 1}</button>)}
     </nav>}
