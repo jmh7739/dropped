@@ -106,6 +106,75 @@ export interface ProductSearchRow {
   lastCheckedAt: string;
 }
 
+export interface TrackedProductRow extends ProductSearchRow {
+  createdAt: string;
+}
+
+/**
+ * 아직 검증 핫딜이 되지 않은 상품까지 포함한 실제 가격 추적 카탈로그.
+ * 판매처 피드에 들어온 상품을 숨기지 않고 현재가·관측 기간과 함께 공개한다.
+ */
+export const getRecentlyTrackedProducts = cache(async function getRecentlyTrackedProducts(
+  limit = 180
+): Promise<TrackedProductRow[]> {
+  if (!supabase) return [];
+  const safeLimit = Math.min(Math.max(limit, 1), 300);
+  const { data: prods, error } = await supabase
+    .from("products")
+    .select("id,title,image_url,mall_name,platform,unit_price,created_at, categories(slug,name)")
+    .order("created_at", { ascending: false })
+    .limit(safeLimit);
+  if (error || !prods?.length) return [];
+
+  const ids = prods.map((p: any) => p.id);
+  const since = new Date(Date.now() - 90 * 86400000).toISOString();
+  const byProduct = await readPriceHistory(ids, since);
+  const rows: TrackedProductRow[] = [];
+  const seen = new Set<string>();
+  const gameSoftware = /(?:steam|스팀\s*(?:키|코드|게임)|pc\s*게임|게임\s*타이틀|(?:ps4|ps5|playstation|플레이스테이션)\s*(?:게임|타이틀|소프트)|(?:닌텐도\s*스위치|nintendo\s*switch)\s*(?:게임|타이틀|소프트))/i;
+
+  for (const p of prods as any[]) {
+    if (!p.title || gameSoftware.test(p.title)) continue;
+    const history = byProduct.get(p.id);
+    if (!history?.length) continue;
+    const current = history[history.length - 1].price;
+    const stats = priceStats(history, current);
+    if (!stats || current <= 0) continue;
+    const fingerprint = `${p.title.replace(/[^0-9a-z가-힣]/gi, "").toLowerCase()}|${(p.mall_name ?? p.platform).toLowerCase()}|${current}`;
+    if (seen.has(fingerprint)) continue;
+    seen.add(fingerprint);
+    const rate = stats.avg30 && stats.avg30 > current
+      ? Math.round(((stats.avg30 - current) / stats.avg30) * 100)
+      : 0;
+    const v = buyVerdict(rate, stats.isLowest, stats.lowestLabel, stats.enoughData);
+    const cat = p.categories;
+    rows.push({
+      id: p.id,
+      title: p.title,
+      imageUrl: p.image_url ?? "",
+      mallName: p.mall_name ?? null,
+      platform: p.platform,
+      categorySlug: cat?.slug ?? "",
+      categoryName: cat?.name ?? "기타",
+      currentPrice: current,
+      unitPrice: deriveUnitPrice(p.title, current, p.unit_price),
+      verdictIcon: v.icon,
+      verdictTitle: v.title,
+      verdictTier: v.tier,
+      verdictCls: v.cls,
+      rate,
+      trackedDays: stats.trackedDays,
+      averagePrice: stats.avg30,
+      lowestPrice: stats.trackedDays >= 90 ? (stats.min90 ?? stats.minAll) : stats.minAll,
+      averageLabel: averagePeriodLabel(stats.trackedDays),
+      lowestLabel: lowestPeriodLabel(stats.trackedDays),
+      lastCheckedAt: history[history.length - 1].collectedAt,
+      createdAt: p.created_at,
+    });
+  }
+  return rows;
+});
+
 /**
  * 제목으로 '가격 추적 중인 상품'을 검색한다. 활성 딜만 보는 getDeals와 달리,
  *   딜이 아니어도(가격 원복돼도) 이력만 있으면 잡아 가격 판정을 붙인다.

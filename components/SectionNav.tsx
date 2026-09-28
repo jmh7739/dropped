@@ -5,6 +5,7 @@ import { usePathname, useSearchParams } from "next/navigation";
 
 const SECTIONS = [
   { href: "/", label: "핫딜", key: "hotdeal" },
+  { href: "/tracking", label: "추적상품", key: "tracking" },
   { href: "/?category=flight", label: "여행딜", key: "travel" },
 ] as const;
 
@@ -13,6 +14,8 @@ export default function SectionNav() {
   const searchParams = useSearchParams();
   const active = pathname === "/" && searchParams.get("category") === "flight"
     ? "travel"
+    : pathname === "/tracking"
+      ? "tracking"
     : pathname === "/"
       ? "hotdeal"
       : null;
@@ -30,7 +33,7 @@ export default function SectionNav() {
               : "border border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50"
           }`}
         >
-          {section.key === "hotdeal" ? "🔥 " : "✈️ "}{section.label}
+          {section.key === "hotdeal" ? "🔥 " : section.key === "tracking" ? "📊 " : "✈️ "}{section.label}
         </Link>
       ))}
     </nav>

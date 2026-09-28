@@ -18,6 +18,7 @@ import affiliate
 import config
 from .base import RawDeal
 from classifier import classify_slug
+from .linkprice_policy import is_game_product
 
 API = "https://api.linkprice.com/popularProducts/affiliateId/{aid}"
 
@@ -51,6 +52,8 @@ def fetch() -> list[RawDeal]:
         if mcode in _SKIP_MERCHANTS:
             continue
         title = str(x.get("title", "")).strip()
+        if is_game_product(title):
+            continue
         img = str(x.get("image_link", "")).strip()
         url = str(x.get("click_url", "")).strip()
         sale = int(x.get("sale_price") or 0)          # 할인가(현재가)

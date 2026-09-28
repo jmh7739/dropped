@@ -19,6 +19,7 @@ import config
 import affiliate
 from classifier import classify_slug
 from .base import RawDeal
+from .linkprice_policy import MERCHANT_NAMES, approved, is_game_product, product_identity
 
 API = "https://api.linkprice.com/ci/product/data/{aid}"
 
@@ -67,15 +68,21 @@ def fetch() -> list[RawDeal]:
         if not slug or not isinstance(merchants, dict):
             continue
         for mcode, items in merchants.items():
+            mcode = str(mcode).strip().lower()
+            if not approved(mcode):
+                continue
             if not isinstance(items, list):
                 continue
-            mall = affiliate.merchant_name(mcode)
+            mall = MERCHANT_NAMES.get(mcode, affiliate.merchant_name(mcode))
             for p in items:
                 price = _to_int(p.get("p_price"))
                 url = p.get("target_url", "")
-                if not price or not url:
+                product_code = str(p.get("p_code") or "").strip()
+                if not price or not url or not product_code:
                     continue
                 name = p.get("p_name", "")
+                if is_game_product(name):
+                    continue
                 img = p.get("img_url", "")
                 # recommend 혼합 목록은 상품명으로 실제 카테고리 판정(전부 생활 방지)
                 item_slug = classify_slug(name, slug)
@@ -83,7 +90,7 @@ def fetch() -> list[RawDeal]:
                 curated = False
                 deals.append(RawDeal(
                     platform="cps",
-                    external_product_id=str(p.get("p_code")),
+                    external_product_id=product_identity(mcode, product_code),
                     title=name,
                     image_url=img,
                     product_url=url,

@@ -30,6 +30,7 @@ export default async function Header() {
           <Suspense fallback={
             <nav className="flex items-center gap-1.5" aria-label="주요 섹션">
               <Link href="/" className="rounded-full bg-brand px-4 py-1.5 text-sm font-extrabold text-white shadow-sm">🔥 핫딜</Link>
+              <Link href="/tracking" className="rounded-full border border-gray-200 bg-white px-4 py-1.5 text-sm font-extrabold text-gray-700">📊 추적상품</Link>
               <Link href="/?category=flight" className="rounded-full border border-gray-200 bg-white px-4 py-1.5 text-sm font-extrabold text-gray-700">✈️ 여행딜</Link>
             </nav>
           }>
