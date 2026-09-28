@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import SafeImage from "./SafeImage";
 import { displayTitle } from "@/lib/format";
@@ -14,10 +14,24 @@ export default function TrendingProducts({
   products: TrendingProduct[];
 }) {
   const [page, setPage] = useState(0);
+  const [keyword, setKeyword] = useState("");
+  const [category, setCategory] = useState("");
+  const [sort, setSort] = useState("trend");
   if (!products.length) return null;
 
-  const pageCount = Math.ceil(products.length / PAGE_SIZE);
-  const visible = products.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE);
+  const keywords = [...new Set(products.map((product) => product.keyword))];
+  const categories = [...new Set(products.map((product) => product.category))].sort();
+  const filtered = useMemo(() => {
+    const rows = products.filter((product) => (!keyword || product.keyword === keyword) && (!category || product.category === category));
+    if (sort === "price_asc") rows.sort((a, b) => (a.price ?? Infinity) - (b.price ?? Infinity));
+    else if (sort === "price_desc") rows.sort((a, b) => (b.price ?? -1) - (a.price ?? -1));
+    else if (sort === "recent") rows.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+    else rows.sort((a, b) => b.hotScore - a.hotScore || b.productScore - a.productScore);
+    return rows;
+  }, [products, keyword, category, sort]);
+  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const safePage = Math.min(page, pageCount - 1);
+  const visible = filtered.slice(safePage * PAGE_SIZE, safePage * PAGE_SIZE + PAGE_SIZE);
   const newestUpdate = products.reduce(
     (latest, product) =>
       new Date(product.updatedAt).getTime() > new Date(latest).getTime()
@@ -42,6 +56,18 @@ export default function TrendingProducts({
           최근 7일 쇼핑 검색 흐름에서 상품명이 실제 검색어와 맞는 항목만 모았습니다. 가격 이력 검증 전 상품은 판매처에서 최종 가격을 확인하세요 · {updatedLabel} 갱신 · 총 {products.length}개
         </p>
       </div>
+      <div className="mb-3 flex flex-wrap gap-2">
+        <select aria-label="인기 검색어" value={keyword} onChange={(e) => { setKeyword(e.target.value); setPage(0); }} className="rounded-lg border bg-white px-3 py-2 text-sm">
+          <option value="">전체 검색어</option>{keywords.map((value) => <option key={value} value={value}>{value}</option>)}
+        </select>
+        <select aria-label="인기 상품 카테고리" value={category} onChange={(e) => { setCategory(e.target.value); setPage(0); }} className="rounded-lg border bg-white px-3 py-2 text-sm">
+          <option value="">전체 카테고리</option>{categories.map((value) => <option key={value} value={value}>{value}</option>)}
+        </select>
+        <select aria-label="인기 상품 정렬" value={sort} onChange={(e) => { setSort(e.target.value); setPage(0); }} className="rounded-lg border bg-white px-3 py-2 text-sm">
+          <option value="trend">트렌드순</option><option value="recent">최근 갱신순</option><option value="price_asc">낮은 가격순</option><option value="price_desc">높은 가격순</option>
+        </select>
+        <span className="self-center text-xs font-bold text-gray-500">{filtered.length}개</span>
+      </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
         {visible.map((product) => (
@@ -61,7 +87,7 @@ export default function TrendingProducts({
                 <span className="truncate rounded bg-red-50 px-1.5 py-0.5 text-red-700">
                   {product.keyword}
                 </span>
-                <span className="shrink-0 text-gray-600">쿠팡</span>
+                <span className="shrink-0 text-gray-600">{product.platform === "coupang" ? "쿠팡" : product.platform === "cps" ? "국내몰" : product.platform === "aliexpress" ? "알리익스프레스" : product.platform}</span>
               </div>
               <h3 className="line-clamp-2 text-sm font-bold leading-5 text-gray-900 group-hover:text-brand">
                 {displayTitle(product.title)}
@@ -89,9 +115,9 @@ export default function TrendingProducts({
               type="button"
               onClick={() => setPage(i)}
               aria-label={`${i + 1}페이지`}
-              aria-current={page === i}
+              aria-current={safePage === i}
               className={`h-7 w-7 rounded-lg text-xs font-bold transition ${
-                page === i
+                safePage === i
                   ? "bg-brand text-white"
                   : "border border-gray-200 bg-white text-gray-500 hover:bg-gray-50"
               }`}

@@ -19,6 +19,7 @@ import { getTrendingProducts } from "@/lib/trends";
 import TrendingProducts from "@/components/TrendingProducts";
 import AdSenseScript from "@/components/AdSenseScript";
 import SavedPriceWatches from "@/components/SavedPriceWatches";
+import SellerDiscountSection from "@/components/SellerDiscountSection";
 
 export const revalidate = 300;
 
@@ -42,6 +43,7 @@ export async function generateMetadata({
     hc?: string;
     hs?: string;
     hl?: string;
+    hx?: string;
     tt?: string;
     region?: string;
     o?: string;
@@ -106,6 +108,7 @@ export default async function Home({
     hc?: string;
     hs?: string;
     hl?: string;
+    hx?: string;
   }>;
 }) {
   const searchParams = await searchParamsPromise;
@@ -131,6 +134,7 @@ export default async function Home({
   const hotSort = ["recommended", "score", "drop", "recent", "price"].includes(searchParams.hs ?? "")
     ? searchParams.hs ?? "recommended" : "recommended";
   const hotLowestOnly = searchParams.hl === "1";
+  const hotScope = searchParams.hx === "domestic" || searchParams.hx === "overseas" ? searchParams.hx : "";
   const hot = searchParams.hot === "1";
   const showEnded = searchParams.se === "1";
   const q = (searchParams.q ?? "").slice(0, 100);
@@ -196,6 +200,7 @@ export default async function Home({
   if (hotCategory) allParams.hc = hotCategory;
   if (hotSort !== "recommended") allParams.hs = hotSort;
   if (hotLowestOnly) allParams.hl = "1";
+  if (hotScope) allParams.hx = hotScope;
 
   const [trackedDeals, curatedDealsRaw, lastUpdate, productMatchesRaw, trendingProducts] = await Promise.all([
     getDeals({ category, sort, hotOnly: hot, q, priceStatus: ps, scope }),
@@ -269,6 +274,7 @@ export default async function Home({
       (d.platform !== "aliexpress" && d.isCurated && d.currentPrice > 0 && d.discountVsList >= 10)))
     .filter((d) => !hotCategory || d.categorySlug === hotCategory)
     .filter((d) => !hotLowestOnly || d.isLowestEver)
+    .filter((d) => !hotScope || (hotScope === "overseas" ? d.platform === "aliexpress" : d.platform !== "aliexpress"))
     .sort((a, b) => {
       if (hotSort === "drop") return headlineDropRate(b) - headlineDropRate(a);
       if (hotSort === "recent") return new Date(b.checkedAt ?? b.detectedAt).getTime() - new Date(a.checkedAt ?? a.detectedAt).getTime();
@@ -281,15 +287,28 @@ export default async function Home({
     });
   const verifiedHotList = sortedHotList.filter(isVerifiedBestDeal);
   const newlyFoundHotList = sortedHotList.filter((deal) => !isVerifiedBestDeal(deal));
+  const diversifyScope = (items: typeof newlyFoundHotList) => {
+    if (hotScope) return items;
+    const domestic = items.filter((deal) => deal.platform !== "aliexpress");
+    const overseas = items.filter((deal) => deal.platform === "aliexpress");
+    const mixed: typeof items = [];
+    while (domestic.length || overseas.length) {
+      const local = domestic.shift(); if (local) mixed.push(local);
+      const global = overseas.shift(); if (global) mixed.push(global);
+    }
+    return mixed;
+  };
   const hotTotalPages = Math.max(1, Math.ceil(verifiedHotList.length / 8));
   const safeHotPage = Math.min(hotPage, hotTotalPages);
   const hotItems = verifiedHotList.slice((safeHotPage - 1) * 8, safeHotPage * 8);
   const trackingItems = safeHotPage === 1
-    ? newlyFoundHotList.filter((deal) => !deal.isCurated && (deal.historyPointCount ?? 0) > 0).slice(0, 8)
+    ? diversifyScope(newlyFoundHotList.filter((deal) => !deal.isCurated && (deal.historyPointCount ?? 0) > 0)).slice(0, 12)
     : [];
   const sellerDiscountItems = safeHotPage === 1
-    ? newlyFoundHotList.filter((deal) => deal.isCurated || (deal.historyPointCount ?? 0) === 0).slice(0, 8)
+    ? combinedDeals.filter((deal) => deal.status !== "ended" && deal.platform !== "aliexpress" && (deal.isCurated || (deal.historyPointCount ?? 0) === 0))
     : [];
+  const trackedDomesticCount = newlyFoundHotList.filter((deal) => !deal.isCurated && deal.platform !== "aliexpress").length;
+  const trackedOverseasCount = newlyFoundHotList.filter((deal) => !deal.isCurated && deal.platform === "aliexpress").length;
 
   const hrefFor = (next: Record<string, string | undefined>) => {
     const sp = new URLSearchParams();
@@ -338,6 +357,11 @@ export default async function Home({
                 { key: "recent", label: "최근 확인순" },
                 { key: "price", label: "낮은 가격순" },
               ]} value={hotSort} param="hs" params={allParams} ariaLabel="핫딜 정렬" />
+              <SortDropdown options={[
+                { key: "", label: "국내+해외" },
+                { key: "domestic", label: "국내몰만" },
+                { key: "overseas", label: "해외직구만" },
+              ]} value={hotScope} param="hx" params={allParams} ariaLabel="핫딜 판매 범위" />
               <Link href={hrefFor({ hl: hotLowestOnly ? undefined : "1", hp: undefined })}
                 aria-current={hotLowestOnly ? "true" : undefined}
                 className={`rounded-lg px-3 py-1.5 text-sm font-medium ${hotLowestOnly ? "bg-brand text-white" : "border border-gray-200 bg-white text-gray-600"}`}>
@@ -349,7 +373,7 @@ export default async function Home({
           {hotItems.length === 0 ? (
             <div className="rounded-xl border border-dashed border-gray-300 bg-white p-8 text-center">
               <p className="text-sm font-semibold text-gray-700">이 조건에 맞는 검증 상품이 아직 없습니다.</p>
-              <p className="mt-2 text-xs leading-5 text-gray-500">가격 기록이 더 쌓인 상품부터 순서대로 공개합니다.</p>
+              <p className="mt-2 text-xs leading-5 text-gray-500">서로 다른 날짜의 가격 기록이 20일 이상 쌓인 상품부터 검증 완료로 공개합니다.</p>
               {trackingItems.length > 0 ? <a href="#price-tracking" className="mt-4 inline-flex min-h-11 items-center rounded-lg bg-gray-900 px-4 text-sm font-bold text-white">가격 추적 상품 보기</a> : <Link href="/?sort=latest" className="mt-4 inline-flex min-h-11 items-center rounded-lg bg-gray-900 px-4 text-sm font-bold text-white">최근 수집 상품 탐색</Link>}
             </div>
           ) : <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
@@ -371,7 +395,7 @@ export default async function Home({
             <div id="price-tracking" className="mt-8 scroll-mt-24 border-t border-gray-200 pt-6">
               <h3 className="text-base font-extrabold text-gray-900">가격 추적 중인 상품</h3>
               <p className="mb-3 mt-1 text-xs leading-5 text-gray-500">
-                실제 가격을 기록하고 있지만 아직 14일·20회 검증 기준을 채우지 못했습니다. 카드에서 추적 일수와 관측 상태를 확인할 수 있습니다.
+                실제 가격을 기록하고 있지만 아직 14일·20관측일 검증 기준을 채우지 못했습니다. 국내 {trackedDomesticCount}개 · 해외 {trackedOverseasCount}개를 추적 중이며, 기본 화면에서는 국내와 해외를 번갈아 보여줍니다.
               </p>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
                 {trackingItems.map((deal) => <DealCard key={deal.id} deal={deal} />)}
@@ -379,17 +403,7 @@ export default async function Home({
             </div>
           )}
 
-          {sellerDiscountItems.length > 0 && (
-            <div className="mt-8 border-t border-gray-200 pt-6">
-              <h3 className="text-base font-extrabold text-gray-900">판매처 표시 할인</h3>
-              <p className="mb-3 mt-1 text-xs leading-5 text-gray-500">
-                판매처가 표시한 정가 기준 할인입니다. 가격 이력이 쌓이기 전까지 검증 핫딜과 섞지 않습니다.
-              </p>
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-                {sellerDiscountItems.map((deal) => <DealCard key={deal.id} deal={deal} />)}
-              </div>
-            </div>
-          )}
+          <SellerDiscountSection deals={sellerDiscountItems} />
 
         </section>
       )}

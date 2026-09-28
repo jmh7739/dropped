@@ -62,8 +62,9 @@ def fetch() -> list[RawDeal]:
             continue
         if not (normal > sale and disc > 0):
             continue
-        # '괜찮은 것만': 할인율 15%+ & 판매량 10+ (의미있는 할인 + 실판매)
-        if disc < 15 or sales < 10:
+        # 판매처 표시 할인은 검증 핫딜과 분리해 보여주므로 후보 폭을 넓힌다.
+        # 그래도 최소 10% 할인·5건 판매를 요구해 단순 등록 상품은 제외한다.
+        if disc < 10 or sales < 5:
             continue
         deals.append(RawDeal(
             platform="cps",
