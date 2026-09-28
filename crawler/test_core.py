@@ -92,6 +92,8 @@ class ProductClassifierTests(unittest.TestCase):
         self.assertEqual(classify_slug("버터플라이 나이프 보관 케이스", "living"), "living")
         self.assertEqual(classify_slug("귀여운 만화 PVC 목욕 매트", "living"), "living")
         self.assertEqual(classify_slug("블루투스 헤드폰 음악 플레이어", "living"), "digital")
+        self.assertEqual(classify_slug("독도 에디션 만년필", "books", "YES24"), "living")
+        self.assertEqual(classify_slug("집중력 향상 스터디 타이머", "books", "YES24"), "living")
 
     def test_brand_and_display_title_are_conservative(self):
         self.assertEqual(brand_from("P-6000 CD6404-002 : 롯데ON"), "나이키")

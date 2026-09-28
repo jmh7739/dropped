@@ -91,15 +91,19 @@ def main() -> None:
         )
         products.extend(rows or [])
 
-    recent = request_json(
-        "GET",
-        f"products?select=id,title,category_id,mall_name,platform&order=created_at.desc&limit={args.recent}",
-        key=key,
-        url=url,
-    )
     by_id = {p["id"]: p for p in products}
-    for p in recent or []:
-        by_id[p["id"]] = p
+    for offset in range(0, args.recent, 1000):
+        page_size = min(1000, args.recent - offset)
+        recent = request_json(
+            "GET",
+            f"products?select=id,title,category_id,mall_name,platform&order=created_at.desc&offset={offset}&limit={page_size}",
+            key=key,
+            url=url,
+        )
+        for p in recent or []:
+            by_id[p["id"]] = p
+        if not recent or len(recent) < page_size:
+            break
     products = list(by_id.values())
 
     changes = []
@@ -117,7 +121,7 @@ def main() -> None:
         if next_slug != current_slug and next_slug in id_by_slug:
             changes.append((p, current_slug, next_slug))
 
-    print(f"active products: {len(products)}")
+    print(f"audited products (active + recent): {len(products)}")
     print(f"category changes: {len(changes)}")
     for p, old, new in changes[:80]:
         print(f"- #{p['id']} {name_by_slug.get(old, old)} -> {name_by_slug.get(new, new)} | {display_title(p.get('title') or '')}")
