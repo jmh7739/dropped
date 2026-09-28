@@ -26,6 +26,19 @@ export interface TrendingProduct {
   platform: string;
 }
 
+type RealtimeTrendRow = {
+  keyword: string;
+  normalized_keyword: string;
+  rank: number;
+  previous_rank: number | null;
+  rank_change: number | null;
+  status: RealtimeTrend["status"];
+  hot_score: number;
+  category: string | null;
+  affiliate_search_url: string | null;
+  collected_at: string;
+};
+
 function usableProductImage(value: unknown): string {
   const url = String(value || "").trim();
   return /^https?:\/\//i.test(url) && !/favicon(?:\.ico)?|(?:^|[\/_-])logo(?:[\/_-]|\.)|placeholder|blank|spacer|1x1|f30_30/i.test(url) ? url : "";
@@ -110,29 +123,52 @@ function correctedProductCategory(raw: unknown, titleValue: unknown, keywordValu
 
 export async function getRealtimeTrends(): Promise<RealtimeTrend[]> {
   if (!supabase) return [];
-  const { data: latest } = await supabase.from("realtime_trends").select("collected_at").eq("is_published", true).order("collected_at", { ascending: false }).limit(1);
-  if (!latest?.length) return [];
-  const { data, error } = await supabase.from("realtime_trends").select("keyword,normalized_keyword,rank,previous_rank,rank_change,status,hot_score,category,affiliate_search_url,collected_at").eq("collected_at", latest[0].collected_at).eq("is_published", true).order("rank").limit(100);
+  const { data: recent } = await supabase.from("realtime_trends").select("collected_at").eq("is_published", true).order("collected_at", { ascending: false }).limit(120);
+  const snapshots = [...new Set((recent || []).map((row: { collected_at: string }) => row.collected_at))].slice(0, 6);
+  if (!snapshots.length) return [];
+  const { data, error } = await supabase.from("realtime_trends").select("keyword,normalized_keyword,rank,previous_rank,rank_change,status,hot_score,category,affiliate_search_url,collected_at").in("collected_at", snapshots).eq("is_published", true).order("collected_at", { ascending: false }).order("rank").limit(600);
   if (error || !data) return [];
-  return data
-    .filter((row: any) => likelyProductTrend(row.keyword))
-    .map((row: any, index: number) => {
-      const rank = index + 1;
-      const rankShiftedByFilter = Number(row.rank) !== rank;
-      return {
-        keyword: row.keyword,
-        normalizedKeyword: row.normalized_keyword,
-        rank,
-        previousRank: rankShiftedByFilter ? null : row.previous_rank,
-        rankChange: rankShiftedByFilter ? 0 : row.rank_change,
-        status: rankShiftedByFilter ? "same" as const : row.status,
-        hotScore: Number(row.hot_score),
-        category: row.category || "",
-        affiliateUrl: row.affiliate_search_url || null,
-        collectedAt: row.collected_at,
-      };
-    })
-    .slice(0, 20);
+  const rows = data as RealtimeTrendRow[];
+  const bySnapshot = new Map<string, RealtimeTrendRow[]>();
+  for (const snapshot of snapshots) {
+    bySnapshot.set(snapshot, rows.filter((row) => row.collected_at === snapshot && likelyProductTrend(row.keyword)).sort((a, b) => Number(a.rank) - Number(b.rank)));
+  }
+  const displayedFrom = (start: number) => {
+    const selected: RealtimeTrendRow[] = [];
+    const used = new Set<string>();
+    for (let index = start; index < snapshots.length && selected.length < 20; index += 1) {
+      for (const row of bySnapshot.get(snapshots[index]) || []) {
+        const key = row.normalized_keyword || row.keyword.toLowerCase().replace(/\s+/g, "");
+        if (used.has(key)) continue;
+        used.add(key);
+        selected.push(row);
+        if (selected.length === 20) break;
+      }
+    }
+    return selected;
+  };
+  const current = displayedFrom(0);
+  const previousRanks = new Map(displayedFrom(1).map((row, index) => [row.normalized_keyword || row.keyword.toLowerCase().replace(/\s+/g, ""), index + 1]));
+  return current.map((row, index) => {
+    const rank = index + 1;
+    const key = row.normalized_keyword || row.keyword.toLowerCase().replace(/\s+/g, "");
+    const previousRank = previousRanks.get(key) ?? null;
+    const rankChange = previousRank === null ? null : previousRank - rank;
+    let status: RealtimeTrend["status"] = "NEW";
+    if (rankChange !== null) status = rankChange > 0 ? "up" : rankChange < 0 ? "down" : "same";
+    return {
+      keyword: row.keyword,
+      normalizedKeyword: key,
+      rank,
+      previousRank,
+      rankChange,
+      status,
+      hotScore: Number(row.hot_score),
+      category: row.category || "",
+      affiliateUrl: row.affiliate_search_url || null,
+      collectedAt: snapshots[0],
+    };
+  });
 }
 
 export async function getTrendingProducts(limit = 40): Promise<TrendingProduct[]> {

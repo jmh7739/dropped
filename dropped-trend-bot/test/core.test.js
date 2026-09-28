@@ -102,6 +102,20 @@ test("최종 인기 검색어 선발에서도 비상품 키워드를 제거한�
   assert.deepEqual(selectHotTrends(rows, 20).map((item) => item.keyword), ["닌텐도스위치2", "헤라블랙쿠션"]);
 });
 
+test("비상품 검색어가 섞여도 유효 후보가 있으면 인기 검색어 20개를 채운다", () => {
+  const valid = Array.from({ length: 20 }, (_, index) => ({
+    keyword: `나이키운동화${index + 1}`,
+    normalizedKeyword: `나이키운동화${index + 1}`,
+    category: `카테고리${index % 5}`,
+    trendScore: 100 - index,
+    currentRank: index + 1,
+  }));
+  const rows = [{ keyword: "belgium vs france", normalizedKeyword: "belgiumvsfrance", category: "스포츠", trendScore: 200, currentRank: 1 }, ...valid];
+  const selected = selectHotTrends(rows, 20);
+  assert.equal(selected.length, 20);
+  assert.equal(selected.some(item => item.keyword === "belgium vs france"), false);
+});
+
 test("트렌드 상품을 카테고리 라운드로빈으로 다양하게 선발한다", () => {
   const rows = ["식품", "식품", "식품", "디지털", "패션", "스포츠"].map((category, index) => ({
     trend: { keyword: `키워드${index}`, normalizedKeyword: `키워드${index}`, category, trendScore: 100 - index },
