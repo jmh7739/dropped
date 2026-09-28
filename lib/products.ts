@@ -6,6 +6,16 @@ import { cache } from "react";
 import { averagePeriodLabel, lowestPeriodLabel } from "./dropMetrics";
 import { deriveUnitPrice } from "./unitPrice";
 
+function canonicalMallName(mallName: string | null | undefined, platform: string): string | null {
+  const raw = (mallName ?? "").trim();
+  const key = raw.toLowerCase();
+  if (key === "하이마트" || key === "롯데하이마트") return "롯데하이마트";
+  if (key === "예스24" || key === "yes24") return "YES24";
+  if (key === "aliexpress" || key === "알리익스프레스") return "AliExpress";
+  if (key === "11st" || key === "11번가") return "11번가";
+  return raw || (platform === "aliexpress" ? "AliExpress" : null);
+}
+
 /**
  * SEO용 '상품 가격 페이지' 데이터 — 딜이 끝나도 유지되는 영구 리포트.
  *   products + price_history에서 직접 뽑아, 검색 유입용 canonical 페이지를 만든다.
@@ -140,7 +150,8 @@ export const getRecentlyTrackedProducts = cache(async function getRecentlyTracke
     const current = history[history.length - 1].price;
     const stats = priceStats(history, current);
     if (!stats || current <= 0) continue;
-    const fingerprint = `${p.title.replace(/[^0-9a-z가-힣]/gi, "").toLowerCase()}|${(p.mall_name ?? p.platform).toLowerCase()}|${current}`;
+    const mallName = canonicalMallName(p.mall_name, p.platform);
+    const fingerprint = `${p.title.replace(/[^0-9a-z가-힣]/gi, "").toLowerCase()}|${(mallName ?? p.platform).toLowerCase()}|${current}`;
     if (seen.has(fingerprint)) continue;
     seen.add(fingerprint);
     const rate = stats.avg30 && stats.avg30 > current
@@ -152,7 +163,7 @@ export const getRecentlyTrackedProducts = cache(async function getRecentlyTracke
       id: p.id,
       title: p.title,
       imageUrl: p.image_url ?? "",
-      mallName: p.mall_name ?? null,
+      mallName,
       platform: p.platform,
       categorySlug: cat?.slug ?? "",
       categoryName: cat?.name ?? "기타",
@@ -218,7 +229,7 @@ export async function searchProducts(
       id: p.id,
       title: p.title,
       imageUrl: p.image_url ?? "",
-      mallName: p.mall_name ?? null,
+      mallName: canonicalMallName(p.mall_name, p.platform),
       platform: p.platform,
       categorySlug: cat?.slug ?? "",
       categoryName: cat?.name ?? "기타",
