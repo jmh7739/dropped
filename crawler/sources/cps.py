@@ -88,7 +88,7 @@ def fetch() -> list[RawDeal]:
                 if is_game_product(name) or not usable_product_title(name) or not usable_product_image(img):
                     continue
                 # recommend 혼합 목록은 상품명으로 실제 카테고리 판정(전부 생활 방지)
-                item_slug = classify_slug(name, slug)
+                item_slug = classify_slug(name, slug, mcode)
                 # 추천 특가는 popular 소스(할인율 있는 것)가 담당 → cps는 추적 풀만.
                 curated = False
                 deals.append(RawDeal(

@@ -68,8 +68,8 @@ def _to_int(v) -> int:
         return 0
 
 
-def _slug(name: str, category: str) -> str | None:
-    return classify_slug(name, _CAT_HINT.get(category))  # 폴백(없으면 living)
+def _slug(name: str, category: str, merchant: str) -> str | None:
+    return classify_slug(name, _CAT_HINT.get(category), merchant)  # 폴백(없으면 living)
 
 
 def fetch() -> list[RawDeal]:
@@ -101,7 +101,7 @@ def fetch() -> list[RawDeal]:
         image = p.get("product_image", "")
         if is_game_product(name) or not usable_product_title(name) or not usable_product_image(image):
             continue
-        slug = _slug(name, category)
+        slug = _slug(name, category, mcode)
         if not slug:
             continue
         # 리얼핫딜은 우리 등급엔 discount_price를 안 줌(항상 0) → normal_price(현재가)만.

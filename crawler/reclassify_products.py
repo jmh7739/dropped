@@ -55,6 +55,7 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--apply", action="store_true")
     parser.add_argument("--limit", type=int, default=1000)
+    parser.add_argument("--recent", type=int, default=3000, help="active 외 최근 상품 감사 수")
     args = parser.parse_args()
 
     load_env_file(ROOT / ".env.local")
@@ -90,11 +91,26 @@ def main() -> None:
         )
         products.extend(rows or [])
 
+    recent = request_json(
+        "GET",
+        f"products?select=id,title,category_id,mall_name,platform&order=created_at.desc&limit={args.recent}",
+        key=key,
+        url=url,
+    )
+    by_id = {p["id"]: p for p in products}
+    for p in recent or []:
+        by_id[p["id"]] = p
+    products = list(by_id.values())
+
     changes = []
     brand_samples = []
     for p in products:
+        # 알리·쿠팡 등은 공식 API 카테고리가 제목 키워드보다 정확하다.
+        # 이 감사는 추천/도서 피드가 섞여 들어오는 LinkPrice(cps)만 바로잡는다.
+        if p.get("platform") != "cps":
+            continue
         current_slug = slug_by_id.get(p.get("category_id"), "living")
-        next_slug = classify_slug(p.get("title") or "", current_slug)
+        next_slug = classify_slug(p.get("title") or "", current_slug, p.get("mall_name"))
         brand = brand_from(p.get("title"))
         if brand:
             brand_samples.append((p["id"], brand, display_title(p.get("title") or "")))

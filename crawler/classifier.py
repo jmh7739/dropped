@@ -26,7 +26,37 @@ def clean_title(title: str) -> str:
 
 
 def _has(text: str, keywords: Iterable[str]) -> bool:
-    return any(k.lower() in text for k in keywords)
+    for keyword in keywords:
+        key = keyword.lower()
+        # 짧은 일반어의 단순 부분문자열은 다른 단어 안에서도 잡힌다.
+        # 예: 인생수업→생수, 제브라→브라, 책상→책.
+        if key == "생수":
+            if re.search(r"(?<![가-힣])생수(?![가-힣])", text):
+                return True
+            continue
+        if key == "브라":
+            if re.search(r"(?:^|[^가-힣])브라(?:$|[^가-힣])|(?:스포츠|노와이어|와이어|수유)브라|브라(?:탑|렛|세트)", text):
+                return True
+            continue
+        if key == "책":
+            if re.search(r"(?:그림|동화|요리|공부|전자)책|책(?:\s|$|세트|추천|읽기)", text):
+                return True
+            continue
+        if key == "고기":
+            if re.search(r"(?<!물)고기(?!능)", text):
+                return True
+            continue
+        if key == "버터":
+            if re.search(r"버터(?!플라이)", text):
+                return True
+            continue
+        if key == "만화":
+            if re.search(r"만화(?:책|도서|단행본|전집)|코믹스", text):
+                return True
+            continue
+        if key in text:
+            return True
+    return False
 
 
 # 상품군: 브랜드보다 먼저 본다. 예: 롯데온 생활 추천 목록 안의 우동/사이다/참치.
@@ -35,11 +65,12 @@ PRODUCT_GROUPS: list[tuple[tuple[str, ...], str]] = [
     (("비타민", "홍삼", "영양제", "보충제", "유산균", "콜라겐", "프로틴", "오메가", "루테인",
       "마그네슘", "밀크씨슬", "글루코사민", "프로폴리스", "지방 연소"), "health"),
     (("노트북", "키보드", "마우스", "모니터", "ssd", "그래픽카드", "rtx", "cpu",
-      "조립pc", "게이밍pc", "공유기", "웹캠", "ram", "메모리"), "digital"),
+      "조립pc", "게이밍pc", "공유기", "웹캠", "ram", "메모리", "이어폰", "헤드폰",
+      "헤드셋", "스피커", "mp3 플레이어", "오디오 플레이어"), "digital"),
     (("갤럭시", "아이폰", "버즈", "에어팟", "폰케이스", "휴대폰케이스", "핸드폰케이스",
       "보조배터리", "태블릿", "아이패드", "충전기"), "mobile"),
     (("냉장고", "세탁기", "청소기", "에어프라이어", "전자레인지", "가습기", "선풍기",
-      "드라이어", "면도기", "에어컨", "정수기", "밥솥", "인덕션", "건조기", "티비",
+      "드라이어", "면도기", "에어컨", "정수기", "밥솥", "인덕션", "건조기", "히터", "티비",
       "모니터암"), "appliance"),
     (("신발", "운동화", "러닝화", "런닝화", "워킹화", "스니커즈", "슈즈", "로퍼", "부츠",
       "구두", "샌들", "크록스", "워커", "단화", "트레킹화", "등산화", "p-6000", "cd6404"), "fashion"),
@@ -86,11 +117,32 @@ BRAND_TO_SLUG = {
 STRONG_FOOD_KEYWORDS = (
     "아이스크림", "아이스 크림", "파스타", "스파게티", "마카로니", "페투치네",
     "파르팔레", "페네", "노끼", "라자냐", "파스타소스", "떡볶이",
+    "크림빵", "생크림", "휘핑크림", "크림치즈",
+    "구미 젤리", "구미 선물", "구미 캔디",
 )
 
+STRONG_BOOK_KEYWORDS = (
+    "요리책", "레시피북", "문제집", "수험서", "모의고사", "교재", "참고서",
+    "소설", "에세이", "전집", "그림책", "동화책", "전자책", "e북", "단행본",
+)
 
-def classify_slug(title: str, source_slug: str | None = None) -> str:
+LIVING_ACCESSORY_KEYWORDS = (
+    "냉장고 자석", "냉장고자석", "형광펜", "볼펜", "샤프펜슬", "연필", "지우개",
+    "문구세트", "책갈피", "아크릴 굿즈", "포토카드 홀더",
+    "요거트 필터", "요거트 스트레이너", "소시지 메이커", "나이프 보관", "나이프 케이스",
+    "커피 필터", "커피 탬퍼", "포터필터", "커피 스케일", "드리퍼",
+)
+
+BOOK_MERCHANTS = ("yes24", "예스24", "교보문고", "알라딘")
+
+
+def classify_slug(title: str, source_slug: str | None = None, merchant: str | None = None) -> str:
     lower = clean_title(title).lower()
+    merchant_key = (merchant or "").strip().lower()
+    if _has(lower, STRONG_BOOK_KEYWORDS):
+        return "books"
+    if _has(lower, LIVING_ACCESSORY_KEYWORDS):
+        return "living"
     if _has(lower, STRONG_FOOD_KEYWORDS):
         return "food"
     for keywords, slug in PRODUCT_GROUPS:
@@ -99,6 +151,8 @@ def classify_slug(title: str, source_slug: str | None = None) -> str:
     for slug, brands in BRAND_TO_SLUG.items():
         if _has(lower, brands):
             return slug
+    if merchant_key in BOOK_MERCHANTS:
+        return "books"
     return source_slug or "living"
 
 

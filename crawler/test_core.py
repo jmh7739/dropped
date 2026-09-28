@@ -79,6 +79,20 @@ class ProductClassifierTests(unittest.TestCase):
             with self.subTest(title=title):
                 self.check_slug(title, expected)
 
+    def test_ambiguous_substrings_and_book_merchants(self):
+        self.assertEqual(classify_slug("쇼펜하우어 인생수업", "food", "YES24"), "books")
+        self.assertEqual(classify_slug("제브라 마일드라이너 형광펜 세트", "fashion", "YES24"), "living")
+        self.assertEqual(classify_slug("파스텔 냉장고 자석", "appliance", "YES24"), "living")
+        self.assertEqual(classify_slug("내일이 달라지는 수면 과학", "living", "예스24"), "books")
+        self.assertEqual(classify_slug("2026 봉투모의고사", "living", "교보문고"), "books")
+        self.assertEqual(classify_slug("제주 생수 2L 12병", "living"), "food")
+        self.assertEqual(classify_slug("스포츠브라 2매", "living"), "fashion")
+        self.assertEqual(classify_slug("원목 책상", "living"), "living")
+        self.assertEqual(classify_slug("수족관 물고기 히터", "living"), "appliance")
+        self.assertEqual(classify_slug("버터플라이 나이프 보관 케이스", "living"), "living")
+        self.assertEqual(classify_slug("귀여운 만화 PVC 목욕 매트", "living"), "living")
+        self.assertEqual(classify_slug("블루투스 헤드폰 음악 플레이어", "living"), "digital")
+
     def test_brand_and_display_title_are_conservative(self):
         self.assertEqual(brand_from("P-6000 CD6404-002 : 롯데ON"), "나이키")
         self.assertEqual(brand_from("남여 고어텍스 다운 M히마GTX히팅다운자켓 1BYPAW3008 : 롯데ON"), "블랙야크")

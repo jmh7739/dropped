@@ -10,8 +10,12 @@ from __future__ import annotations
 import requests
 
 import config
+from classifier import classify_slug
 from .base import RawDeal
-from .linkprice_policy import MERCHANT_NAMES, approved, is_game_product, product_identity
+from .linkprice_policy import (
+    MERCHANT_NAMES, approved, is_game_product, product_identity,
+    usable_product_image, usable_product_title,
+)
 
 API = "https://api.linkprice.com/ci/product/data/{aid}"
 
@@ -76,7 +80,8 @@ def fetch() -> list[RawDeal]:
                 image = p.get("img_url", "")
                 p_code = p.get("p_code", "")
 
-                if not name or not price or not url or is_game_product(name):
+                if (not name or not price or not url or is_game_product(name)
+                        or not usable_product_title(name) or not usable_product_image(image)):
                     continue
 
                 deals.append(RawDeal(
@@ -88,7 +93,7 @@ def fetch() -> list[RawDeal]:
                     affiliate_url=url,  # 이미 제휴링크 포함
                     current_price=price,
                     list_price=None,     # 정가 정보 없음
-                    category_slug=slug,
+                    category_slug=classify_slug(name, slug, merchant_id),
                     mall_name=mall_name,
                 ))
                 total_count += 1
