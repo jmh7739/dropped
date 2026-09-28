@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "vite build",
+    "build:next": "next build",
     "start": "next start",
     "lint": "tsc --noEmit",
     "test": "node scripts/test-price-safety.cjs",
