@@ -43,6 +43,13 @@ async function main() {
   const clean = priceStats([{price:0,collectedAt:at(1)},{price:1,collectedAt:'invalid'},
     {price:1,collectedAt:at(-2)},{price:100,collectedAt:at(1)}],100);
   assert.equal(clean.points, 1);
+  assert.equal(clean.observedDays, 1);
+  const repeated = priceStats([
+    {price:100,collectedAt:at(3)}, {price:100,collectedAt:new Date(now-3*86400000+1000).toISOString()},
+    {price:200,collectedAt:at(2)}, {price:300,collectedAt:at(1)},
+  ],100);
+  assert.equal(repeated.avg30, 200, '같은 날 반복 수집은 일별 평균을 왜곡하지 않아야 함');
+  assert.equal(repeated.observedDays, 3);
   assert.equal(priceStats([{price:1,collectedAt:at(1)}],0),null);
   assert.equal(priceStats([{price:100,collectedAt:at(100)},{price:100,collectedAt:at(0)}],100).lowestLabel,'90일 최저가');
   assert.equal(priceStats([{price:100,collectedAt:at(12)},{price:100,collectedAt:at(0)}],100).lowestLabel,'추적 12일 최저가');

@@ -111,20 +111,27 @@ from hot_deals d
 join products p   on p.id = d.product_id
 left join categories c on c.id = p.category_id
 left join lateral (
+  with daily as (
+    select
+      (collected_at at time zone 'Asia/Seoul')::date as observed_date,
+      percentile_cont(0.5) within group (order by price)::numeric as day_price
+    from price_history h
+    where h.product_id = p.id
+    group by 1
+  )
   select
-    round(avg(price) filter (where collected_at >= now() - interval '30 days'))::bigint as avg30_price,
-    min(price) filter (where collected_at >= now() - interval '90 days')::bigint as min90_price,
-    max(price) filter (where collected_at >= now() - interval '90 days')::bigint as max90_price,
+    round(avg(day_price) filter (where observed_date >= (now() at time zone 'Asia/Seoul')::date - 29))::bigint as avg30_price,
+    min(day_price) filter (where observed_date >= (now() at time zone 'Asia/Seoul')::date - 89)::bigint as min90_price,
+    max(day_price) filter (where observed_date >= (now() at time zone 'Asia/Seoul')::date - 89)::bigint as max90_price,
     case
       when count(*) = 0 then null
       else greatest(
         1,
-        ceil(extract(epoch from (max(collected_at) - min(collected_at))) / 86400.0)::int
+        (max(observed_date) - min(observed_date)) + 1
       )
     end as tracked_days,
     count(*)::int as history_points
-  from price_history h
-  where h.product_id = p.id
+  from daily
 ) ph on true
 -- 진행중 + 최근 24시간 내 종료된 딜(종료 표시용)까지 노출
 where d.status = 'active'

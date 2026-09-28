@@ -19,7 +19,7 @@ export default function PriceReport({
   lastCheckedAt?: string | null;
 }) {
   const d = stats.trackedDays;
-  const baseConfidence = d >= 90 && stats.points >= 60 ? 90 : d >= 30 && stats.points >= 30 ? 78 : d >= 7 && stats.points >= 10 ? 48 : 20;
+  const baseConfidence = d >= 90 && stats.observedDays >= 60 ? 90 : d >= 30 && stats.observedDays >= 30 ? 78 : d >= 7 && stats.observedDays >= 7 ? 48 : 20;
   const ageHours = lastCheckedAt ? (Date.now() - new Date(lastCheckedAt).getTime()) / 3600000 : Infinity;
   const confidence = ageHours > 168 ? Math.min(baseConfidence, 20) : ageHours > 24 ? Math.min(baseConfidence, 48) : baseConfidence;
   const confidenceLabel = confidence >= 75 ? "높음" : confidence >= 40 ? "보통" : "낮음";
@@ -55,7 +55,7 @@ export default function PriceReport({
           </div>
           {dropScore && (
             <div className="rounded-lg bg-white/70 px-3 py-2 text-right">
-              <div className="text-xs font-bold opacity-70">DROP SCORE</div>
+              <div className="text-xs font-bold opacity-70">가격 점수</div>
               <div className="text-2xl font-extrabold leading-none">
                 {dropScore.score !== null ? dropScore.score : "-"}
               </div>
@@ -68,7 +68,7 @@ export default function PriceReport({
         <div className="flex items-center justify-between gap-3">
           <div>
             <div className="text-sm font-extrabold text-gray-900">가격판정 신뢰도</div>
-            <div className="mt-0.5 text-xs text-gray-500">추적 {d}일 · 가격 확인 {stats.points}회</div>
+            <div className="mt-0.5 text-xs text-gray-500">관측 {stats.observedDays}일 · 총 {stats.points}회 수집</div>
           </div>
           <span className="text-sm font-extrabold text-gray-700">{confidenceLabel}</span>
         </div>
@@ -77,7 +77,8 @@ export default function PriceReport({
         </div>
         <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
           <span>추적 {d}일</span>
-          <span>가격 수집 {stats.points}회</span>
+          <span>가격 관측 {stats.observedDays}일</span>
+          <span>원본 수집 {stats.points}회</span>
           {lastCheckedAt && <span suppressHydrationWarning>최근 확인 {timeAgo(lastCheckedAt)}</span>}
         </div>
         {!stats.enoughData && <p className="mt-2 text-xs font-medium text-amber-700">가격 이력 부족 · 판정 참고용</p>}
@@ -110,7 +111,7 @@ export default function PriceReport({
       </div>
 
       <p className="text-[11px] text-gray-400">
-        📊 가격 추적 {stats.trackedDays}일 · {stats.points}회 수집 기준.
+        📊 가격 추적 {stats.trackedDays}일 · {stats.observedDays}일의 일별 대표가격 기준.
         {stats.avg30 && ` 현재보다 낮았던 관측 기록은 ${stats.percentile}%입니다(같은 가격 제외).`}
       </p>
     </div>

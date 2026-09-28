@@ -8,7 +8,7 @@ import { deriveUnitPrice } from "./unitPrice";
 export type SortKey =
   | "discount" // 하락률 높은순 (기본)
   | "popular" // 인기순 (클릭·좋아요) = '추천'
-  | "score" // DROP SCORE 높은순
+  | "score" // 가격 점수 높은순
   | "discount_asc" // 할인률 낮은순
   | "price_asc" // 가격 낮은순
   | "price_desc" // 가격 높은순

@@ -141,7 +141,7 @@ export default function TravelView({
         ))}
       </div>
       <p className="mb-4 text-xs leading-5 text-gray-500">
-        여행 요금은 쇼핑 상품의 가격 이력·DROP SCORE 판정 대상이 아닙니다.
+        여행 요금은 쇼핑 상품의 가격 이력·가격 점수 판정 대상이 아닙니다.
         항공권은 최근 조회 요금이며, 숙소·여행딜은 외부 예약처에서 조건과 최종 가격을 확인해 주세요.
       </p>
       <aside className="mb-5 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm leading-6 text-emerald-950">

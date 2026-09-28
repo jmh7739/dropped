@@ -261,7 +261,7 @@ export default async function Home({
     { key: "popular", label: "추천" },
     { key: "recent", label: "최신" },
     { key: "discount", label: "가격이력 우선" },
-    { key: "score", label: "DROP SCORE" },
+    { key: "score", label: "가격 점수" },
   ];
 
   const sortedHotList = (isDefaultHome ? combinedDeals : [])
@@ -333,7 +333,7 @@ export default async function Home({
               <SortDropdown options={catOptions} value={hotCategory} param="hc" params={allParams} ariaLabel="핫딜 카테고리" />
               <SortDropdown options={[
                 { key: "recommended", label: "추천순 · 국내 포함" },
-                { key: "score", label: "DROP SCORE순" },
+                { key: "score", label: "가격 점수순" },
                 { key: "drop", label: "하락률 높은순" },
                 { key: "recent", label: "최근 확인순" },
                 { key: "price", label: "낮은 가격순" },

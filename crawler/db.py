@@ -140,6 +140,23 @@ def insert_price(product_id: int, price: int) -> None:
         raise ValueError("Only positive integer prices belong in price_history")
     if config.DRY_RUN:
         return
+    # 동일 가격을 수집 주기마다 계속 저장하면 자주 실행된 날이 평균을 과도하게
+    # 좌우한다. 가격이 바뀌었거나 마지막 관측 후 24시간이 지난 경우만 원본을 남긴다.
+    latest = (
+        client()
+        .table("price_history")
+        .select("price,collected_at")
+        .eq("product_id", product_id)
+        .order("collected_at", desc=True)
+        .limit(1)
+        .execute()
+        .data
+    )
+    if latest and int(latest[0]["price"]) == price:
+        from datetime import datetime, timezone
+        observed = datetime.fromisoformat(str(latest[0]["collected_at"]).replace("Z", "+00:00"))
+        if (datetime.now(timezone.utc) - observed).total_seconds() < 86400:
+            return
     client().table("price_history").insert(
         {"product_id": product_id, "price": price}
     ).execute()

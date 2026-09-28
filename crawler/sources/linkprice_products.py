@@ -11,6 +11,7 @@ import requests
 
 import config
 from .base import RawDeal
+from .linkprice_policy import MERCHANT_NAMES, approved, is_game_product, product_identity
 
 API = "https://api.linkprice.com/ci/product/data/{aid}"
 
@@ -21,20 +22,6 @@ _CATEGORY_MAP = {
     "list_book": "books",          # 도서
     "list_food": "food",           # 음식
 }
-
-# 머천트 ID → 우리 쇼핑몰명 (affiliate.py와 중복되지만 직접 매핑)
-_MERCHANT_NAMES = {
-    "11st": "11번가",
-    "gmarket": "G마켓",
-    "auction": "옥션",
-    "wemakeprice": "위메프",
-    "ssg": "SSG",
-    "lotteon": "롯데온",
-    "interpark": "인터파크",
-    "ohouse": "오늘의집",
-    "oliveyoung": "올리브영",
-}
-
 
 def _to_int(v) -> int:
     try:
@@ -71,10 +58,13 @@ def fetch() -> list[RawDeal]:
 
         # 머천트별 상품 리스트
         for merchant_id, products in category_data.items():
+            merchant_id = str(merchant_id).strip().lower()
+            if not approved(merchant_id):
+                continue
             if not isinstance(products, list):
                 continue
 
-            mall_name = _MERCHANT_NAMES.get(merchant_id, merchant_id)
+            mall_name = MERCHANT_NAMES.get(merchant_id, merchant_id)
 
             for p in products:
                 if not isinstance(p, dict):
@@ -86,12 +76,12 @@ def fetch() -> list[RawDeal]:
                 image = p.get("img_url", "")
                 p_code = p.get("p_code", "")
 
-                if not name or not price or not url:
+                if not name or not price or not url or is_game_product(name):
                     continue
 
                 deals.append(RawDeal(
                     platform="cps",
-                    external_product_id=f"lp_{merchant_id}_{p_code}",
+                    external_product_id=product_identity(merchant_id, p_code),
                     title=name,
                     image_url=image,
                     product_url=url,

@@ -14,6 +14,8 @@ export type PriceStats = {
   max90: number | null;
   minAll: number;
   points: number;
+  /** 실제 수집 횟수와 별개인, 가격을 한 번 이상 확인한 날짜 수. */
+  observedDays: number;
   trackedDays: number;
   percentile: number;
   isLowest: boolean; // 현재가가 추적기간 내 최저
@@ -34,8 +36,26 @@ export function priceStats(
   })).filter(h => Number.isFinite(h.p) && h.p > 0 && Number.isFinite(h.t) && h.t <= now);
   if (!pts.length) return null;
   const prices = pts.map((x) => x.p);
+  // 같은 날 30분마다 같은 가격을 수집해도 그 날의 가중치가 커지지 않도록
+  // 한국 날짜별 중앙값 하나를 대표 가격으로 사용한다.
+  const byDay = new Map<string, { prices: number[]; latest: number }>();
+  for (const point of pts) {
+    const day = new Date(point.t + 9 * 3600000).toISOString().slice(0, 10);
+    const values = byDay.get(day) ?? { prices: [], latest: point.t };
+    values.prices.push(point.p);
+    values.latest = Math.max(values.latest, point.t);
+    byDay.set(day, values);
+  }
+  const daily = [...byDay.values()].map((values) => {
+    const sorted = [...values.prices].sort((a, b) => a - b);
+    const middle = Math.floor(sorted.length / 2);
+    const price = sorted.length % 2
+      ? sorted[middle]
+      : Math.round((sorted[middle - 1] + sorted[middle]) / 2);
+    return { p: price, t: values.latest };
+  });
   const within = (d: number) =>
-    pts.filter((x) => now - x.t <= d * 86400000).map((x) => x.p);
+    daily.filter((x) => now - x.t <= d * 86400000).map((x) => x.p);
   const avg = (a: number[]) =>
     a.length ? Math.round(a.reduce((s, v) => s + v, 0) / a.length) : null;
 
@@ -43,7 +63,8 @@ export function priceStats(
   const p90 = within(90);
   const minAll = Math.min(...prices, current);
   // 동일 가격이 여러 번 관측되어도 최저가의 위치가 100%로 뒤집히지 않게 한다.
-  const lowerCount = prices.filter((p) => p < current).length;
+  const dailyPrices = daily.map((x) => x.p);
+  const lowerCount = dailyPrices.filter((p) => p < current).length;
   const trackedDays = Math.max(
     1,
     Math.floor((Math.max(...pts.map(x => x.t)) - Math.min(...pts.map(x => x.t))) / 86400000)
@@ -59,11 +80,12 @@ export function priceStats(
     max90: p90.length ? Math.max(...p90) : null,
     minAll,
     points: prices.length,
+    observedDays: daily.length,
     trackedDays,
-    percentile: Math.round((lowerCount / prices.length) * 100),
+    percentile: Math.round((lowerCount / dailyPrices.length) * 100),
     isLowest: current <= minAll,
     lowestLabel: trackedDays >= 90 ? "90일 최저가" : `추적 ${trackedDays}일 최저가`,
-    enoughData: prices.length >= 20 && trackedDays >= 14,
+    enoughData: daily.length >= 14 && trackedDays >= 14,
   };
 }
 

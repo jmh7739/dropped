@@ -74,10 +74,7 @@ export function isVerifiedListing(filters: {
 }
 
 const TRUSTED_PLATFORM_BONUS: Record<Platform, number> = {
-  coupang: 8,
-  cps: 7,
-  naver: 6,
-  aliexpress: 2,
+  coupang: 8, cps: 7, naver: 6, aliexpress: 2,
 };
 
 export function headlineDropRate(d: {
@@ -152,12 +149,9 @@ export function dropScore(d: ScoreInput): DropScoreResult {
 
   const rate = headlineDropRate(d);
   const days = d.trackedDays ?? 0;
-  const dropComponent = Math.min(52, rate * 1.7);
-  const trustComponent = TRUSTED_PLATFORM_BONUS[d.platform] ?? 4;
-  const popularityComponent = Math.min(
-    18,
-    Math.log1p(d.clickCount) * 3 + Math.log1p(d.likeCount) * 4
-  );
+  // 가격 점수에는 인기·클릭·판매처 인지도를 섞지 않는다. 인기순은
+  // hotDealScore에서 별도로 계산하며, 동일 가격 이력은 어느 화면에서도 같다.
+  const dropComponent = Math.min(68, rate * 2.25);
   const lowestComponent = d.isLowestEver
     ? days >= 30 ? 14 : days >= 14 ? 7 : 3
     : 0;
@@ -183,8 +177,6 @@ export function dropScore(d: ScoreInput): DropScoreResult {
       100,
       Math.round(
         dropComponent +
-          trustComponent +
-          popularityComponent +
           lowestComponent +
           priceSanityComponent -
           healthPenalty -
