@@ -11,6 +11,14 @@ test("상품이 아닌 자연·축제형 급상승어를 제외한다", () => {
   ["장미꽃다발", "꽃무늬원피스", "포켓몬카드30주년"].forEach(value => assert.equal(isHardExcluded(value), false));
 });
 
+test("국가 대항전과 스포츠 경기형 검색어를 제외한다", () => {
+  ["belgium vs france", "Belgium versus France", "벨기에 대 프랑스", "한국 일본 축구", "프리미어리그 선발명단", "야구 하이라이트"].forEach(value => {
+    assert.equal(isHardExcluded(value), true);
+    assert.equal(isLikelyShoppingKeyword(value), false);
+  });
+  ["프랑스 화장품 크림", "아디다스 운동화", "포켓몬 카드"].forEach(value => assert.equal(isHardExcluded(value), false));
+});
+
 test("범용 가전·사무·생활용품 키워드를 제외한다", () => {
   ["에어컨", "캐리어냉난방기", "전자레인지", "전자렌지", "A4용지", "복사용지", "빨래건조대", "가습기", "청호나이스정수기", "수건"].forEach(value => assert.equal(isHardExcluded(value), true));
   ["닌텐도스위치2", "AHC아이크림", "스팸선물세트", "나이키운동화"].forEach(value => assert.equal(isHardExcluded(value), false));
@@ -90,7 +98,7 @@ test("카테고리 강제 균등 없이 독점만 제한한다", () => {
 });
 
 test("최종 인기 검색어 선발에서도 비상품 키워드를 제거한다", () => {
-  const rows = ["상사화", "추석차례상", "아시안게임", "닌텐도스위치2", "헤라블랙쿠션"].map((keyword, index) => ({ keyword, normalizedKeyword: keyword, category: "생활", trendScore: 100 - index, currentRank: index + 1 }));
+  const rows = ["상사화", "추석차례상", "아시안게임", "belgium vs france", "한국 일본 축구", "닌텐도스위치2", "헤라블랙쿠션"].map((keyword, index) => ({ keyword, normalizedKeyword: keyword, category: "생활", trendScore: 100 - index, currentRank: index + 1 }));
   assert.deepEqual(selectHotTrends(rows, 20).map((item) => item.keyword), ["닌텐도스위치2", "헤라블랙쿠션"]);
 });
 

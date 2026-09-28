@@ -22,6 +22,12 @@ const NON_COMMERCE_TREND_PATTERNS = [
   /(?:경기결과|경기일정|중계|스코어|순위|출연진|재방송|몇부작|프로필|근황|사건|사고|논란)$/,
   /(?:아시안게임|올림픽|월드컵|대통령|국회의원|금리|환율|코스피|코스닥)$/,
 ];
+const MATCH_OR_SPORTS_PATTERNS = [
+  /(?:^|\s)(?:vs\.?|versus|v)(?:\s|$)/i,
+  /(?:belgium|france|england|germany|spain|italy|portugal|brazil|argentina|japan|korea)(?:vs|versus)(?:belgium|france|england|germany|spain|italy|portugal|brazil|argentina|japan|korea)/i,
+  /(?:벨기에|프랑스|잉글랜드|영국|독일|스페인|이탈리아|포르투갈|브라질|아르헨티나|일본|한국)(?:대|전|vs)(?:벨기에|프랑스|잉글랜드|영국|독일|스페인|이탈리아|포르투갈|브라질|아르헨티나|일본|한국)/i,
+  /(?:축구|야구|농구|배구|테니스|국가대표|챔피언스리그|프리미어리그|유로파리그|경기예측|선발명단|하이라이트)/,
+];
 const SERVICE_PATTERNS = [
   /여행|투어|크루즈|배편|항공권|렌터카|렌트카|렌트|대여|숙박|호텔|리조트|펜션|예약/,
   /공연|연극|뮤지컬|콘서트|전시|관람권|입장권|체험권|이용권/,
@@ -53,8 +59,9 @@ function isServiceKeyword(keyword) {
 }
 
 function isHardExcluded(keyword) {
+  const raw = String(keyword || "").toLowerCase().trim();
   const value = normalizeKeyword(keyword);
-  return !value || value.length < 2 || /^\d+$/.test(value) || HARD_EXCLUDE.has(value) || LOW_SIGNAL_PATTERNS.some(pattern => pattern.test(value)) || COMPANY_ONLY_PATTERNS.some(pattern => pattern.test(value)) || COMPANY_NEWS_PATTERN.test(value) || NON_COMMERCE_TREND_PATTERNS.some(pattern => pattern.test(value)) || isServiceKeyword(value);
+  return !value || value.length < 2 || /^\d+$/.test(value) || HARD_EXCLUDE.has(value) || MATCH_OR_SPORTS_PATTERNS.some(pattern => pattern.test(raw) || pattern.test(value)) || LOW_SIGNAL_PATTERNS.some(pattern => pattern.test(value)) || COMPANY_ONLY_PATTERNS.some(pattern => pattern.test(value)) || COMPANY_NEWS_PATTERN.test(value) || NON_COMMERCE_TREND_PATTERNS.some(pattern => pattern.test(value)) || isServiceKeyword(value);
 }
 
 function genericPenalty(keyword) {
@@ -83,7 +90,7 @@ function isLikelyShoppingKeyword(keyword) {
   const value = normalizeKeyword(keyword);
   const matchingBrand = BRANDS.find(brand => value.includes(normalizeKeyword(brand)));
   const qualifiedBrand = matchingBrand && value.length >= normalizeKeyword(matchingBrand).length + 2;
-  return !isHardExcluded(value) && (Boolean(qualifiedBrand) || SHOPPING_INTENT.test(value));
+  return !isHardExcluded(keyword) && (Boolean(qualifiedBrand) || SHOPPING_INTENT.test(value));
 }
 
 module.exports = {

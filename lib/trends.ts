@@ -32,7 +32,12 @@ function usableProductImage(value: unknown): string {
 }
 
 function blockedTrendKeyword(value: unknown): boolean {
-  const keyword = String(value || "").toLowerCase().replace(/[^0-9a-z가-힣]/gi, "");
+  const raw = String(value || "").toLowerCase().trim();
+  const keyword = raw.replace(/[^0-9a-z가-힣]/gi, "");
+  const matchOrSports = /(?:^|\s)(?:vs\.?|versus|v)(?:\s|$)/i.test(raw)
+    || /(?:belgium|france|england|germany|spain|italy|portugal|brazil|argentina|japan|korea)(?:vs|versus)(?:belgium|france|england|germany|spain|italy|portugal|brazil|argentina|japan|korea)/.test(keyword)
+    || /(?:벨기에|프랑스|잉글랜드|영국|독일|스페인|이탈리아|포르투갈|브라질|아르헨티나|일본|한국)(?:대|전|vs)(?:벨기에|프랑스|잉글랜드|영국|독일|스페인|이탈리아|포르투갈|브라질|아르헨티나|일본|한국)/.test(keyword)
+    || /(?:축구|야구|농구|배구|테니스|국가대표|챔피언스리그|프리미어리그|유로파리그|경기예측|선발명단|하이라이트)/.test(keyword);
   const companyOnly = /^(?:삼성전기|삼성전자|lg전자|엘지전자|sk하이닉스|현대자동차|현대차|기아|포스코홀딩스|현대모비스|한화오션|두산에너빌리티)$/.test(keyword)
     || /(?:그룹|홀딩스|증권|건설|중공업|바이오로직스|모비스|전기|전자)$/.test(keyword)
     || /(?:주가|실적|공시|배당|채용|회장|대표|노조|파업)$/.test(keyword);
@@ -40,7 +45,7 @@ function blockedTrendKeyword(value: unknown): boolean {
     || /(?:꽃축제|벚꽃축제|불꽃축제|축제일정|개화시기|개화상황|단풍시기|명소|날씨|차례상|제사상|명절음식|연휴)$/.test(keyword)
     || /(?:경기결과|경기일정|중계|스코어|순위|출연진|재방송|몇부작|프로필|근황|사건|사고|논란)$/.test(keyword)
     || /(?:아시안게임|올림픽|월드컵|대통령|국회의원|금리|환율|코스피|코스닥)$/.test(keyword);
-  return companyOnly || nonCommerceTrend || /(에어컨|냉난방기|전자레인지|전자렌지|정수기|공기청정기|세탁기|냉장고|음식물처리기|비데|안마의자)$/.test(keyword) || /a4용지|복사용지|빨래건조대|의류건조대/.test(keyword) || keyword === "건조대" || keyword === "가습기" || keyword === "수건";
+  return matchOrSports || companyOnly || nonCommerceTrend || /(에어컨|냉난방기|전자레인지|전자렌지|정수기|공기청정기|세탁기|냉장고|음식물처리기|비데|안마의자)$/.test(keyword) || /a4용지|복사용지|빨래건조대|의류건조대/.test(keyword) || keyword === "건조대" || keyword === "가습기" || keyword === "수건";
 }
 
 function blockedSeasonalProduct(value: unknown): boolean {
@@ -70,8 +75,9 @@ const TREND_BRANDS = [
 const PRODUCT_INTENT = /선물세트|화장품|스킨|로션|에센스|크림|아이크림|쿠션|파운데이션|립스틱|샴푸|운동화|등산화|구두|슬리퍼|샌들|바람막이|패딩|가디건|원피스|재킷|자켓|가방|백팩|스마트폰|태블릿|노트북|모니터|게임기|콘솔|이어폰|헤드폰|카메라|청소기|안마기|캠핑용품|골프채|낚싯대|유모차|카시트|기저귀|분유|갈비|한우|꽃게|대하|굴비|과일세트|홍삼|영양제|유산균|비타민|카드|스위치|플레이스테이션|에어팟|갤럭시|아이폰|아이패드/;
 
 function likelyProductTrend(value: unknown): boolean {
-  const keyword = String(value || "").toLowerCase().replace(/[^0-9a-z가-힣]/gi, "");
-  if (!keyword || blockedTrendKeyword(keyword)) return false;
+  const raw = String(value || "");
+  const keyword = raw.toLowerCase().replace(/[^0-9a-z가-힣]/gi, "");
+  if (!keyword || blockedTrendKeyword(raw)) return false;
   const brand = TREND_BRANDS.find((item) => keyword.includes(item));
   return PRODUCT_INTENT.test(keyword) || Boolean(brand && keyword.length >= brand.length + 2);
 }
