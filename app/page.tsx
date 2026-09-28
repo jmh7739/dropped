@@ -245,9 +245,16 @@ export default async function Home({
   // 검색 결과의 '추적 상품' 중, 이미 위/아래 활성 딜로 나온 것은 중복 제거.
   const dealProductIds = new Set(listDeals.map((d) => d.productId));
   const dealFingerprints = new Set(listDeals.map((d) => `${d.title.toLowerCase().replace(/[^0-9a-z가-힣]/gi, '')}|${(d.mallName ?? d.platform).toLowerCase()}|${d.currentPrice}`));
+  const trackedMatchFingerprints = new Set<string>();
   const trackedMatches = productMatchesRaw
     .filter((r) => !dealProductIds.has(r.id))
     .filter((r) => !dealFingerprints.has(`${r.title.toLowerCase().replace(/[^0-9a-z가-힣]/gi, '')}|${(r.mallName ?? r.platform).toLowerCase()}|${r.currentPrice}`))
+    .filter((r) => {
+      const fingerprint = `${r.title.replace(/\s+/g, '').toLowerCase()}|${r.mallName ?? r.platform}|${r.currentPrice}`;
+      if (trackedMatchFingerprints.has(fingerprint)) return false;
+      trackedMatchFingerprints.add(fingerprint);
+      return true;
+    })
     .slice(0, 8);
 
   const sortOptions = [

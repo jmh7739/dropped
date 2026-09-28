@@ -55,8 +55,10 @@ export function lowestPeriodLabel(trackedDays?: number | null): string {
 /** 홈의 '검증된 베스트딜' 최소 게이트. 정가 할인만 있는 큐레이션은 통과하지 않는다. */
 export function isVerifiedBestDeal(d: Deal): boolean {
   const score = dropScore(d).score ?? 0;
+  const checkedAt = d.checkedAt ? new Date(d.checkedAt).getTime() : 0;
+  const fresh = checkedAt > 0 && Date.now() - checkedAt <= 24 * 3600_000;
   return !d.isCurated && (d.trackedDays ?? 0) >= 14 &&
-    (d.historyPointCount ?? 0) >= 20 && score >= 50 && headlineDropRate(d) >= 5;
+    (d.historyPointCount ?? 0) >= 20 && fresh && score >= 50 && headlineDropRate(d) >= 5;
 }
 
 /** 베스트딜 탭은 전체/국내/해외에 관계없이 같은 검증 기준을 사용한다. */
@@ -166,6 +168,14 @@ export function dropScore(d: ScoreInput): DropScoreResult {
   const staleHours = d.checkedAt
     ? (Date.now() - new Date(d.checkedAt).getTime()) / 3600000
     : 48;
+  if (staleHours > 72) {
+    return {
+      score: null,
+      label: "가격 재확인 필요",
+      reason: `마지막 가격 확인이 ${Math.floor(staleHours / 24)}일 전입니다. 현재 구매 판단은 판매 페이지에서 가격을 다시 확인한 뒤 결정하세요.`,
+      tone: "weak",
+    };
+  }
   const stalePenalty = staleHours > 24 ? Math.min(15, Math.round((staleHours - 24) / 6)) : 0;
   const score = Math.max(
     0,

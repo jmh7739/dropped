@@ -65,6 +65,8 @@ async function main() {
   assert.equal(isVerifiedBestDeal(candidate),false,'19회 관측은 검증 딜이 아님');
   assert.equal(isVerifiedBestDeal({...candidate,historyPointCount:20}),true);
   assert.equal(isVerifiedBestDeal({...candidate,trackedDays:13,historyPointCount:20}),false);
+  assert.equal(isVerifiedBestDeal({...candidate,historyPointCount:20,checkedAt:new Date(Date.now()-25*3600000).toISOString()}),false,
+    '24시간 넘게 확인하지 못한 가격은 검증 핫딜에서 제외');
 
   const rows = Array.from({length:2005}, (_,i) => ({id:i+1,product_id:i%2+1,price:100+i,
     collected_at:new Date(Date.now()-86400000+i*1000).toISOString()}));

@@ -114,7 +114,7 @@ export default function PriceChart({
           strokeWidth={1}
         />
         <text x={padX} y={y(avg) - 4} fontSize="10" fill="#9ca3af">
-          평균 {formatWon(avg)}
+          표시 구간 평균 {formatWon(avg)}
         </text>
 
         {/* 채움 영역 */}
@@ -149,7 +149,7 @@ export default function PriceChart({
           <span className="text-green-600">●</span> 기간 내 최저 {formatWon(min)}
         </span>
         <span>
-          <span className="text-gray-400">┈</span> 평균 {formatWon(avg)}
+          <span className="text-gray-400">┈</span> 표시 구간 평균 {formatWon(avg)}
         </span>
         <span>
           <span className="text-brand">●</span> 마지막 확인 {formatWon(chartHistory[lastIdx].price)}
