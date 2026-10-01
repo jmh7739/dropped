@@ -6,6 +6,7 @@ import { displayTitle, formatWon } from "@/lib/format";
 
 type Watch = { id: number; target: number | null; lowest: boolean };
 type Item = { id: number; title: string; mall: string | null; price: number | null; lowest: number | null; checkedAt: string | null };
+const MAX_ACTIONABLE_PRICE_AGE_MS = 48 * 60 * 60 * 1000;
 
 export default function SavedPriceWatches() {
   const [watches, setWatches] = useState<Watch[]>([]);
@@ -46,7 +47,10 @@ export default function SavedPriceWatches() {
     {unavailable && <p className="mt-3 text-sm text-gray-600">지금 가격 확인이 지연되고 있습니다. 상품 상세에서 다시 확인해 주세요.</p>}
     <div className="mt-3 grid gap-2 sm:grid-cols-2">{watches.map(watch => {
       const item = items.find(p => p.id === watch.id);
-      const reached = item?.price != null &&
+      const collectedAt = item?.checkedAt ? Date.parse(item.checkedAt) : NaN;
+      const freshPrice = Number.isFinite(collectedAt) && Date.now() - collectedAt >= 0 &&
+        Date.now() - collectedAt <= MAX_ACTIONABLE_PRICE_AGE_MS;
+      const reached = freshPrice && item?.price != null &&
         ((watch.target != null && item.price <= watch.target) ||
           (watch.lowest && item.lowest != null && item.price <= item.lowest));
       return <Link key={watch.id} href={`/price/${watch.id}`}
@@ -57,7 +61,7 @@ export default function SavedPriceWatches() {
           {watch.target != null && ` · 목표 ${formatWon(watch.target)}`}
         </span>
         <span className={`mt-1 block text-xs font-bold ${reached ? "text-emerald-700" : "text-gray-500"}`}>
-          {reached ? "저장한 가격 조건 도달 · 판매처 확인" : item?.price != null ? "아직 저장한 가격 조건에 미도달" : "최근 가격 확인 불가 · 상세에서 재확인"}
+          {!freshPrice ? "최근 48시간 내 가격 확인 없음 · 조건 판정 보류" : reached ? "저장한 가격 조건 도달 · 판매처 확인" : item?.price != null ? "아직 저장한 가격 조건에 미도달" : "최근 가격 확인 불가 · 상세에서 재확인"}
           {item?.checkedAt && ` · ${item.checkedAt.slice(0, 10)} 수집`}
         </span>
       </Link>;

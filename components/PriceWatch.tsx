@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 type Watch = { target: number | null; lowest: boolean };
+const MAX_ACTIONABLE_PRICE_AGE_MS = 48 * 60 * 60 * 1000;
 
 export default function PriceWatch({ productId, currentPrice, lowestPrice, checkedAt, trackedDays }: {
   productId: number; currentPrice: number | null; lowestPrice: number | null; checkedAt: string | null; trackedDays?: number | null;
@@ -29,7 +30,10 @@ export default function PriceWatch({ productId, currentPrice, lowestPrice, check
     setLoaded(true);
   }, [key]);
 
-  const reached = Boolean(watch && currentPrice !== null &&
+  const collectedAt = checkedAt ? Date.parse(checkedAt) : NaN;
+  const freshPrice = Number.isFinite(collectedAt) && Date.now() - collectedAt >= 0 &&
+    Date.now() - collectedAt <= MAX_ACTIONABLE_PRICE_AGE_MS;
+  const reached = Boolean(freshPrice && watch && currentPrice !== null &&
     ((watch.target !== null && currentPrice <= watch.target) ||
       (watch.lowest && lowestPrice !== null && currentPrice <= lowestPrice)));
   const price = Number(target.replaceAll(",", ""));
@@ -54,7 +58,8 @@ export default function PriceWatch({ productId, currentPrice, lowestPrice, check
     {message && <p role="status" className="mt-2 text-sm text-gray-700">{message}</p>}
     <p className="mt-1 text-sm text-gray-600">다음에 이 페이지를 열면 저장한 기준과 마지막 수집 가격을 비교합니다. 자동 알림은 보내지 않습니다.</p>
     {loaded && watch && <p role="status" className={`mt-3 rounded-lg p-3 text-sm font-semibold ${reached ? "bg-green-50 text-green-900" : "bg-gray-50 text-gray-700"}`}>
-      {reached ? "저장한 가격 조건에 도달했습니다. 판매처의 실시간 가격을 확인하세요." : "아직 저장한 가격 조건에 도달하지 않았습니다."}
+      {!freshPrice ? "최근 48시간 안에 확인된 가격이 없어 조건 도달 여부를 판단하지 않습니다. 판매처에서 현재 가격을 확인하세요." :
+        reached ? "저장한 가격 조건에 도달했습니다. 판매처의 실시간 가격을 확인하세요." : "아직 저장한 가격 조건에 도달하지 않았습니다."}
       {checkedAt && <span className="block font-normal">가격 수집 시점: {checkedAt.slice(0, 10)}</span>}
     </p>}
     <div className="mt-3 flex flex-wrap items-end gap-2">
