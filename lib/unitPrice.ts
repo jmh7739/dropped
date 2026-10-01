@@ -4,7 +4,8 @@ export function deriveUnitPrice(title: string, currentPrice: number, _stored?: s
   // from just one bottle when the title represents a bundle or option list.
   const normalized = title.normalize("NFKC");
   if (/(?:택\s*\d|선택|옵션|랜덤|증정|\d\s*\+\s*\d|~)/i.test(normalized)) return null;
-  const volumes = [...normalized.matchAll(/(\d+(?:\.\d+)?)\s*(ml|리터|l)(?![a-z])/gi)];
+  // A model code such as WA80F19E8L is not an 8-liter quantity.
+  const volumes = [...normalized.matchAll(/(?<![a-z0-9.])(\d+(?:\.\d+)?)\s*(ml|리터|l)(?![a-z0-9])/gi)];
   const counts = [...normalized.matchAll(/(\d+)\s*(?:개입|개|병|팩|입|펫|캔)(?![가-힣\d])/g)];
   if (volumes.length !== 1 || counts.length > 1) return null;
   const volume = volumes[0];

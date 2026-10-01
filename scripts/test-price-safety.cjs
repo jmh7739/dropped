@@ -15,7 +15,10 @@ function load(file, dependencies = {}) {
 
 async function main() {
   const { deriveUnitPrice } = load('lib/unitPrice.ts');
-  for (const [title, price, expected] of [
+    for (const [title, price, expected] of [
+      ['통버블 19kg 일반세탁기 WA80F19E8L', 609000, null],
+      ['모델 ABC18L20', 50000, null],
+      ['생수 1.5L 12병', 18000, '1L당 1,000원'],
     ['무라벨 2L, 12개', 12360, '1L당 515원'],
     ['500ml 40개입', 14930, '1L당 747원'],
     ['900ml 12병', 12900, '1L당 1,194원'],
