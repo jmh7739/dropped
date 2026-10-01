@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { PricePoint } from "@/lib/types";
 import { formatWon } from "@/lib/format";
+import { dailyPricePoints } from "@/lib/priceReport";
 
 /**
  * 의존성 없는 SVG 가격 변동 그래프 (다나와 스타일).
@@ -20,20 +21,20 @@ export default function PriceChart({
   width?: number;
   height?: number;
 }) {
-  const [range, setRange] = useState<7 | 30 | 90 | "all">("all");
+  const [range, setRange] = useState<7 | 30 | 90 | "all">(30);
   const filtered = useMemo(() => {
-    if (range === "all" || history.length === 0) return history;
-    const newest = Math.max(...history.map((h) => new Date(h.collectedAt).getTime()));
-    return history.filter(
-      (h) => newest - new Date(h.collectedAt).getTime() <= range * 86400000
+    const daily = dailyPricePoints(history);
+    if (range === "all") return daily;
+    return daily.filter(
+      (h) => Date.now() - new Date(h.collectedAt).getTime() <= range * 86400000
     );
   }, [history, range]);
-  const chartHistory = filtered.length >= 2 ? filtered : history;
+  const chartHistory = filtered;
 
-  if (history.length < 2) {
+  if (chartHistory.length < 2) {
     return (
       <div className="rounded-lg border border-gray-200 bg-gray-50 p-6 text-center text-sm text-gray-400">
-        가격 이력이 아직 부족합니다. 수집이 쌓이면 그래프가 표시됩니다.
+        선택한 기간의 가격 이력이 부족합니다. <button type="button" onClick={() => setRange("all")} className="underline">전체 기간 보기</button>
       </div>
     );
   }
@@ -73,13 +74,13 @@ export default function PriceChart({
   });
   const newest = Math.max(...history.map((item) => new Date(item.collectedAt).getTime()));
   const options: { label: string; value: 7 | 30 | 90 | "all" }[] = [
-    ...([7, 30, 90] as const).filter(days => history.filter(item => newest - new Date(item.collectedAt).getTime() <= days * 86400000).length >= 2 &&
-      history.some(item => newest - new Date(item.collectedAt).getTime() > days * 86400000)).map(days => ({ label: `${days}일`, value: days })),
+    ...([7, 30, 90] as const).map(days => ({ label: `${days}일`, value: days })),
     { label: "전체", value: "all" },
   ];
 
   return (
     <div>
+      <p className="mb-2 text-xs text-gray-500">한국 날짜별 중앙값을 하루 대표가격으로 사용합니다. 최근 30일 평균은 상세 통계와 같은 기준입니다. 마지막 점은 해당 날짜의 대표가격입니다.</p>
       {options.length > 1 && <div className="mb-3 flex flex-wrap gap-1">
         {options.map((option) => (
           <button
@@ -152,7 +153,7 @@ export default function PriceChart({
           <span className="text-gray-400">┈</span> 표시 구간 평균 {formatWon(avg)}
         </span>
         <span>
-          <span className="text-brand">●</span> 마지막 확인 {formatWon(chartHistory[lastIdx].price)}
+          <span className="text-brand">●</span> 마지막 날짜 대표가격 {formatWon(chartHistory[lastIdx].price)}
         </span>
       </div>
       </div>

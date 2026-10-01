@@ -18,7 +18,7 @@ export default function DealCard({
   variant?: "gallery" | "list";
   priorityImage?: boolean;
 }) {
-  const saving = (deal.baselinePrice || deal.listPrice) - deal.currentPrice;
+  const saving = (deal.isCurated ? deal.listPrice : deal.avg30Price ?? deal.baselinePrice) - deal.currentPrice;
   const ended = deal.status === "ended";
   const isCurated = deal.isCurated;
   const score = dropScore(deal);
@@ -61,7 +61,7 @@ export default function DealCard({
     ? curatedDisc > 0
       ? deal.listPrice
       : 0
-    : deal.baselinePrice || deal.listPrice;
+    : deal.avg30Price ?? 0;
 
   const trackingChip = !isCurated ? (
     <span className={`rounded border px-1.5 py-0.5 text-[10px] font-bold ${stage.className}`}>

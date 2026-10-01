@@ -24,6 +24,21 @@ export type PriceStats = {
   enoughData: boolean; // 판정을 신뢰할 만큼 이력이 쌓였나
 };
 
+export function dailyPricePoints(history: PricePoint[], now = Date.now()): PricePoint[] {
+  const days = new Map<string, PricePoint[]>();
+  for (const point of history) {
+    const time = Date.parse(point.collectedAt);
+    if (!Number.isFinite(time) || time > now || !Number.isFinite(point.price) || point.price <= 0) continue;
+    const day = new Date(time + 9 * 3600000).toISOString().slice(0, 10);
+    days.set(day, [...(days.get(day) ?? []), point]);
+  }
+  return [...days.values()].map(points => {
+    const values = points.map(p => p.price).sort((a, b) => a - b);
+    const middle = Math.floor(values.length / 2);
+    return { price: values.length % 2 ? values[middle] : Math.round((values[middle - 1] + values[middle]) / 2), collectedAt: new Date(Math.max(...points.map(p => Date.parse(p.collectedAt)))).toISOString() };
+  }).sort((a, b) => Date.parse(a.collectedAt) - Date.parse(b.collectedAt));
+}
+
 export function priceStats(
   history: PricePoint[],
   current: number
@@ -38,22 +53,7 @@ export function priceStats(
   const prices = pts.map((x) => x.p);
   // 같은 날 30분마다 같은 가격을 수집해도 그 날의 가중치가 커지지 않도록
   // 한국 날짜별 중앙값 하나를 대표 가격으로 사용한다.
-  const byDay = new Map<string, { prices: number[]; latest: number }>();
-  for (const point of pts) {
-    const day = new Date(point.t + 9 * 3600000).toISOString().slice(0, 10);
-    const values = byDay.get(day) ?? { prices: [], latest: point.t };
-    values.prices.push(point.p);
-    values.latest = Math.max(values.latest, point.t);
-    byDay.set(day, values);
-  }
-  const daily = [...byDay.values()].map((values) => {
-    const sorted = [...values.prices].sort((a, b) => a - b);
-    const middle = Math.floor(sorted.length / 2);
-    const price = sorted.length % 2
-      ? sorted[middle]
-      : Math.round((sorted[middle - 1] + sorted[middle]) / 2);
-    return { p: price, t: values.latest };
-  });
+  const daily = dailyPricePoints(history, now).map(point => ({ p: point.price, t: Date.parse(point.collectedAt) }));
   const within = (d: number) =>
     daily.filter((x) => now - x.t <= d * 86400000).map((x) => x.p);
   const avg = (a: number[]) =>

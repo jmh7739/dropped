@@ -4,6 +4,7 @@ import { headlineDropRate, hotDealScore, dropScore } from "./dropMetrics";
 import { readPriceHistory } from "./priceHistory";
 import { listDiscountRate } from "./format";
 import { deriveUnitPrice } from "./unitPrice";
+import { priceStats } from "./priceReport";
 
 export type SortKey =
   | "discount" // 하락률 높은순 (기본)
@@ -27,6 +28,7 @@ export const DEAL_SORTS: { key: SortKey; label: string }[] = [
 function rowToDeal(row: any, history: PricePoint[]): Deal {
   const listPrice = Number(row.list_price ?? 0);
   const currentPrice = Number(row.current_price ?? 0);
+  const stats = history.length ? priceStats(history, currentPrice) : null;
   return {
     id: row.deal_id,
     productId: row.product_id,
@@ -52,7 +54,7 @@ function rowToDeal(row: any, history: PricePoint[]): Deal {
     detectedAt: row.detected_at,
     endedAt: row.ended_at,
     checkedAt: row.checked_at ?? row.updated_at ?? null,
-    avg30Price: row.avg30_price != null ? Number(row.avg30_price) : null,
+    avg30Price: stats?.avg30 ?? (row.avg30_price != null ? Number(row.avg30_price) : null),
     min90Price: row.min90_price != null ? Number(row.min90_price) : null,
     max90Price: row.max90_price != null ? Number(row.max90_price) : null,
     // DB 뷰는 경과일을 ceil()로 집계한다. 89일 몇 시간이 90일로 보이는
@@ -314,7 +316,8 @@ export async function getDeals(opts: GetDealsOpts = {}): Promise<Deal[]> {
   }
   // DB 상태가 active여도 수집기가 멈추면 품절·종료 상품이 계속 남을 수 있다.
   // 최근 72시간 안에 판매 페이지가 다시 확인된 상품만 목록에 노출한다.
-  let deals = data.map((row) => rowToDeal(row, [])).filter((deal) => recentlyChecked(deal));
+  const history = await readPriceHistory(data.map(row => Number(row.product_id)), new Date(Date.now() - 31 * 86400000).toISOString());
+  let deals = data.map((row) => rowToDeal(row, history.get(Number(row.product_id)) ?? [])).filter((deal) => recentlyChecked(deal));
   // 가격 상태 필터는 종료딜엔 의미없음 → 활성만 대상으로 거른다.
   if (priceStatus)
     deals = deals.filter(
