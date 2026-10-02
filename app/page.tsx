@@ -380,7 +380,7 @@ export default async function Home({
               <p className="mt-2 text-xs leading-5 text-gray-500">서로 다른 날짜의 가격 기록이 20일 이상 쌓인 상품부터 검증 완료로 공개합니다.</p>
               {trackingItems.length > 0 ? <a href="#price-tracking" className="mt-4 inline-flex min-h-11 items-center rounded-lg bg-gray-900 px-4 text-sm font-bold text-white">검증 대기 상품 보기</a> : <Link href="/tracking" className="mt-4 inline-flex min-h-11 items-center rounded-lg bg-gray-900 px-4 text-sm font-bold text-white">전체 상품 둘러보기</Link>}
             </div>
-          ) : <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+          ) : <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:grid-cols-4">
             {hotItems.map((d, index) => <DealCard key={d.id} deal={d} priorityImage={index === 0} />)}
           </div>}
           {hotTotalPages > 1 && (
@@ -401,7 +401,7 @@ export default async function Home({
               <p className="mb-3 mt-1 text-xs leading-5 text-gray-500">
                 실제 가격을 기록하고 있지만 아직 14일·20관측일 검증 기준을 채우지 못했습니다. 국내 {trackedDomesticCount}개 · 해외 {trackedOverseasCount}개를 추적 중이며, 기본 화면에서는 국내와 해외를 번갈아 보여줍니다.
               </p>
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:grid-cols-4">
                 {trackingItems.map((deal) => <DealCard key={deal.id} deal={deal} />)}
               </div>
             </div>

@@ -131,7 +131,7 @@ export default function DealCard({
               {displayTitle(deal.title)}
             </h3>
             <div className="flex items-baseline gap-1.5">
-              <span className="text-base font-extrabold text-brand">
+              <span className="whitespace-nowrap text-base font-extrabold text-brand">
                 {formatWon(deal.currentPrice)}
               </span>
               {strikePrice > deal.currentPrice && (
@@ -230,8 +230,8 @@ export default function DealCard({
           </h3>
 
           <div className="mt-auto pt-1">
-            <div className="flex items-baseline gap-1.5">
-              <span className="text-lg font-extrabold text-brand">
+            <div className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
+              <span className="whitespace-nowrap text-lg font-extrabold text-brand">
                 {formatWon(deal.currentPrice)}
               </span>
               {saving > 0 && (

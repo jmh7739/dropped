@@ -445,13 +445,13 @@ export async function getRelatedDeals(
       .toLocaleLowerCase('ko')
       .replace(/[^0-9a-z가-힣]+/gi, ' ')
       .split(/\s+/)
-      .filter((word) => word.length >= 2 && !['무료배송', '국내배송', '정품', '공식', '특가', '할인'].includes(word)),
+      .filter((word) => word.length >= 2 && !['무료배송', '국내배송', '정품', '공식', '특가', '할인', '세트', '상품', '굿즈', '스티커', '피규어'].includes(word)),
   );
   const referenceKeywords = keywords(referenceTitle);
   const sharesKeyword = (title: string) => {
     if (!referenceKeywords.size) return false;
     const candidate = keywords(title);
-    return [...referenceKeywords].some((word) => candidate.has(word));
+    return [...referenceKeywords].filter((word) => candidate.has(word)).length >= 2;
   };
   const comparable = referenceFamily
     ? deals.filter((deal) => referenceFamily.test(deal.title))
