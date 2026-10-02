@@ -1,3 +1,5 @@
+import { MORE_GUIDES } from './more-guides';
+
 export type Guide = {
   slug: string;
   category?: "travel";
@@ -10,6 +12,7 @@ export type Guide = {
 
 // 가격 판단 기능에서 실제로 쓰는 개념만 설명한다. 가상의 상품·가격 사례는 사용하지 않는다.
 export const GUIDES: Guide[] = [
+  ...MORE_GUIDES,
   {
     slug: "price-drop-buy-or-wait",
     title: "가격이 떨어졌을 때 지금 살지 판단하는 순서",
