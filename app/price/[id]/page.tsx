@@ -18,6 +18,7 @@ import DealCard from "@/components/DealCard";
 import Breadcrumb from "@/components/Breadcrumb";
 import { ShippingBadge } from "@/components/DiscountBadge";
 import { SITE_URL as SITE } from "@/lib/site";
+import { productDisplayTitle } from "@/lib/productTitle";
 
 export const revalidate = 300;
 
@@ -37,15 +38,16 @@ export async function generateMetadata({
   const lastCheck = r.lastCheckedAt ? new Date(r.lastCheckedAt).getTime() : 0;
   const indexable = Boolean(stats?.enoughData && lastCheck > 0 && Date.now() - lastCheck <= 14 * 86400000);
   const period = stats ? `추적 ${stats.trackedDays}일 · ${stats.points}회 가격 확인` : "가격 이력 수집 중";
+  const displayTitle = productDisplayTitle(r.title);
   return {
-    title: stats?.enoughData ? `${r.title} 가격 추이 · 추적 최저가 · 평균가` : `${r.title} 마지막 확인 가격`,
+    title: stats?.enoughData ? `${displayTitle} 가격 추이` : `${displayTitle} 마지막 확인 가격`,
     description: r.currentPrice == null
       ? `${r.categoryName} · 가격 이력 수집을 준비하고 있습니다.`
       : `${r.categoryName} · 마지막 확인 가격 ${formatWon(r.currentPrice)} · ${period}. 가격 변동과 수집 시점을 확인하세요.`,
     robots: { index: indexable, follow: true },
     alternates: { canonical },
     openGraph: {
-      title: stats?.enoughData ? `${r.title} 가격 추이 · 추적 최저가 · 평균가` : `${r.title} 마지막 확인 가격`,
+      title: stats?.enoughData ? `${displayTitle} 가격 추이` : `${displayTitle} 마지막 확인 가격`,
       url: canonical,
       images: r.imageUrl ? [r.imageUrl] : [],
     },
@@ -168,7 +170,7 @@ export default async function ProductPricePage({
             </Link>
           </div>
 
-          <h1 className="break-words text-lg font-bold leading-snug">{r.title}</h1>
+          <h1 className="break-words text-lg font-bold leading-snug" title={r.title}>{productDisplayTitle(r.title)}</h1>
           {currentPrice == null ? (
             <div className="mt-3 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-medium text-blue-900">
               요즘 뜨는 상품으로 새로 등록됐습니다. 가격 이력 수집을 준비하고 있습니다.
