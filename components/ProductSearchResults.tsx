@@ -37,7 +37,7 @@ export default function ProductSearchResults({
         <p className="mt-0.5 text-xs leading-5 text-gray-500">위 검색 결과는 지금 판매 중인 특가만 집계합니다. 이 목록은 특가 여부와 관계없이 가격 이력을 가진 상품이며, 같은 제목·판매처·가격의 중복은 합쳤습니다.</p>
       </div>}
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
         {uniqueRows.map((r) => (
           <Link
             key={r.id}
