@@ -135,13 +135,21 @@ def history_days(product_id: int) -> float:
     return (datetime.now(timezone.utc) - oldest).total_seconds() / 86400
 
 
+def same_kst_observation_day(observed, now) -> bool:
+    """Only one unchanged-price observation per Korean calendar date."""
+    from zoneinfo import ZoneInfo
+    korea = ZoneInfo("Asia/Seoul")
+    return observed.astimezone(korea).date() >= now.astimezone(korea).date()
+
+
 def insert_price(product_id: int, price: int) -> None:
     if type(price) is not int or price <= 0:
         raise ValueError("Only positive integer prices belong in price_history")
     if config.DRY_RUN:
         return
     # 동일 가격을 수집 주기마다 계속 저장하면 자주 실행된 날이 평균을 과도하게
-    # 좌우한다. 가격이 바뀌었거나 마지막 관측 후 24시간이 지난 경우만 원본을 남긴다.
+    # 좌우한다. 같은 한국 날짜에는 한 번만 저장하고, 다음 날짜에 다시 실제로
+    # 관측됐다면 24시간이 채 지나지 않았어도 새 관측으로 남긴다.
     latest = (
         client()
         .table("price_history")
@@ -155,7 +163,7 @@ def insert_price(product_id: int, price: int) -> None:
     if latest and int(latest[0]["price"]) == price:
         from datetime import datetime, timezone
         observed = datetime.fromisoformat(str(latest[0]["collected_at"]).replace("Z", "+00:00"))
-        if (datetime.now(timezone.utc) - observed).total_seconds() < 86400:
+        if same_kst_observation_day(observed, datetime.now(timezone.utc)):
             return
     client().table("price_history").insert(
         {"product_id": product_id, "price": price}

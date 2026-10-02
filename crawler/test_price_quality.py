@@ -1,4 +1,5 @@
 import unittest
+from datetime import datetime, timezone
 from dataclasses import replace
 from unittest.mock import Mock, patch
 
@@ -15,6 +16,12 @@ def sample(**values):
 
 
 class PriceQualityTests(unittest.TestCase):
+    def test_unchanged_price_is_recorded_again_on_next_korean_date(self):
+        before = datetime(2026, 10, 1, 14, 30, tzinfo=timezone.utc)  # 23:30 KST
+        after = datetime(2026, 10, 1, 15, 30, tzinfo=timezone.utc)   # 00:30 KST
+        self.assertFalse(db.same_kst_observation_day(before, after))
+        self.assertTrue(db.same_kst_observation_day(after, after))
+
     def test_unknown_conditions_are_not_public_price_or_free_shipping(self):
         quality, reasons = q.validate_price(sample())
         self.assertEqual(quality, "warning")
