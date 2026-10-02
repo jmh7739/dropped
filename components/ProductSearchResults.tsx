@@ -44,11 +44,11 @@ export default function ProductSearchResults({
             href={`/price/${r.id}`}
             className="group flex flex-col overflow-hidden rounded-xl border border-gray-200 bg-white transition hover:shadow-md"
           >
-            <div className="relative aspect-square overflow-hidden bg-gray-100">
+            <div className="relative aspect-[3/2] overflow-hidden bg-gray-100">
               <SafeImage
                 src={r.imageUrl}
                 alt={r.title}
-                className="h-full w-full object-cover transition group-hover:scale-105"
+                className="h-full w-full object-contain transition group-hover:scale-105"
               />
               <span
                 className={`absolute left-2 top-2 rounded-full border px-2 py-0.5 text-[11px] font-extrabold shadow-sm ${r.verdictCls}`}

@@ -188,11 +188,11 @@ export default function DealCard({
     >
       {/* 클릭 → 상세(그래프) */}
       <Link href={`/price/${deal.productId}`} prefetch={false} className="flex flex-1 flex-col">
-        <div className="relative aspect-square overflow-hidden bg-gray-100">
+        <div className="relative aspect-[3/2] overflow-hidden bg-gray-100">
           <SafeImage
             src={deal.imageUrl}
             alt={deal.title}
-            className={`h-full w-full object-cover transition ${
+            className={`h-full w-full object-contain transition ${
               ended ? "grayscale" : "group-hover:scale-105"
             }`}
             priority={priorityImage}
