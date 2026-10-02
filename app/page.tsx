@@ -354,7 +354,7 @@ export default async function Home({
             <div className="flex flex-wrap items-center gap-2">
               <SortDropdown options={catOptions} value={hotCategory} param="hc" params={allParams} ariaLabel="핫딜 카테고리" />
               <SortDropdown options={[
-                { key: "recommended", label: "추천순 · 국내 포함" },
+                { key: "recommended", label: "추천순" },
                 { key: "score", label: "가격 점수순" },
                 { key: "drop", label: "하락률 높은순" },
                 { key: "recent", label: "최근 확인순" },
@@ -371,6 +371,7 @@ export default async function Home({
                 추적 최저가만
               </Link>
             </div>
+            {!hotScope && <p className="text-xs leading-5 text-gray-600">현재 검증 완료: 국내몰 {verifiedHotList.filter((deal) => deal.platform !== "aliexpress").length}개 · 해외직구 {verifiedHotList.filter((deal) => deal.platform === "aliexpress").length}개. 국내몰 검증 상품이 없으면 해외 상품만 표시됩니다.</p>}
           </div>
 
           {hotItems.length === 0 ? (
