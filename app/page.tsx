@@ -353,7 +353,7 @@ export default async function Home({
                       </div>
                     </div>
                     <div className="mt-3 grid grid-cols-2 gap-2 border-t border-gray-100 pt-3 text-xs leading-5">
-                      <div><span className="block text-gray-500">최근 30일 평균</span><strong className="text-sm text-gray-900">{formatWon(stats.avg30!)}</strong></div>
+                      <div><span className="block text-gray-500">{stats.trackedDays >= 30 ? "최근 30일 평균" : `추적 ${stats.trackedDays}일 평균`}</span><strong className="text-sm text-gray-900">{formatWon(stats.avg30!)}</strong></div>
                       <div><span className="block text-gray-500">평균 대비</span><strong className="text-sm text-emerald-700">{averageGapPercent > 0 ? `${averageGapPercent}% 낮음` : "하락 아님"}</strong></div>
                       <div><span className="block text-gray-500">추적 최저가</span><strong className="text-sm text-gray-900">{formatWon(stats.minAll)}</strong></div>
                       <div><span className="block text-gray-500">관측 기록</span><strong className="text-sm text-gray-900">{stats.points}회</strong></div>
