@@ -20,6 +20,8 @@ import SavedPriceWatches from "@/components/SavedPriceWatches";
 import SafeImage from "@/components/SafeImage";
 import { getPriceInsights } from "@/lib/insights";
 import { formatWon } from "@/lib/format";
+import { getTrendingProducts } from "@/lib/trends";
+import TrendingProducts from "@/components/TrendingProducts";
 
 export const revalidate = 300;
 
@@ -202,13 +204,14 @@ export default async function Home({
   if (hotLowestOnly) allParams.hl = "1";
   if (hotScope) allParams.hx = hotScope;
 
-  const [trackedDeals, curatedDealsRaw, lastUpdate, productMatchesRaw, insights] = await Promise.all([
+  const [trackedDeals, curatedDealsRaw, lastUpdate, productMatchesRaw, insights, trendingProducts] = await Promise.all([
     getDeals({ category, sort, hotOnly: hot, q, priceStatus: ps, scope }),
     scope !== "overseas" && !ps && !hot ? getCuratedDeals(sort, category) : Promise.resolve([]),
     getLastPriceUpdate(),
     // 검색 시: 활성 딜뿐 아니라 '가격 추적 중인 상품'도 찾아 지금 살지 판정.
     q.trim().length >= 2 ? searchProducts(q, 24) : Promise.resolve([]),
     !q.trim() && !category && page === 1 ? getPriceInsights().catch(() => []) : Promise.resolve([]),
+    !q.trim() && !category && !ps && !hot && !scope && page === 1 ? getTrendingProducts(24).catch(() => []) : Promise.resolve([]),
   ]);
 
   const term = q.trim().toLowerCase();
@@ -424,6 +427,8 @@ export default async function Home({
 
         </section>
       )}
+
+      {isDefaultHome && <TrendingProducts products={trendingProducts} />}
 
       {isDefaultHome && (
         <section className="mb-8 rounded-2xl border border-blue-100 bg-blue-50/60 p-5">

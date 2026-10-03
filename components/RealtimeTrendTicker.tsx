@@ -97,6 +97,8 @@ export default function RealtimeTrendTicker({
   const updatedLabel = collectedAt
     ? new Intl.DateTimeFormat("ko-KR", {
         timeZone: "Asia/Seoul",
+        month: "numeric",
+        day: "numeric",
         hour: "2-digit",
         minute: "2-digit",
         hour12: false,
@@ -172,7 +174,7 @@ export default function RealtimeTrendTicker({
               </div>
             )}
             <p className="mt-1.5 border-t border-gray-100 px-2 pt-1.5 text-[10px] leading-4 text-gray-400">
-              ▲ 상승 · ▼ 하락 · NEW 새 진입 · 변동 없음은 직전 순위와 동일
+              순위 변동은 전날 같은 시간대와 비교 · ▲ 상승 · ▼ 하락 · NEW 새 진입
             </p>
           </div>
         </>

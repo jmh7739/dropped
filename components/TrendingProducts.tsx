@@ -52,9 +52,9 @@ export default function TrendingProducts({
   return (
     <section className="mb-8">
       <div className="mb-3">
-        <h2 className="text-lg font-extrabold text-gray-900">👀 인기 검색어 관련 상품</h2>
+        <h2 className="text-lg font-extrabold text-gray-900">👀 실시간 급상승 검색어 관련 상품</h2>
         <p className="mt-1 text-xs text-gray-500" suppressHydrationWarning>
-          최근 7일 쇼핑 검색 흐름에서 상품명이 실제 검색어와 맞는 항목만 모았습니다. 가격 이력 검증 전 상품은 판매처에서 최종 가격을 확인하세요 · {updatedLabel} 갱신 · 총 {products.length}개
+          최근 급상승 검색어와 상품명이 맞는 항목만 모았습니다. 가격 이력 검증 전 상품은 판매처에서 최종 가격을 확인하세요 · {updatedLabel} 갱신 · 총 {products.length}개
         </p>
       </div>
       <div className="mb-3 flex flex-wrap gap-2">
