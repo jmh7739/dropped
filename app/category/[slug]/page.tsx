@@ -35,7 +35,7 @@ export async function generateMetadata({
   return {
     title: `${cat.name} 가격 이력·특가`,
     description: `${cat.name} 상품의 현재 가격, 실제 추적 기간, 평균 대비 변화를 확인하세요. 이력이 부족한 상품은 별도로 안내합니다.`,
-    robots: { index: deals.length >= 3 && Object.keys(query).length === 0, follow: true },
+    robots: { index: deals.filter(isVerifiedBestDeal).length >= 3 && Object.keys(query).length === 0, follow: true },
     alternates: { canonical: `${SITE_URL}/category/${cat.slug}` },
   };
 }

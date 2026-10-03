@@ -7,6 +7,7 @@ export const metadata: Metadata = {
   title: "전체 상품 둘러보기",
   description: "여러 판매처에서 가격을 수집 중인 상품을 판매처·카테고리별로 검색하고 현재가와 가격 이력을 비교하세요.",
   alternates: { canonical: "/tracking" },
+  robots: { index: false, follow: true },
 };
 
 export default async function TrackingPage() {

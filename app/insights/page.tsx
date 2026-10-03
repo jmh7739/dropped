@@ -49,6 +49,17 @@ export default async function InsightsPage() {
                     마지막 확인가는 {formatWon(stats.current)}입니다. {stats.trackedDays >= 30 ? "최근 30일 평균" : `추적 ${stats.trackedDays}일 평균`}은 {formatWon(stats.avg30!)}이며
                     마지막 확인가는 평균보다 {averageGapPercent === 0 ? "거의 차이가 없습니다" : `${Math.abs(averageGapPercent)}% ${averageGapPercent > 0 ? "낮습니다" : "높습니다"}`}.
                   </p>
+                  <div className="mt-3 rounded-lg border border-blue-100 bg-blue-50 p-3 text-sm leading-6 text-gray-800">
+                    <strong>이 기록에서 확인되는 점:</strong> {averageGapPercent > 0
+                      ? `마지막 확인가는 관측 평균보다 ${formatWon(stats.avg30! - stats.current)} 낮습니다.`
+                      : "마지막 확인가는 관측 평균보다 낮지 않아 가격 하락만으로 구매를 권하기 어렵습니다."}
+                    {stats.current === stats.minAll
+                      ? ` 추적한 ${stats.trackedDays}일 동안의 최저가와 같습니다.`
+                      : ` 추적 최저가 ${formatWon(stats.minAll)}보다 높아 이전에 더 낮은 가격이 있었습니다.`}
+                    {product.platform === "aliexpress"
+                      ? " 해외 판매 상품은 환율·배송비·옵션을 포함한 최종 결제액을 확인하세요."
+                      : " 배송비·쿠폰·옵션을 포함한 최종 결제액을 확인하세요."}
+                  </div>
                 </div>
               </div>
               <dl className="mt-4 grid grid-cols-2 gap-3 rounded-lg bg-gray-50 p-4 text-sm sm:grid-cols-4">
