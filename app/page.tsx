@@ -17,6 +17,7 @@ import { PAGE_SIZE } from "@/lib/nav";
 import { CATEGORIES } from "@/lib/types";
 import AdSenseScript from "@/components/AdSenseScript";
 import SavedPriceWatches from "@/components/SavedPriceWatches";
+import SafeImage from "@/components/SafeImage";
 import { getPriceInsights } from "@/lib/insights";
 import { formatWon } from "@/lib/format";
 
@@ -336,13 +337,29 @@ export default async function Home({
           {insights.length > 0 ? (
             <div className="mt-5 grid gap-3 md:grid-cols-3">
               {insights.slice(0, 3).map(({ product, stats, averageGapPercent }) => (
-                <article key={product.id} className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-                  <p className="text-xs font-semibold text-gray-500">{product.mallName || product.platform} · {stats.trackedDays}일 동안 {stats.points}회 관측</p>
-                  <h3 className="mt-2 line-clamp-2 text-sm font-bold leading-6 text-gray-950">{product.title}</h3>
-                  <p className="mt-3 text-sm text-gray-700">마지막 확인가 <strong>{formatWon(stats.current)}</strong></p>
-                  <p className="mt-1 text-sm text-gray-700">최근 평균 {formatWon(stats.avg30!)} · {averageGapPercent > 0 ? `평균보다 ${averageGapPercent}% 낮음` : "평균보다 낮지 않음"}</p>
-                  <p className="mt-2 text-xs leading-5 text-gray-600">추적 최저 {formatWon(stats.minAll)} · 현재보다 낮았던 기록 {stats.percentile}%</p>
-                  <Link href={`/price/${product.id}`} className="mt-3 inline-flex min-h-10 items-center font-bold text-brand hover:underline">가격 그래프와 판단 근거 보기 →</Link>
+                <article key={product.id} className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+                  <Link href={`/price/${product.id}`} className="group block h-full p-3.5 transition hover:bg-gray-50 sm:p-4">
+                    <div className="flex gap-3.5">
+                      <SafeImage
+                        src={product.imageUrl}
+                        alt={`${product.title} 상품 이미지`}
+                        className="h-24 w-24 shrink-0 rounded-lg border border-gray-100 bg-white object-contain sm:h-28 sm:w-28"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-semibold text-gray-500">{product.mallName || product.platform} · {stats.trackedDays}일 추적</p>
+                        <h3 className="mt-1.5 line-clamp-2 text-sm font-bold leading-5 text-gray-950">{product.title}</h3>
+                        <p className="mt-2 text-xs text-gray-500">마지막 확인가</p>
+                        <p className="text-xl font-extrabold leading-tight text-brand">{formatWon(stats.current)}</p>
+                      </div>
+                    </div>
+                    <div className="mt-3 grid grid-cols-2 gap-2 border-t border-gray-100 pt-3 text-xs leading-5">
+                      <div><span className="block text-gray-500">최근 30일 평균</span><strong className="text-sm text-gray-900">{formatWon(stats.avg30!)}</strong></div>
+                      <div><span className="block text-gray-500">평균 대비</span><strong className="text-sm text-emerald-700">{averageGapPercent > 0 ? `${averageGapPercent}% 낮음` : "하락 아님"}</strong></div>
+                      <div><span className="block text-gray-500">추적 최저가</span><strong className="text-sm text-gray-900">{formatWon(stats.minAll)}</strong></div>
+                      <div><span className="block text-gray-500">관측 기록</span><strong className="text-sm text-gray-900">{stats.points}회</strong></div>
+                    </div>
+                    <span className="mt-3 inline-flex min-h-9 items-center text-sm font-bold text-brand group-hover:underline">가격 그래프 보기 →</span>
+                  </Link>
                 </article>
               ))}
             </div>
