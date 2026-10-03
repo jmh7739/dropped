@@ -15,11 +15,10 @@ import SearchBar from "@/components/SearchBar";
 import Pagination from "@/components/Pagination";
 import { PAGE_SIZE } from "@/lib/nav";
 import { CATEGORIES } from "@/lib/types";
-import { getTrendingProducts } from "@/lib/trends";
-import TrendingProducts from "@/components/TrendingProducts";
 import AdSenseScript from "@/components/AdSenseScript";
 import SavedPriceWatches from "@/components/SavedPriceWatches";
-import SellerDiscountSection from "@/components/SellerDiscountSection";
+import { getPriceInsights } from "@/lib/insights";
+import { formatWon } from "@/lib/format";
 
 export const revalidate = 300;
 
@@ -202,13 +201,13 @@ export default async function Home({
   if (hotLowestOnly) allParams.hl = "1";
   if (hotScope) allParams.hx = hotScope;
 
-  const [trackedDeals, curatedDealsRaw, lastUpdate, productMatchesRaw, trendingProducts] = await Promise.all([
+  const [trackedDeals, curatedDealsRaw, lastUpdate, productMatchesRaw, insights] = await Promise.all([
     getDeals({ category, sort, hotOnly: hot, q, priceStatus: ps, scope }),
     scope !== "overseas" && !ps && !hot ? getCuratedDeals(sort, category) : Promise.resolve([]),
     getLastPriceUpdate(),
     // 검색 시: 활성 딜뿐 아니라 '가격 추적 중인 상품'도 찾아 지금 살지 판정.
     q.trim().length >= 2 ? searchProducts(q, 24) : Promise.resolve([]),
-    !q.trim() && !category && page === 1 ? getTrendingProducts(40) : Promise.resolve([]),
+    !q.trim() && !category && page === 1 ? getPriceInsights().catch(() => []) : Promise.resolve([]),
   ]);
 
   const term = q.trim().toLowerCase();
@@ -289,29 +288,9 @@ export default async function Home({
       return (dropScore(b).score ?? 0) - (dropScore(a).score ?? 0);
     });
   const verifiedHotList = sortedHotList.filter(isVerifiedBestDeal);
-  const newlyFoundHotList = sortedHotList.filter((deal) => !isVerifiedBestDeal(deal));
-  const diversifyScope = (items: typeof newlyFoundHotList) => {
-    if (hotScope) return items;
-    const domestic = items.filter((deal) => deal.platform !== "aliexpress");
-    const overseas = items.filter((deal) => deal.platform === "aliexpress");
-    const mixed: typeof items = [];
-    while (domestic.length || overseas.length) {
-      const local = domestic.shift(); if (local) mixed.push(local);
-      const global = overseas.shift(); if (global) mixed.push(global);
-    }
-    return mixed;
-  };
   const hotTotalPages = Math.max(1, Math.ceil(verifiedHotList.length / 8));
   const safeHotPage = Math.min(hotPage, hotTotalPages);
   const hotItems = verifiedHotList.slice((safeHotPage - 1) * 8, safeHotPage * 8);
-  const trackingItems = safeHotPage === 1
-    ? diversifyScope(newlyFoundHotList.filter((deal) => !deal.isCurated && (deal.historyPointCount ?? 0) > 0)).slice(0, 12)
-    : [];
-  const sellerDiscountItems = safeHotPage === 1
-    ? combinedDeals.filter((deal) => deal.status !== "ended" && deal.platform !== "aliexpress" && (deal.isCurated || (deal.historyPointCount ?? 0) === 0))
-    : [];
-  const trackedDomesticCount = newlyFoundHotList.filter((deal) => !deal.isCurated && deal.platform !== "aliexpress").length;
-  const trackedOverseasCount = newlyFoundHotList.filter((deal) => !deal.isCurated && deal.platform === "aliexpress").length;
 
   const hrefFor = (next: Record<string, string | undefined>) => {
     const sp = new URLSearchParams();
@@ -347,6 +326,35 @@ export default async function Home({
       {isDefaultHome && <SavedPriceWatches />}
 
       {isDefaultHome && (
+        <section className="mb-8 rounded-2xl border border-gray-200 bg-white p-5 sm:p-6" aria-labelledby="evidence-heading">
+          <p className="text-xs font-extrabold text-brand">직접 수집한 가격 기록</p>
+          <h2 id="evidence-heading" className="mt-1 text-xl font-extrabold text-gray-950">오늘의 가격 판단 근거</h2>
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-gray-700">
+            판매처가 적은 할인율 대신 실제 관측 가격을 비교합니다. 아래 수치는 마지막 수집 시점의 기록이며,
+            상품 옵션·배송비·쿠폰에 따라 결제 금액은 달라질 수 있습니다.
+          </p>
+          {insights.length > 0 ? (
+            <div className="mt-5 grid gap-3 md:grid-cols-3">
+              {insights.slice(0, 3).map(({ product, stats, averageGapPercent }) => (
+                <article key={product.id} className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+                  <p className="text-xs font-semibold text-gray-500">{product.mallName || product.platform} · {stats.trackedDays}일 동안 {stats.points}회 관측</p>
+                  <h3 className="mt-2 line-clamp-2 text-sm font-bold leading-6 text-gray-950">{product.title}</h3>
+                  <p className="mt-3 text-sm text-gray-700">마지막 확인가 <strong>{formatWon(stats.current)}</strong></p>
+                  <p className="mt-1 text-sm text-gray-700">최근 평균 {formatWon(stats.avg30!)} · {averageGapPercent > 0 ? `평균보다 ${averageGapPercent}% 낮음` : "평균보다 낮지 않음"}</p>
+                  <p className="mt-2 text-xs leading-5 text-gray-600">추적 최저 {formatWon(stats.minAll)} · 현재보다 낮았던 기록 {stats.percentile}%</p>
+                  <Link href={`/price/${product.id}`} className="mt-3 inline-flex min-h-10 items-center font-bold text-brand hover:underline">가격 그래프와 판단 근거 보기 →</Link>
+                </article>
+              ))}
+            </div>
+          ) : <p className="mt-5 rounded-lg bg-gray-50 p-4 text-sm text-gray-700">최근 24시간 안에 확인된 가격 분석 사례가 없습니다. 검증되지 않은 가격을 특가로 소개하지 않습니다.</p>}
+          <div className="mt-4 flex flex-wrap gap-3 text-sm font-semibold">
+            <Link href="/insights" className="text-brand hover:underline">실제 가격 추적 사례 전체 →</Link>
+            <Link href="/guides/price-drop-failures" className="text-gray-700 hover:underline">가격 판단이 틀릴 수 있는 경우 →</Link>
+          </div>
+        </section>
+      )}
+
+      {isDefaultHome && (
         <section className="mb-8">
           <div className="mb-3 space-y-2">
             <h2 className="text-lg font-extrabold text-gray-900">🔥 가격 이력으로 확인한 핫딜</h2>
@@ -378,7 +386,7 @@ export default async function Home({
             <div className="rounded-xl border border-dashed border-gray-300 bg-white p-8 text-center">
               <p className="text-sm font-semibold text-gray-700">이 조건에 맞는 검증 상품이 아직 없습니다.</p>
               <p className="mt-2 text-xs leading-5 text-gray-500">서로 다른 날짜의 가격 기록이 20일 이상 쌓인 상품부터 검증 완료로 공개합니다.</p>
-              {trackingItems.length > 0 ? <a href="#price-tracking" className="mt-4 inline-flex min-h-11 items-center rounded-lg bg-gray-900 px-4 text-sm font-bold text-white">검증 대기 상품 보기</a> : <Link href="/tracking" className="mt-4 inline-flex min-h-11 items-center rounded-lg bg-gray-900 px-4 text-sm font-bold text-white">전체 상품 둘러보기</Link>}
+              <Link href="/tracking" className="mt-4 inline-flex min-h-11 items-center rounded-lg bg-gray-900 px-4 text-sm font-bold text-white">전체 상품 둘러보기</Link>
             </div>
           ) : <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
             {hotItems.map((d, index) => <DealCard key={d.id} deal={d} priorityImage={index === 0} />)}
@@ -395,24 +403,10 @@ export default async function Home({
             </nav>
           )}
 
-          {trackingItems.length > 0 && (
-            <div id="price-tracking" className="mt-8 scroll-mt-24 border-t border-gray-200 pt-6">
-              <h3 className="text-base font-extrabold text-gray-900">가격 검증을 기다리는 상품</h3>
-              <p className="mb-3 mt-1 text-xs leading-5 text-gray-500">
-                실제 가격을 기록하고 있지만 아직 14일·20관측일 검증 기준을 채우지 못했습니다. 국내 {trackedDomesticCount}개 · 해외 {trackedOverseasCount}개를 추적 중이며, 기본 화면에서는 국내와 해외를 번갈아 보여줍니다.
-              </p>
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-                {trackingItems.map((deal) => <DealCard key={deal.id} deal={deal} />)}
-              </div>
-            </div>
-          )}
-
-          <SellerDiscountSection deals={sellerDiscountItems} />
+          <p className="mt-5 text-sm leading-6 text-gray-700">가격 검증 중인 상품과 판매처 표시 할인은 <Link href="/tracking" className="font-bold text-brand underline">전체 상품 둘러보기</Link>에서 확인할 수 있습니다. 이 상품들은 검증된 핫딜에 포함하지 않습니다.</p>
 
         </section>
       )}
-
-      <TrendingProducts products={trendingProducts} />
 
       {isDefaultHome && (
         <section className="mb-8 rounded-2xl border border-blue-100 bg-blue-50/60 p-5">
