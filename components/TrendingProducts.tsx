@@ -54,7 +54,7 @@ export default function TrendingProducts({
       <div className="mb-3">
         <h2 className="text-lg font-extrabold text-gray-900">👀 실시간 급상승 검색어 관련 상품</h2>
         <p className="mt-1 text-xs text-gray-500" suppressHydrationWarning>
-          최근 급상승 검색어와 상품명이 맞는 항목만 모았습니다. 가격 이력 검증 전 상품은 판매처에서 최종 가격을 확인하세요 · {updatedLabel} 갱신 · 총 {products.length}개
+          최근 급상승 검색어와 상품명이 맞는 항목만 모았습니다. 가격 이력 축적 전 상품은 판매처에서 최종 가격을 확인하세요 · {updatedLabel} 갱신 · 총 {products.length}개
         </p>
       </div>
       <div className="mb-3 flex flex-wrap gap-2">
@@ -102,7 +102,7 @@ export default function TrendingProducts({
                   판매 페이지에서 가격 확인
                 </p>
               )}
-              <p className="mt-1 text-[10px] font-medium text-gray-400">가격 검증 전 · 판매처에서 최종 확인</p>
+              <p className="mt-1 text-[10px] font-medium text-gray-400">가격 이력 축적 전 · 판매처에서 최종 확인</p>
             </div>
           </Link>
         ))}

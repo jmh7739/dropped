@@ -1,7 +1,7 @@
 import { PricePoint } from "./types";
 
 /**
- * 가격 리포트 — "그래서 지금 사? 기다려?"에 답하기 위한 통계 + 최종 판정.
+ * 가격 리포트 — 자동 관측 가격의 위치를 설명하기 위한 통계 + 하락폭 판정.
  * 상품 이력(price_history)에서 기간별 평균·최저와 실제 추적기간을 계산한다.
  */
 export type PriceStats = {
@@ -134,7 +134,7 @@ export function buyVerdict(
     return {
       tier: "buy",
       icon: "🟢",
-      title: rate >= 15 ? "매우 좋음" : "괜찮음",
+      title: rate >= 15 ? "하락폭 큼" : "평균보다 낮음",
       reason: `${lowestLabel} · 평균보다 ${d}% 저렴`,
       cls: BUY,
     };
@@ -142,7 +142,7 @@ export function buyVerdict(
     return {
       tier: "buy",
       icon: "🟢",
-      title: "매우 좋음",
+      title: "하락폭 큼",
       reason: `평균보다 ${d}% 저렴`,
       cls: BUY,
     };
@@ -150,14 +150,14 @@ export function buyVerdict(
     return {
       tier: "ok",
       icon: "🟡",
-      title: "괜찮음",
+      title: "평균보다 낮음",
       reason: `평균보다 ${d}% 저렴`,
       cls: OK,
     };
   return {
     tier: "wait",
     icon: "🔴",
-    title: "기다림",
+      title: "하락폭 작음",
     reason:
       rate > 0 ? `평균보다 ${d}%로 큰 차이 없음` : "지금은 싸지 않은 편",
     cls: WAIT,

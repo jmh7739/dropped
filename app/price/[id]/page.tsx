@@ -124,9 +124,6 @@ export default async function ProductPricePage({
       "@type": "Offer",
       price: currentPrice,
       priceCurrency: "KRW",
-      availability: r.hasActiveDeal
-        ? "https://schema.org/InStock"
-        : "https://schema.org/LimitedAvailability",
       url: r.affiliateUrl,
       seller: { "@type": "Organization", name: r.mallName ?? undefined },
     },
@@ -211,7 +208,7 @@ export default async function ProductPricePage({
             )}
             {r.lastCheckedAt && (
               <div className="mt-2 text-xs text-gray-400" suppressHydrationWarning>
-                마지막 가격 확인: {timeAgo(r.lastCheckedAt)}
+                마지막 자동 관측: {timeAgo(r.lastCheckedAt)}
               </div>
             )}
           </div>

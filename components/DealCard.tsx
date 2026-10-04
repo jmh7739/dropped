@@ -78,10 +78,10 @@ export default function DealCard({
           : "border-amber-300 bg-amber-50 text-amber-900"
     }`}>
       {!isCurated && scoreReady
-        ? "✓ 가격 이력 확인됨"
+        ? "✓ 자동 수집 이력 충분"
         : isCurated
           ? "판매처 정가 기준"
-          : "신규 수집·검증 중"}
+          : "신규 수집·이력 축적 중"}
     </span>
   );
 
@@ -172,7 +172,7 @@ export default function DealCard({
             </span>
           ) : (
             <BuyButton productId={deal.productId} href={deal.affiliateUrl} compact>
-              구매 →
+              판매처 확인 →
             </BuyButton>
           )}
         </div>
@@ -281,7 +281,7 @@ export default function DealCard({
             </span>
           ) : (
             <BuyButton productId={deal.productId} href={deal.affiliateUrl} compact>
-              현재 가격 확인 →
+              판매처 확인 →
             </BuyButton>
           )}
         </div>

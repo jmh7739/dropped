@@ -3,7 +3,7 @@ import Home from "../page";
 import { SITE_URL } from "@/lib/site";
 
 export const metadata: Metadata = {
-  title: "검증된 핫딜",
+  title: "가격 이력 기준 충족 상품",
   description: "실제 가격 이력과 DROP SCORE를 기준으로 선별한 핫딜을 확인하세요.",
   // 루트 홈과 같은 목록·섹션을 재사용하므로 중복 랜딩으로 색인하지 않는다.
   alternates: { canonical: SITE_URL },

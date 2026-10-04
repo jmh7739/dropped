@@ -54,7 +54,7 @@ export function lowestPeriodLabel(trackedDays?: number | null): string {
   return `추적 ${days}일 최저가`;
 }
 
-/** 홈의 '검증된 베스트딜' 최소 게이트. 정가 할인만 있는 큐레이션은 통과하지 않는다. */
+/** 홈의 '가격 이력 기준 충족' 최소 게이트. 원본 판매처 재고·옵션 검증을 뜻하지 않는다. */
 export function isVerifiedBestDeal(d: Deal): boolean {
   const score = dropScore(d).score ?? 0;
   const checkedAt = d.checkedAt ? new Date(d.checkedAt).getTime() : 0;
@@ -65,7 +65,7 @@ export function isVerifiedBestDeal(d: Deal): boolean {
     fresh && score >= 50 && headlineDropRate(d) >= 5;
 }
 
-/** 베스트딜 탭은 전체/국내/해외에 관계없이 같은 검증 기준을 사용한다. */
+/** 베스트딜 탭은 전체/국내/해외에 관계없이 같은 가격 이력 기준을 사용한다. */
 export function isVerifiedListing(filters: {
   q?: string;
   category?: string;
@@ -135,7 +135,7 @@ export function reliabilityLabel(d: {
   if (d.discountVsAvg === null || d.discountVsAvg <= 0) return "데이터 부족";
   if (d.trackedDays) return `가격 추적 ${d.trackedDays}일`;
   if (d.historyPointCount) return `${d.historyPointCount}회 가격 확인`;
-  return d.checkedAt ? "가격 확인됨" : "평균가 기준";
+  return d.checkedAt ? "자동 가격 관측됨" : "평균가 기준";
 }
 
 export function dropScore(d: ScoreInput): DropScoreResult {
@@ -199,10 +199,10 @@ export function dropScore(d: ScoreInput): DropScoreResult {
       tone: "weak",
     };
   }
-  if (score >= 80) return { score, label: "매우 좋음", reason: `${summary} 종합 점수가 매우 좋은 구간입니다.`, tone: "hot" };
-  if (score >= 60) return { score, label: "괜찮음", reason: `${summary} 종합 점수가 괜찮은 구간입니다.`, tone: "good" };
-  if (score >= 40) return { score, label: "보통", reason: `${summary} 가격 이력과 최신성을 종합하면 보통 구간입니다.`, tone: "ok" };
-  return { score, label: "기다림", reason: `${summary} 현재는 조금 더 기다려 볼 구간입니다.`, tone: "wait" };
+  if (score >= 80) return { score, label: "하락폭 매우 큼", reason: `${summary} 자동 관측 이력상 하락폭이 매우 큰 구간입니다.`, tone: "hot" };
+  if (score >= 60) return { score, label: "하락폭 큼", reason: `${summary} 자동 관측 이력상 하락폭이 큰 구간입니다.`, tone: "good" };
+  if (score >= 40) return { score, label: "하락폭 보통", reason: `${summary} 자동 관측 이력과 최신성을 종합하면 하락폭이 보통인 구간입니다.`, tone: "ok" };
+  return { score, label: "하락폭 작음", reason: `${summary} 자동 관측 이력상 하락폭이 작은 구간입니다.`, tone: "wait" };
 }
 
 export function dataConfidence(d: Pick<Deal, "trackedDays" | "checkedAt" | "platform">): number {

@@ -228,7 +228,7 @@ export default async function Home({
     });
 
   const isDefaultHome = !q.trim() && !category && !ps && !hot && !scope && page === 1;
-  // 기본 홈의 전체 목록은 가격이력으로 검증된 딜만 노출한다. 이력이 짧거나
+  // 기본 홈의 전체 목록은 가격 이력 기준을 충족한 딜만 노출한다. 이력이 짧거나
   // 정가 할인만 있는 상품은 아래 '새로 발견한 할인'에서 별도로 공개한다.
   const verifiedOnly = isVerifiedListing({ q, category, ps, hot, sec: searchParams.sec });
   const mainDeals = verifiedOnly
@@ -266,7 +266,7 @@ export default async function Home({
     .slice(0, 8);
 
   const sortOptions = [
-    { key: "popular", label: "추천" },
+    { key: "popular", label: "관심순" },
     { key: "recent", label: "최신" },
     { key: "discount", label: "가격이력 우선" },
     { key: "score", label: "가격 점수" },
@@ -364,7 +364,7 @@ export default async function Home({
                 </article>
               ))}
             </div>
-          ) : <p className="mt-5 rounded-lg bg-gray-50 p-4 text-sm text-gray-700">최근 24시간 안에 확인된 가격 분석 사례가 없습니다. 검증되지 않은 가격을 특가로 소개하지 않습니다.</p>}
+          ) : <p className="mt-5 rounded-lg bg-gray-50 p-4 text-sm text-gray-700">최근 24시간 안에 자동 관측된 가격 분석 사례가 없습니다. 이력이 부족한 가격은 이 구역에 표시하지 않습니다.</p>}
           <div className="mt-4 flex flex-wrap gap-3 text-sm font-semibold">
             <Link href="/insights" className="text-brand hover:underline">실제 가격 추적 사례 전체 →</Link>
             <Link href="/guides/price-drop-failures" className="text-gray-700 hover:underline">가격 판단이 틀릴 수 있는 경우 →</Link>
@@ -375,12 +375,12 @@ export default async function Home({
       {isDefaultHome && (
         <section className="mb-8">
           <div className="mb-3 space-y-2">
-            <h2 className="text-lg font-extrabold text-gray-900">🔥 가격 이력으로 확인한 핫딜</h2>
-            <p className="text-xs leading-5 text-gray-500">평균가·최저가와 비교할 수 있는 상품만 이 구역에 표시합니다.</p>
+            <h2 className="text-lg font-extrabold text-gray-900">🔥 자동 관측 이력에서 내려간 상품</h2>
+            <p className="text-xs leading-5 text-gray-500">평균가·최저가와 비교할 수 있는 상품만 표시합니다. 원본 판매처의 옵션·재고·결제가는 구매 전에 다시 확인해야 합니다.</p>
             <div className="flex flex-wrap items-center gap-2">
               <SortDropdown options={catOptions} value={hotCategory} param="hc" params={allParams} ariaLabel="핫딜 카테고리" />
               <SortDropdown options={[
-                { key: "recommended", label: "추천순" },
+                { key: "recommended", label: "이력 점수순" },
                 { key: "score", label: "가격 점수순" },
                 { key: "drop", label: "하락률 높은순" },
                 { key: "recent", label: "최근 확인순" },
@@ -397,13 +397,13 @@ export default async function Home({
                 추적 최저가만
               </Link>
             </div>
-            {!hotScope && <p className="text-xs leading-5 text-gray-600">현재 검증 완료: 국내몰 {verifiedHotList.filter((deal) => deal.platform !== "aliexpress").length}개 · 해외직구 {verifiedHotList.filter((deal) => deal.platform === "aliexpress").length}개. 국내몰 검증 상품이 없으면 해외 상품만 표시됩니다.</p>}
+            {!hotScope && <p className="text-xs leading-5 text-gray-600">현재 이력 기준 충족: 국내몰 {verifiedHotList.filter((deal) => deal.platform !== "aliexpress").length}개 · 해외직구 {verifiedHotList.filter((deal) => deal.platform === "aliexpress").length}개. 국내몰 기준 충족 상품이 없으면 해외 상품만 표시됩니다.</p>}
           </div>
 
           {hotItems.length === 0 ? (
             <div className="rounded-xl border border-dashed border-gray-300 bg-white p-8 text-center">
-              <p className="text-sm font-semibold text-gray-700">이 조건에 맞는 검증 상품이 아직 없습니다.</p>
-              <p className="mt-2 text-xs leading-5 text-gray-500">14일 이상 추적하고 유효한 가격 기록을 20회 이상 확보한 상품부터 검증 기준을 확인합니다. 최신 가격과 하락폭도 함께 검토합니다.</p>
+              <p className="text-sm font-semibold text-gray-700">이 조건에 맞는 이력 기준 충족 상품이 아직 없습니다.</p>
+              <p className="mt-2 text-xs leading-5 text-gray-500">14일 이상 추적하고 유효한 가격 기록을 20회 이상 확보한 상품부터 이력 기준을 확인합니다. 최신 자동 관측값과 하락폭도 함께 봅니다.</p>
               <Link href="/tracking" className="mt-4 inline-flex min-h-11 items-center rounded-lg bg-gray-900 px-4 text-sm font-bold text-white">전체 상품 둘러보기</Link>
             </div>
           ) : <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
@@ -421,7 +421,7 @@ export default async function Home({
             </nav>
           )}
 
-          <p className="mt-5 text-sm leading-6 text-gray-700">가격 검증 중인 상품과 판매처 표시 할인은 <Link href="/tracking" className="font-bold text-brand underline">전체 상품 둘러보기</Link>에서 확인할 수 있습니다. 이 상품들은 검증된 핫딜에 포함하지 않습니다.</p>
+          <p className="mt-5 text-sm leading-6 text-gray-700">가격 이력을 쌓는 상품과 판매처 표시 할인은 <Link href="/tracking" className="font-bold text-brand underline">전체 상품 둘러보기</Link>에서 확인할 수 있습니다. 이 상품들은 위 이력 기준 충족 목록에 포함하지 않습니다.</p>
 
         </section>
       )}
@@ -430,10 +430,10 @@ export default async function Home({
 
       {isDefaultHome && (
         <section className="mb-8 rounded-2xl border border-blue-100 bg-blue-50/60 p-5">
-          <p className="text-xs font-extrabold uppercase tracking-wide text-blue-700">가격 검증 기준</p>
-          <h2 className="mt-1 text-lg font-extrabold text-gray-950">가격 이력이 충분한 상품만 검증 완료로 표시합니다</h2>
+          <p className="text-xs font-extrabold uppercase tracking-wide text-blue-700">가격 이력 선별 기준</p>
+          <h2 className="mt-1 text-lg font-extrabold text-gray-950">가격 이력이 충분한 상품만 이력 기준 충족으로 표시합니다</h2>
           <p className="mt-2 text-sm leading-6 text-gray-700">
-            판매처의 정가 할인은 가격 이력 검증과 구분합니다. 옵션 변경·품절·짧은 추적 기간 때문에 가격이 떨어진 것처럼 보이는 사례도 숨기지 않고 설명합니다.
+            판매처의 정가 할인과 자동 관측 이력은 구분합니다. 이력 기준 충족은 원본 판매처의 옵션·재고·최종 결제가까지 확인했다는 뜻이 아닙니다.
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
             <Link href="/guides/price-drop-failures" className="rounded-lg bg-gray-950 px-4 py-2 text-sm font-bold text-white">가격 판단 실패 사례</Link>
@@ -447,7 +447,7 @@ export default async function Home({
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
           <div>
             <h1 className="flex items-baseline text-xl font-extrabold text-gray-900">
-              <span>{q ? `"${q}" 검색 결과` : activeCat ? `${activeCat.name} 핫딜` : verifiedOnly ? "🔥 검증된 핫딜" : "핫딜"}</span>
+              <span>{q ? `"${q}" 검색 결과` : activeCat ? `${activeCat.name} 핫딜` : verifiedOnly ? "🔥 가격 이력 기준 충족" : "핫딜"}</span>
               <span className="ml-2 text-sm font-normal text-gray-400">{listCount}개</span>
             </h1>
           </div>

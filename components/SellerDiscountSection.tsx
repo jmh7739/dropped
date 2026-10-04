@@ -54,7 +54,7 @@ export default function SellerDiscountSection({ deals }: { deals: Deal[] }) {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h3 className="text-base font-extrabold text-gray-900">판매처 표시 할인</h3>
-          <p className="mt-1 text-xs leading-5 text-gray-500">판매처가 표시한 정가 기준 할인입니다. 가격 이력 검증과 구분하며 판매처를 번갈아 보여줍니다.</p>
+          <p className="mt-1 text-xs leading-5 text-gray-500">판매처가 표시한 정가 기준 할인입니다. 자동 관측 가격 이력과 구분하며 판매처를 번갈아 보여줍니다.</p>
         </div>
         <span className="text-xs font-bold text-gray-500">조건에 맞는 상품 {filtered.length}개</span>
       </div>
