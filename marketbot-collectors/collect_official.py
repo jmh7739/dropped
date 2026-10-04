@@ -5,20 +5,27 @@ labels the data before publishing; a failed fetch leaves the last snapshot.
 """
 
 from pathlib import Path
+from datetime import datetime, timezone
+import json
 from urllib.request import Request, urlopen
 
 
 ROOT = Path(__file__).resolve().parent.parent / "marketbot-data"
 SOURCES = {
     "seoul-culture.xml": ("https://mediahub.seoul.go.kr/news/rss/06", b"<rss", b"<item"),
-    "qnet-1150.html": ("https://www.q-net.or.kr/crf005.do?id=crf00503s02&jmCd=1150&jmInfoDivCcd=B0", b"<html", b"2026"),
-    "qnet-1431.html": ("https://www.q-net.or.kr/crf005.do?id=crf00503s02&jmCd=1431&jmInfoDivCcd=B0", b"<html", b"2026"),
-    "qnet-1320.html": ("https://www.q-net.or.kr/crf005.do?id=crf00503s02&jmCd=1320&jmInfoDivCcd=B0", b"<html", b"2026"),
+    "qnet-1150.html": ("https://www.q-net.or.kr/crf005.do?id=crf00503s02&jmCd=1150&jmInfoDivCcd=B0", b"<html", b"<table"),
+    "qnet-1431.html": ("https://www.q-net.or.kr/crf005.do?id=crf00503s02&jmCd=1431&jmInfoDivCcd=B0", b"<html", b"<table"),
+    "qnet-1320.html": ("https://www.q-net.or.kr/crf005.do?id=crf00503s02&jmCd=1320&jmInfoDivCcd=B0", b"<html", b"<table"),
 }
 
 
 def collect() -> int:
     ROOT.mkdir(exist_ok=True)
+    manifest_path = ROOT / "checked-at.json"
+    try:
+        checked_at = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except (FileNotFoundError, ValueError):
+        checked_at = {}
     success = 0
     for name, (url, start, marker) in SOURCES.items():
         try:
@@ -28,10 +35,13 @@ def collect() -> int:
             if len(body) > 2_000_000 or start not in body.lower() or marker not in body:
                 raise ValueError("unexpected source format")
             (ROOT / name).write_bytes(body)
+            checked_at[name] = datetime.now(timezone.utc).isoformat()
             print(f"updated {name}: {len(body)} bytes")
             success += 1
         except Exception as exc:
             print(f"kept previous {name}: {exc}")
+    if success:
+        manifest_path.write_text(json.dumps(checked_at, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return success
 
 
