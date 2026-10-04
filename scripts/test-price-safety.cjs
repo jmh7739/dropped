@@ -62,7 +62,7 @@ async function main() {
   assert.doesNotMatch(dealVerdict({discountVsAvg:20,avg30Price:120,currentPrice:100,isLowestEver:true,
     trackedDays:90,historyPointCount:100}).reason,/역대/);
 
-  const {isVerifiedListing,isVerifiedBestDeal} = load('lib/dropMetrics.ts');
+  const {isVerifiedListing,isVerifiedBestDeal,trackingStage} = load('lib/dropMetrics.ts');
   assert.equal(isVerifiedListing({}), true);
   assert.equal(isVerifiedListing({sec:'best'}), true);
   assert.equal(isVerifiedListing({scope:'domestic'}), true);
@@ -74,6 +74,10 @@ async function main() {
     historyPointCount:19};
   assert.equal(isVerifiedBestDeal(candidate),false,'19회 관측은 검증 딜이 아님');
   assert.equal(isVerifiedBestDeal({...candidate,historyPointCount:20}),true);
+  assert.equal(isVerifiedBestDeal({...candidate,historyPointCount:20,avg30Price:null,discountVsList:50}),false,
+    '판매처 정가 할인만으로 가격 이력 검증을 통과하지 않아야 함');
+  assert.equal(trackingStage(30,14).label,'가격 기록 축적 중',
+    '추적 기간만 길고 관측이 적으면 판정 가능으로 표시하지 않아야 함');
   assert.equal(isVerifiedBestDeal({...candidate,trackedDays:13,historyPointCount:20}),false);
   assert.equal(isVerifiedBestDeal({...candidate,historyPointCount:20,checkedAt:new Date(Date.now()-25*3600000).toISOString()}),false,
     '24시간 넘게 확인하지 못한 가격은 검증 핫딜에서 제외');

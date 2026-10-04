@@ -30,10 +30,12 @@ export type TrackingStage = {
 };
 
 /** 추적 기간에 따라 사이트 전체에서 동일하게 쓰는 데이터 성숙도 표시. */
-export function trackingStage(trackedDays?: number | null): TrackingStage {
+export function trackingStage(trackedDays?: number | null, historyPointCount?: number | null): TrackingStage {
   const days = Math.max(0, trackedDays ?? 0);
   if (days < 7)
     return { icon: "🔵", label: "신규 추적", className: "border-blue-200 bg-blue-50 text-blue-700" };
+  if (historyPointCount !== undefined && (historyPointCount ?? 0) < 20)
+    return { icon: "🟡", label: "가격 기록 축적 중", className: "border-amber-200 bg-amber-50 text-amber-700" };
   if (days < 30)
     return { icon: "🟡", label: "가격 데이터 축적 중", className: "border-amber-200 bg-amber-50 text-amber-700" };
   if (days < 90)
@@ -57,8 +59,10 @@ export function isVerifiedBestDeal(d: Deal): boolean {
   const score = dropScore(d).score ?? 0;
   const checkedAt = d.checkedAt ? new Date(d.checkedAt).getTime() : 0;
   const fresh = checkedAt > 0 && Date.now() - checkedAt <= 24 * 3600_000;
+  // A seller's list-price discount cannot substitute for a measured average.
   return !d.isCurated && (d.trackedDays ?? 0) >= 14 &&
-    (d.historyPointCount ?? 0) >= 20 && fresh && score >= 50 && headlineDropRate(d) >= 5;
+    (d.historyPointCount ?? 0) >= 20 && Boolean(d.avg30Price && d.avg30Price > d.currentPrice) &&
+    fresh && score >= 50 && headlineDropRate(d) >= 5;
 }
 
 /** 베스트딜 탭은 전체/국내/해외에 관계없이 같은 검증 기준을 사용한다. */

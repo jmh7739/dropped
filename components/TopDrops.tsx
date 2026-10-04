@@ -44,7 +44,7 @@ export default function TopDrops({
             d.isCurated && d.listPrice > d.currentPrice
               ? Math.round(((d.listPrice - d.currentPrice) / d.listPrice) * 100)
               : 0;
-          const stage = trackingStage(d.trackedDays);
+          const stage = trackingStage(d.trackedDays, d.historyPointCount);
           return (
             <Link
               key={d.id}

@@ -24,7 +24,7 @@ export default function DealCard({
   const score = dropScore(deal);
   const trackedDays = deal.trackedDays;
   const scoreReady = (trackedDays ?? 0) >= 14 && (deal.historyPointCount ?? 0) >= 20;
-  const stage = trackingStage(trackedDays);
+  const stage = trackingStage(trackedDays, deal.historyPointCount);
   const brand = brandFrom(deal.title);
   const scoreIcon =
     score.tone === "hot" || score.tone === "good"
