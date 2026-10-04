@@ -15,7 +15,6 @@ import SearchBar from "@/components/SearchBar";
 import Pagination from "@/components/Pagination";
 import { PAGE_SIZE } from "@/lib/nav";
 import { CATEGORIES } from "@/lib/types";
-import AdSenseScript from "@/components/AdSenseScript";
 import SavedPriceWatches from "@/components/SavedPriceWatches";
 import SafeImage from "@/components/SafeImage";
 import { getPriceInsights } from "@/lib/insights";
@@ -308,7 +307,6 @@ export default async function Home({
 
   return (
     <div>
-      {Object.keys(searchParams).length === 0 && trackedDeals.filter(isVerifiedBestDeal).length >= 3 && <AdSenseScript />}
       {demoBanner}
 
       {isDefaultHome && (

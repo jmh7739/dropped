@@ -20,11 +20,9 @@ export default function PrivacyPage() {
 
       <h2 className="mb-1 mt-6 text-base font-bold text-gray-900">광고 및 쿠키</h2>
       <p>
-        이 사이트는 Google AdSense 광고 코드를 사용합니다. Google을 포함한 제3자 광고
-        사업자는 이 사이트 또는 다른 사이트의 방문 기록을 바탕으로 광고를 제공하기 위해
-        쿠키를 저장하거나 읽을 수 있으며, 웹 비콘·IP 주소·기타 식별자를 이용할 수
-        있습니다. 광고 코드가 있는 페이지에서는 광고가 보이지 않아도 관련 요청이 발생할
-        수 있습니다. 자세한 내용은{" "}
+        Google AdSense 소유 확인용 메타태그만 설치되어 있으며 현재 자동 광고는 실행하지
+        않습니다. 향후 광고를 게재할 때는 상품 정보와 구분해 표시합니다. Google을 포함한
+        제3자 광고 사업자가 쿠키와 온라인 식별자를 처리할 수 있습니다. 자세한 내용은{" "}
         <a href="https://policies.google.com/technologies/partner-sites" target="_blank" rel="noopener noreferrer" className="font-semibold text-brand hover:underline">
           Google의 파트너 사이트 정보 이용 안내
         </a>

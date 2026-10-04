@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import Breadcrumb from "@/components/Breadcrumb";
 import SafeImage from "@/components/SafeImage";
-import AdSenseScript from "@/components/AdSenseScript";
 import { formatWon } from "@/lib/format";
 import { getPriceInsights } from "@/lib/insights";
 import { SITE_URL } from "@/lib/site";
@@ -23,7 +22,6 @@ export default async function InsightsPage() {
   const insights = await getPriceInsights();
   return (
     <div className="mx-auto max-w-4xl">
-      {insights.length >= 3 && <AdSenseScript />}
       <Breadcrumb items={[{ label: "홈", href: "/" }, { label: "실제 가격 추적 사례" }]} />
       <h1 className="text-2xl font-extrabold">실제 상품 가격 추적 사례</h1>
       <p className="mt-3 text-base leading-7 text-gray-700">
