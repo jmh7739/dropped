@@ -40,7 +40,7 @@ export default async function InsightsPage() {
           {insights.map(({ product, stats, firstPrice, averageGapPercent }) => (
             <article key={product.id} className="rounded-xl border border-gray-200 bg-white p-5">
               <div className="grid gap-5 sm:grid-cols-[120px_1fr]">
-                <SafeImage src={product.imageUrl} alt={`${product.title} 상품 이미지`} className="aspect-square w-full rounded-lg object-cover" />
+                <SafeImage src={product.imageUrl} alt={`${product.title} 상품 이미지`} className="aspect-[3/2] w-full rounded-lg bg-white object-contain" />
                 <div>
                   <p className="text-xs text-gray-500">{product.mallName || product.platform} · {product.categoryName}</p>
                   <h2 className="mt-1 text-lg font-bold leading-snug text-gray-900">{product.title}</h2>

@@ -405,7 +405,7 @@ export default async function Home({
           {hotItems.length === 0 ? (
             <div className="rounded-xl border border-dashed border-gray-300 bg-white p-8 text-center">
               <p className="text-sm font-semibold text-gray-700">이 조건에 맞는 검증 상품이 아직 없습니다.</p>
-              <p className="mt-2 text-xs leading-5 text-gray-500">서로 다른 날짜의 가격 기록이 20일 이상 쌓인 상품부터 검증 완료로 공개합니다.</p>
+              <p className="mt-2 text-xs leading-5 text-gray-500">14일 이상 추적하고 유효한 가격 기록을 20회 이상 확보한 상품부터 검증 기준을 확인합니다. 최신 가격과 하락폭도 함께 검토합니다.</p>
               <Link href="/tracking" className="mt-4 inline-flex min-h-11 items-center rounded-lg bg-gray-900 px-4 text-sm font-bold text-white">전체 상품 둘러보기</Link>
             </div>
           ) : <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
