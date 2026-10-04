@@ -19,6 +19,9 @@ SOURCES = {
     "qnet-1150.html": ("https://www.q-net.or.kr/crf005.do?id=crf00503s02&jmCd=1150&jmInfoDivCcd=B0", b"<html", b"<table"),
     "qnet-1431.html": ("https://www.q-net.or.kr/crf005.do?id=crf00503s02&jmCd=1431&jmInfoDivCcd=B0", b"<html", b"<table"),
     "qnet-1320.html": ("https://www.q-net.or.kr/crf005.do?id=crf00503s02&jmCd=1320&jmInfoDivCcd=B0", b"<html", b"<table"),
+    "qnet-1630.html": ("https://www.q-net.or.kr/crf005.do?id=crf00503s02&jmCd=1630&jmInfoDivCcd=B0", b"<html", b"<table"),
+    "qnet-1250.html": ("https://www.q-net.or.kr/crf005.do?id=crf00503s02&jmCd=1250&jmInfoDivCcd=B0", b"<html", b"<table"),
+    "qnet-1910.html": ("https://www.q-net.or.kr/crf005.do?id=crf00503s02&jmCd=1910&jmInfoDivCcd=B0", b"<html", b"<table"),
 }
 
 
