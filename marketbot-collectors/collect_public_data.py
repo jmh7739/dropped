@@ -36,10 +36,11 @@ def items(data):
     # than the older response.body.items.item envelope.
     if isinstance(data.get('data'), list):
         return data['data']
-    header = data.get('response', {}).get('header', {})
+    envelope = data.get('response', data)
+    header = envelope.get('header', {})
     if str(header.get('resultCode', '00')) not in ('0', '00', '0000'):
         raise ValueError('API result code ' + str(header.get('resultCode')))
-    value = data.get('response', {}).get('body', {}).get('items', {})
+    value = envelope.get('body', {}).get('items', {})
     value = value.get('item', []) if isinstance(value, dict) else value
     return value if isinstance(value, list) else [value] if isinstance(value, dict) else []
 
