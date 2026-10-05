@@ -27,11 +27,9 @@ ALIEXPRESS_APP_KEY = os.getenv("ALIEXPRESS_APP_KEY", "")
 ALIEXPRESS_APP_SECRET = os.getenv("ALIEXPRESS_APP_SECRET", "")
 ALIEXPRESS_TRACKING_ID = os.getenv("ALIEXPRESS_TRACKING_ID", "")
 ALIEXPRESS_PAGES = 2       # 선택된 키워드당 페이지 수(페이지당 50)
-# 발견용 키워드는 시간별로 순환한다. 217개 전부를 매시간 호출하지 않아
-# API 쿼터를 지키면서도 한 사이클(약 9시간)마다 모든 키워드를 다시 확인한다.
-# 전체 키워드를 매 실행 스캔(로테이션 사실상 해제) → 지금 싼 것을 최대한 많이 포착.
-#   공개 레포라 GitHub Actions 무제한, 알리 쿼터도 여유. 1회 ~15분(1시간 크론 내).
-ALIEXPRESS_DISCOVERY_KEYWORDS_PER_RUN = 250
+# 한 번에 전 키워드를 요청하면 이전 실행이 끝나기 전에 다음 시간 실행이 쌓인다.
+# 시간별로 36개씩 순환해 인기상품 탐색과 가격 관측을 지속한다.
+ALIEXPRESS_DISCOVERY_KEYWORDS_PER_RUN = 36
 # API의 고정 추천 테마. 한국 배송 가능 상품만 받아 안정적인 가격추적 풀을 만든다.
 ALIEXPRESS_FEATURED_PROMOS = [
     "DS_ConsumerElectronics_bestsellers",
@@ -49,7 +47,7 @@ ALIEXPRESS_MIN_VOLUME_FOOD = 10
 ALIEXPRESS_TRACK_PER_CATEGORY = 200  # 카테고리별 추적 풀(판매액 상위 N개, 화면엔 안 떠도 가격 수집)
 # 카테고리(slug)별 키워드. 카테고리마다 조금씩이라도 딜이 뜨도록 분산.
 #   slug은 lib/types.ts CATEGORIES와 일치. (상품권/소프트웨어는 알리에 없어 제외)
-#   '사람들이 많이 사는 인기·고수요템' 위주. 크론 1시간이라 런타임 여유 → 대폭 확대.
+#   '사람들이 많이 사는 인기·고수요템' 위주. 키워드는 위 순환 한도만큼 나눠 요청.
 ALIEXPRESS_KEYWORDS_BY_CAT = {
     "digital": ["기계식 키보드", "무선 마우스", "게이밍 마우스", "마우스패드",
                 "usb 허브", "노트북 거치대", "웹캠", "블루투스 스피커", "액션캠",
