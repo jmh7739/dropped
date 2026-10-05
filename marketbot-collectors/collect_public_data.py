@@ -151,14 +151,16 @@ def companies():
 
 def disclosures(company_rows):
     output = []
+    cutoff = (datetime.now(KST) - timedelta(days=730)).strftime('%Y%m%d')
     for company in company_rows:
         crno = str(company.get('crno', ''))
         if not crno:
             continue
         data = json.loads(request('1160100/service/GetDiscInfoService_V2/getDiviDiscInfo_V2', {
-            'pageNo': '1', 'numOfRows': '5', 'resultType': 'json', 'crno': crno}))
+            'pageNo': '1', 'numOfRows': '100', 'resultType': 'json', 'crno': crno}))
         output.extend(select(row, ('crno', 'basDt', 'crtmCashTdvdAmt', 'crtmStckTdvdAmt'))
-            for row in items(data) if str(row.get('crno', '')) == crno)
+            for row in items(data) if str(row.get('crno', '')) == crno
+            and str(row.get('basDt', '')).replace('-', '') >= cutoff)
     return output
 
 

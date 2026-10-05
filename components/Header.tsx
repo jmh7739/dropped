@@ -7,6 +7,7 @@ import { getRealtimeTrends } from "@/lib/trends";
 const DETAIL_NAV = [
   { href: "/price-drop", label: "🔥 가격급락" },
   { href: "/lowest-price", label: "🏆 추적 최저가" },
+  { href: "/market-prices", label: "🌾 농산물 기준가격" },
 ];
 
 export default async function Header() {

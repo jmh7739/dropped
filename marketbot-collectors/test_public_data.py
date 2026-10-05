@@ -59,6 +59,18 @@ class PublicDataTests(unittest.TestCase):
                          ['travel_event', 'travel_place', 'travel_place'])
         self.assertEqual(result[0]['contentid'], '123')
 
+    def test_disclosures_exclude_old_reference_dates(self):
+        recent = collector.datetime.now(collector.KST).strftime('%Y%m%d')
+        def fake_request(path, params, key_name='serviceKey'):
+            self.assertEqual(params['numOfRows'], '100')
+            rows = [{'crno': '123', 'basDt': '20151001', 'crtmCashTdvdAmt': '100'},
+                    {'crno': '123', 'basDt': recent, 'crtmCashTdvdAmt': '200'}]
+            return json.dumps({'response': {'header': {'resultCode': '00'},
+                'body': {'items': {'item': rows}}}}).encode()
+        with patch.object(collector, 'request', side_effect=fake_request):
+            result = collector.disclosures([{'crno': '123'}])
+        self.assertEqual([row['basDt'] for row in result], [recent])
+
 
 if __name__ == '__main__':
     unittest.main()
