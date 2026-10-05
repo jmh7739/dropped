@@ -1,5 +1,6 @@
 import unittest
 from unittest.mock import patch
+import httpx
 
 import db
 import run
@@ -16,6 +17,19 @@ class TitleNormalizationTests(unittest.TestCase):
 
 
 class ExpirationSafetyTests(unittest.TestCase):
+    @patch("db.time.sleep")
+    def test_transient_read_failure_retries_before_expiring(self, sleep):
+        attempts = iter([httpx.RemoteProtocolError("connection closed"), [{"id": 1}]])
+
+        def read():
+            value = next(attempts)
+            if isinstance(value, Exception):
+                raise value
+            return value
+
+        self.assertEqual(db._read_with_retry(read), [{"id": 1}])
+        sleep.assert_called_once()
+
     @patch("run.db.end_deal")
     @patch("run.db.active_deals")
     def test_does_not_expire_curated_deals_when_a_source_failed(

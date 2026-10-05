@@ -1,0 +1,39 @@
+name: MarketBot official source snapshots
+
+on:
+  schedule:
+    - cron: '25 0,12 * * *'
+  workflow_dispatch: {}
+  push:
+    paths:
+      - marketbot-collectors/collect_official.py
+      - .github/workflows/marketbot-official.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: marketbot-official-sources
+  cancel-in-progress: false
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python marketbot-collectors/collect_official.py
+      - name: Publish changed source snapshots
+        run: |
+          git add marketbot-data/
+          if ! git diff --cached --quiet; then
+            git -c user.name='MarketBot' -c user.email='marketbot@users.noreply.github.com' commit -m 'Refresh official source snapshots'
+            git push
+          fi
+      - name: Publish new travel news
+        run: curl --fail --show-error --silent --retry 2 --max-time 40 --request POST https://tripmkt.kr/api/updates/refresh
+      - name: Refresh jobs and official exam dates
+        run: curl --fail --show-error --silent --retry 2 --max-time 90 https://jobmarket.kr/api/catalog/wake
