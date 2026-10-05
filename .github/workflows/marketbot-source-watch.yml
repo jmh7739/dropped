@@ -1,0 +1,37 @@
+name: MarketBot official source watch
+
+on:
+  schedule:
+    - cron: '30 1 * * *'
+  workflow_dispatch: {}
+  push:
+    paths:
+      - marketbot-collectors/watch_sources.py
+      - .github/workflows/marketbot-source-watch.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: marketbot-source-watch
+  cancel-in-progress: false
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python marketbot-collectors/watch_sources.py
+      - name: Publish changed digests
+        run: |
+          if ! test -f marketbot-data/source-digests.json; then exit 0; fi
+          git add marketbot-data/source-digests.json
+          if ! git diff --cached --quiet; then
+            git -c user.name='MarketBot' -c user.email='marketbot@users.noreply.github.com' commit -m 'Refresh official page digests'
+            git pull --rebase origin main
+            git push
+          fi
