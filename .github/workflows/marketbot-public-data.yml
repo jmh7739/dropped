@@ -1,0 +1,43 @@
+name: MarketBot approved public data snapshots
+
+on:
+  schedule:
+    - cron: '40 0,6,12,18 * * *'
+  workflow_dispatch: {}
+  push:
+    paths:
+      - marketbot-collectors/collect_public_data.py
+      - .github/workflows/marketbot-public-data.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: marketbot-public-data
+  cancel-in-progress: false
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Collect public metadata
+        env:
+          PUBLIC_DATA_SERVICE_KEY: ${{ secrets.PUBLIC_DATA_SERVICE_KEY }}
+        run: python marketbot-collectors/collect_public_data.py
+      - name: Publish verified snapshots
+        run: |
+          if ! test -f marketbot-data/public-feed.json; then
+            echo 'No verified public feed to publish'
+            exit 0
+          fi
+          git add marketbot-data/public-feed.json
+          if ! git diff --cached --quiet; then
+            git -c user.name='MarketBot' -c user.email='marketbot@users.noreply.github.com' commit -m 'Refresh approved public data snapshots'
+            git pull --rebase origin main
+            git push
+          fi
