@@ -10,6 +10,7 @@ from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 import json
 import os
+import sys
 import xml.etree.ElementTree as ET
 
 
@@ -119,30 +120,42 @@ def disclosures(company_rows):
 
 
 def main():
-    if not KEY:
-        print('PUBLIC_DATA_SERVICE_KEY secret is missing; verified snapshots were kept')
-        return
     previous = json.loads(OUT.read_text(encoding='utf-8')) if OUT.exists() else {}
     current = dict(previous)
+    failures = []
     functions = {'exams': exams, 'ott': ott, 'marketPrices': market_prices, 'companies': companies}
     for name, fetcher in functions.items():
         try:
+            if not KEY:
+                raise ValueError('API key missing')
             rows = fetcher()
             current[name] = {'checkedAt': datetime.now(timezone.utc).isoformat(), 'items': rows}
             print(name + ': ' + str(len(rows)) + ' verified records')
         except Exception as exc:
+            failures.append(name)
             print(name + ': refresh failed (' + type(exc).__name__ + '); previous snapshot kept')
-    if 'companies' in current and current['companies'].get('items'):
+    if 'companies' in current and current['companies'].get('items') and 'companies' not in failures:
         try:
             rows = disclosures(current['companies']['items'])
             current['disclosures'] = {'checkedAt': datetime.now(timezone.utc).isoformat(), 'items': rows}
             print('disclosures: ' + str(len(rows)) + ' verified records')
         except Exception as exc:
+            failures.append('disclosures')
             print('disclosures: refresh failed (' + type(exc).__name__ + '); previous snapshot kept')
+    else:
+        failures.append('disclosures')
+        print('disclosures: refresh skipped because current company data is unavailable')
+    current['_collection'] = {'checkedAt': datetime.now(timezone.utc).isoformat(),
+                              'status': 'partial' if failures else 'complete',
+                              'failed': failures}
     if current != previous:
         OUT.parent.mkdir(exist_ok=True)
         OUT.write_text(json.dumps(current, ensure_ascii=False, separators=(',', ':')) + '\n', encoding='utf-8')
+    if failures:
+        print('Public data refresh incomplete: ' + ', '.join(failures))
+        return 1
+    return 0
 
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main())

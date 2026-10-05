@@ -32,12 +32,14 @@ from sources import coupang, aliexpress, cps, hotdeal, popular, flights, auction
 SOURCES = [coupang, aliexpress, cps, hotdeal, popular]
 
 
-def collect_and_flag() -> tuple[int, int, set[int], set[int]]:
+def collect_and_flag() -> tuple[int, int, set[int], set[int], list[str], int]:
     seen_product_ids: set[int] = set()
     flagged_ids: set[int] = set()
     curated_ids: set[int] = set()  # 베스트딜(baseline null) — 이번 run에 잡힌 것
     flagged = 0
     scanned = 0
+    errors: list[str] = []
+    healthy_sources = 0
 
     def process(raw) -> bool:
         """한 항목 처리 → is_deal이면 True. seen/flagged_ids 갱신은 여기서."""
@@ -114,7 +116,9 @@ def collect_and_flag() -> tuple[int, int, set[int], set[int]]:
         except Exception as e:
             print(f"[{name}] 소스 실패 → 이 소스만 건너뜀: {type(e).__name__}: {e}")
             traceback.print_exc()
+            errors.append(name)
             continue
+        healthy_sources += 1
         source_seen = set()
         for raw in raws:
             identity = (raw.platform, raw.external_product_id)
@@ -127,8 +131,9 @@ def collect_and_flag() -> tuple[int, int, set[int], set[int]]:
                     flagged += 1
             except Exception as e:
                 print(f"[{name}] 항목 처리 실패 → 건너뜀: {type(e).__name__}: {e}")
+                errors.append(f"{name}:item")
 
-    return flagged, scanned, flagged_ids, curated_ids
+    return flagged, scanned, flagged_ids, curated_ids, sorted(set(errors)), healthy_sources
 
 
 def expire_stale_deals(
@@ -182,20 +187,22 @@ def expire_stale_deals(
     return ended
 
 
-def _safe(label: str, fn) -> None:
+def _safe(label: str, fn) -> bool:
     """한 단계가 실패해도 다음 단계는 계속 (전체 크롤이 exit 1로 죽지 않게)."""
     try:
         fn()
+        return True
     except Exception as e:
         print(f"[{label}] 실패 → 건너뜀: {type(e).__name__}: {e}")
         traceback.print_exc()
+        return False
 
 
 def main() -> None:
     mode = "DRY_RUN(DB 미기록)" if config.DRY_RUN else "LIVE"
     print(f"=== 핫딜 수집 시작 [{mode}] ===")
 
-    flagged, scanned, flagged_ids, curated_ids = collect_and_flag()
+    flagged, scanned, flagged_ids, curated_ids, source_errors, healthy_sources = collect_and_flag()
     print(f"\n스캔 {scanned}건 → 딜 {flagged}건 플래그 (베스트딜 {len(curated_ids)}건)")
 
     # 품절/원복 딜 정리(expire)는 반드시 돌아야 함 → 개별 격리.
@@ -203,19 +210,28 @@ def main() -> None:
         ended = expire_stale_deals(flagged_ids, curated_ids)
         if ended:
             print(f"종료 처리된 딜: {ended}건")
-    _safe("expire", _expire)
-    _safe("prune_ended", db.prune_ended_deals)       # 24h 지난 종료 딜 제거
-    _safe("rollup_history", db.rollup_old_history)
+    expire_ok = _safe("expire", _expire)
+    prune_ok = _safe("prune_ended", db.prune_ended_deals)       # 24h 지난 종료 딜 제거
+    rollup_ok = _safe("rollup_history", db.rollup_old_history)
 
     print("\n--- 항공권 특가 ---")
-    _safe("flights", collect_flights)
+    flights_ok = _safe("flights", collect_flights)
 
     print("\n--- 경매 특가 ---")
-    _safe("auction", collect_auction)
+    auction_ok = _safe("auction", collect_auction)
 
-    _safe("indexnow", ping_indexnow)
+    index_ok = _safe("indexnow", ping_indexnow)
 
     print("=== 완료 ===")
+    failed = source_errors + [name for name, ok in (
+        ("expire", expire_ok), ("prune_ended", prune_ok), ("rollup_history", rollup_ok),
+        ("flights", flights_ok), ("auction", auction_ok), ("indexnow", index_ok)) if not ok]
+    if healthy_sources == 0 or scanned == 0:
+        failed.append("no_products_collected")
+    if failed:
+        summary = f"수집 일부 실패: {', '.join(sorted(set(failed)))}; 정상 소스 {healthy_sources}/{len(SOURCES)}, 상품 {scanned}건"
+        print(summary)
+        raise RuntimeError(summary)
 
 
 def ping_indexnow() -> None:

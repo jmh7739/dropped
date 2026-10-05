@@ -30,6 +30,7 @@ jobs:
           PUBLIC_DATA_SERVICE_KEY: ${{ secrets.DATA_GO_KR_KEY }}
         run: python marketbot-collectors/collect_public_data.py
       - name: Publish verified snapshots
+        if: always()
         run: |
           if ! test -f marketbot-data/public-feed.json; then
             echo 'No verified public feed to publish'
