@@ -438,6 +438,7 @@ export default async function Home({
           <div className="mt-4 flex flex-wrap gap-2">
             <Link href="/guides/price-drop-failures" className="rounded-lg bg-gray-950 px-4 py-2 text-sm font-bold text-white">가격 판단 실패 사례</Link>
             <Link href="/guides" className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-bold text-gray-800">가격 비교 기준 전체</Link>
+            <Link href="/unit-price" className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-bold text-gray-800">100g·1개당 가격 계산</Link>
           </div>
         </section>
       )}

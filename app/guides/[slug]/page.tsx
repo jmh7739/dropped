@@ -45,6 +45,7 @@ export default async function GuidePage({ params }: { params: Promise<{ slug: st
             </Link>
           ))}
           {guide.category !== "travel" && <Link href="/insights" className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-brand hover:border-brand/40">실제 상품 가격 추적 사례 →</Link>}
+          {guide.slug === "food-unit-price" && <Link href="/unit-price" className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-brand hover:border-brand/40">내 상품 단위가격 직접 계산 →</Link>}
         </div>
       </aside>
       <Link href="/guides" className="mt-6 inline-block text-sm font-bold text-gray-500 hover:text-gray-900">← 모든 가이드</Link>
