@@ -36,7 +36,7 @@ class PublicDataTests(unittest.TestCase):
     def test_company_matches_exact_name_and_deduplicates_versions(self):
         def fake_request(path, params, key_name='serviceKey'):
             name = params['corpNm']
-            rows = ([{'corpNm': '(주)카카오', 'crno': '123', 'fssCorpChgDtm': '20260101'},
+            rows = ([{'corpNm': '(주)카카오', 'crno': '999', 'fssCorpChgDtm': '20200101'},
                      {'corpNm': '카카오', 'crno': '123', 'fssCorpChgDtm': '20261001'},
                      {'corpNm': '카카오뱅크', 'crno': '456'}] if name == '카카오' else [])
             return json.dumps({'response': {'header': {'resultCode': '00'},

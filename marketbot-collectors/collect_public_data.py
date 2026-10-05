@@ -144,8 +144,8 @@ def companies():
         raise ValueError('empty company response (provider rows=' + str(received) + ')')
     latest = {}
     for row in sorted(output, key=lambda item: str(item.get('fssCorpChgDtm', '')), reverse=True):
-        if row.get('crno'):
-            latest.setdefault(str(row['crno']), row)
+        if row.get('crno') and row.get('corpNm'):
+            latest.setdefault(company_key(row['corpNm']), row)
     return list(latest.values())
 
 
