@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { Analytics } from "@vercel/analytics/react";
 import Script from "next/script";
 import "./globals.css";
 import Header from "@/components/Header";
@@ -75,7 +74,6 @@ function gtag(){dataLayer.push(arguments);}
 gtag('js', new Date());
 gtag('config', 'G-JWW2TT83XK');`}
         </Script>
-        <Analytics />
       </body>
     </html>
   );
