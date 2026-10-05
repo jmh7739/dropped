@@ -4,6 +4,7 @@ import httpx
 
 import db
 import run
+import affiliate_queue
 from classifier import brand_from, classify_slug, display_title
 
 
@@ -14,6 +15,13 @@ class TitleNormalizationTests(unittest.TestCase):
 
     def test_limits_untrusted_feed_title_length(self):
         self.assertEqual(len(db.normalize_title("가" * 300)), 180)
+
+
+class AffiliateQueueTests(unittest.TestCase):
+    def test_only_official_product_urls_enter_automatic_conversion(self):
+        self.assertTrue(affiliate_queue.eligible_product_url("https://www.coupang.com/vp/products/123?itemId=45"))
+        self.assertFalse(affiliate_queue.eligible_product_url("https://www.coupang.com/np/search?q=cola"))
+        self.assertFalse(affiliate_queue.eligible_product_url("https://www.coupang.com.evil.example/vp/products/123"))
 
 
 class ExpirationSafetyTests(unittest.TestCase):

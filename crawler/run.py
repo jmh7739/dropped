@@ -23,6 +23,7 @@ import db
 import detect
 import indexnow
 import price_quality
+import affiliate_queue
 from dataclasses import replace
 # 네이버 검색 API는 신규 앱에 권한 부여가 막혀(정책) 제외. sources/naver.py는
 # 남겨둠 — 향후 접근 가능해지면 아래 SOURCES에 다시 넣으면 됨.
@@ -202,6 +203,9 @@ def main() -> None:
     mode = "DRY_RUN(DB 미기록)" if config.DRY_RUN else "LIVE"
     print(f"=== 핫딜 수집 시작 [{mode}] ===")
 
+    # 상품 제휴주소는 공식 딥링크 결과가 확인된 항목만 활성화한다.
+    affiliate_ok = _safe("affiliate_queue", affiliate_queue.process_pending)
+
     flagged, scanned, flagged_ids, curated_ids, source_errors, healthy_sources = collect_and_flag()
     print(f"\n스캔 {scanned}건 → 딜 {flagged}건 플래그 (베스트딜 {len(curated_ids)}건)")
 
@@ -224,6 +228,7 @@ def main() -> None:
 
     print("=== 완료 ===")
     failed = source_errors + [name for name, ok in (
+        ("affiliate_queue", affiliate_ok),
         ("expire", expire_ok), ("prune_ended", prune_ok), ("rollup_history", rollup_ok),
         ("flights", flights_ok), ("auction", auction_ok), ("indexnow", index_ok)) if not ok]
     if healthy_sources == 0 or scanned == 0:
