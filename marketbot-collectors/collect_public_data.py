@@ -32,6 +32,10 @@ def request(path, params):
 
 
 def items(data):
+    # Newer data.go.kr gateway APIs return a top-level `data` array rather
+    # than the older response.body.items.item envelope.
+    if isinstance(data.get('data'), list):
+        return data['data']
     header = data.get('response', {}).get('header', {})
     if str(header.get('resultCode', '00')) not in ('00', '0000'):
         raise ValueError('API result code ' + str(header.get('resultCode')))
@@ -133,7 +137,8 @@ def main():
             print(name + ': ' + str(len(rows)) + ' verified records')
         except Exception as exc:
             failures.append(name)
-            print(name + ': refresh failed (' + type(exc).__name__ + '); previous snapshot kept')
+            detail = str(exc) if isinstance(exc, ValueError) else type(exc).__name__
+            print(name + ': refresh failed (' + detail + '); previous snapshot kept')
     if 'companies' in current and current['companies'].get('items') and 'companies' not in failures:
         try:
             rows = disclosures(current['companies']['items'])
@@ -141,7 +146,8 @@ def main():
             print('disclosures: ' + str(len(rows)) + ' verified records')
         except Exception as exc:
             failures.append('disclosures')
-            print('disclosures: refresh failed (' + type(exc).__name__ + '); previous snapshot kept')
+            detail = str(exc) if isinstance(exc, ValueError) else type(exc).__name__
+            print('disclosures: refresh failed (' + detail + '); previous snapshot kept')
     else:
         failures.append('disclosures')
         print('disclosures: refresh skipped because current company data is unavailable')
