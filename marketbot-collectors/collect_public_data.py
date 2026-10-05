@@ -20,8 +20,8 @@ KST = timezone(timedelta(hours=9))
 COMPANIES = ['삼성전자', 'SK하이닉스', 'NAVER', '카카오', '현대자동차', 'LG전자']
 
 
-def request(path, params):
-    query = urlencode({'serviceKey': KEY, **params})
+def request(path, params, key_name='serviceKey'):
+    query = urlencode({key_name: KEY, **params})
     req = Request('https://apis.data.go.kr/' + path + '?' + query,
                   headers={'User-Agent': 'MarketBot/1.0', 'Accept': 'application/json, application/xml, text/xml'})
     with urlopen(req, timeout=30) as response:
@@ -88,10 +88,12 @@ def ott():
 
 def market_prices():
     today = datetime.now(KST)
+    category, item = [('100', '111'), ('200', '211'), ('400', '411')][today.toordinal() % 3]
     data = json.loads(request('B552845/perDay/price', {
         'pageNo': '1', 'numOfRows': '100',
         'cond[exmn_ymd::GTE]': (today - timedelta(days=7)).strftime('%Y%m%d'),
         'cond[exmn_ymd::LTE]': today.strftime('%Y%m%d'),
+        'cond[ctgry_cd::EQ]': category, 'cond[item_cd::EQ]': item,
         'returnType': 'JSON'}))
     rows = [select(row, ('exmn_ymd', 'item_nm', 'exmn_dd_prc', 'exmn_dd_cnvs_prc',
         'se_cd', 'se_nm', 'ctgry_nm', 'item_cd', 'vrty_cd', 'vrty_nm', 'grd_cd',
@@ -108,7 +110,7 @@ def companies():
         return str(value or '').replace(' ', '').replace('(주)', '').replace('㈜', '').replace('주식회사', '').lower()
     for name in COMPANIES:
         data = json.loads(request('1160100/service/GetCorpBasicInfoService_V2/getCorpOutline_V2', {
-            'pageNo': '1', 'numOfRows': '5', 'resultType': 'json', 'corpNm': name}))
+            'pageNo': '1', 'numOfRows': '5', 'resultType': 'json', 'corpNm': name}, key_name='ServiceKey'))
         rows = items(data)
         received += len(rows)
         output.extend(select(row, ('corpNm', 'crno', 'sicNm', 'enpMainBizNm',
