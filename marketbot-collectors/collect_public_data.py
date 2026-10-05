@@ -54,7 +54,7 @@ def exams():
     received = 0
     for year in (datetime.now(KST).year, datetime.now(KST).year + 1):
         data = json.loads(request('B490007/qualExamSchd/getQualExamSchdList', {
-            'numOfRows': '100', 'pageNo': '1', 'dataFormat': 'json', 'implYy': str(year), 'qualgbCd': 'T'}))
+            'numOfRows': '50', 'pageNo': '1', 'dataFormat': 'json', 'implYy': str(year), 'qualgbCd': 'T'}))
         rows = items(data)
         received += len(rows)
         output.extend(select(row, ('implYy', 'implSeq', 'qualgbCd', 'qualgbNm', 'description',
