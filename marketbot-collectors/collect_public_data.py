@@ -53,14 +53,18 @@ def exams():
     output = []
     received = 0
     for year in (datetime.now(KST).year, datetime.now(KST).year + 1):
-        data = json.loads(request('B490007/qualExamSchd/getQualExamSchdList', {
-            'numOfRows': '50', 'pageNo': '1', 'dataFormat': 'json', 'implYy': str(year), 'qualgbCd': 'T'}))
-        rows = items(data)
-        received += len(rows)
-        output.extend(select(row, ('implYy', 'implSeq', 'qualgbCd', 'qualgbNm', 'description',
-            'docRegStartDt', 'docRegEndDt', 'docExamStartDt', 'docExamEndDt', 'docPassDt',
-            'pracRegStartDt', 'pracRegEndDt', 'pracExamStartDt', 'pracExamEndDt', 'pracPassDt'))
-            for row in rows)
+        for page in range(1, 21):
+            data = json.loads(request('B490007/qualExamSchd/getQualExamSchdList', {
+                'numOfRows': '50', 'pageNo': str(page), 'dataFormat': 'json',
+                'implYy': str(year), 'qualgbCd': 'T'}))
+            rows = items(data)
+            received += len(rows)
+            output.extend(select(row, ('implYy', 'implSeq', 'qualgbCd', 'qualgbNm', 'description',
+                'docRegStartDt', 'docRegEndDt', 'docExamStartDt', 'docExamEndDt', 'docPassDt',
+                'pracRegStartDt', 'pracRegEndDt', 'pracExamStartDt', 'pracExamEndDt', 'pracPassDt'))
+                for row in rows)
+            if len(rows) < 50:
+                break
     if not output:
         raise ValueError('empty exam response (rows=' + str(received) + ')')
     return output
@@ -110,7 +114,7 @@ def companies():
         return str(value or '').replace(' ', '').replace('(주)', '').replace('㈜', '').replace('주식회사', '').lower()
     for name in COMPANIES:
         data = json.loads(request('1160100/service/GetCorpBasicInfoService_V2/getCorpOutline_V2', {
-            'pageNo': '1', 'numOfRows': '5', 'resultType': 'json', 'corpNm': name}, key_name='ServiceKey'))
+            'pageNo': '1', 'numOfRows': '50', 'resultType': 'json', 'corpNm': name}, key_name='ServiceKey'))
         rows = items(data)
         received += len(rows)
         output.extend(select(row, ('corpNm', 'crno', 'sicNm', 'enpMainBizNm',
@@ -118,7 +122,11 @@ def companies():
             if company_key(row.get('corpNm')) == company_key(name))
     if not output:
         raise ValueError('empty company response (provider rows=' + str(received) + ')')
-    return output
+    latest = {}
+    for row in sorted(output, key=lambda item: str(item.get('fssCorpChgDtm', '')), reverse=True):
+        if row.get('crno'):
+            latest.setdefault(str(row['crno']), row)
+    return list(latest.values())
 
 
 def disclosures(company_rows):
