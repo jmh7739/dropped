@@ -2,6 +2,8 @@
 from __future__ import annotations
 import html
 import re
+import time
+from collections.abc import Callable
 from typing import Optional
 
 import config
@@ -10,6 +12,20 @@ _client = None
 
 # 외부 피드 제목에 섞여 오는 제어문자(널·백스페이스 등). 표시·저장 전 제거.
 _CONTROL_CHARS = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
+
+
+def _read_with_retry(read: Callable[[], list[dict]]) -> list[dict]:
+    """Retry only transient HTTP transport failures on idempotent reads."""
+    import httpx
+
+    for attempt in range(3):
+        try:
+            return read()
+        except httpx.TransportError:
+            if attempt == 2:
+                raise
+            time.sleep(0.5 * (2 ** attempt))
+    raise RuntimeError('unreachable')
 
 
 def normalize_title(raw: str) -> str:
@@ -101,16 +117,11 @@ def latest_prices(product_id: int, k: int) -> list[int]:
     """가장 최근 k개 가격(최신순). 종료 판정용 — 단일 blip에 안 흔들리게."""
     if config.DRY_RUN:
         return []
-    rows = (
-        client()
-        .table("price_history")
-        .select("price")
-        .eq("product_id", product_id)
-        .order("collected_at", desc=True)
-        .limit(k)
-        .execute()
-        .data
-    )
+    rows = _read_with_retry(lambda: (
+        client().table("price_history").select("price")
+        .eq("product_id", product_id).order("collected_at", desc=True)
+        .limit(k).execute().data
+    ))
     return [r["price"] for r in rows]
 
 
@@ -215,14 +226,11 @@ def active_deals() -> list[dict]:
     """현재 진행중인 모든 딜 (종료 재검사용)."""
     if config.DRY_RUN:
         return []
-    return (
-        client()
-        .table("hot_deals")
+    return _read_with_retry(lambda: (
+        client().table("hot_deals")
         .select("id, product_id, baseline_price, updated_at")
-        .eq("status", "active")
-        .execute()
-        .data
-    )
+        .eq("status", "active").execute().data
+    ))
 
 
 def end_deal(deal_id: int) -> None:
