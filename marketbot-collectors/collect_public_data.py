@@ -37,7 +37,7 @@ def items(data):
     if isinstance(data.get('data'), list):
         return data['data']
     header = data.get('response', {}).get('header', {})
-    if str(header.get('resultCode', '00')) not in ('00', '0000'):
+    if str(header.get('resultCode', '00')) not in ('0', '00', '0000'):
         raise ValueError('API result code ' + str(header.get('resultCode')))
     value = data.get('response', {}).get('body', {}).get('items', {})
     value = value.get('item', []) if isinstance(value, dict) else value
@@ -50,15 +50,18 @@ def select(row, names):
 
 def exams():
     output = []
+    received = 0
     for year in (datetime.now(KST).year, datetime.now(KST).year + 1):
         data = json.loads(request('B490007/qualExamSchd/getQualExamSchdList', {
             'numOfRows': '100', 'pageNo': '1', 'dataFormat': 'json', 'implYy': str(year), 'qualgbCd': 'T'}))
+        rows = items(data)
+        received += len(rows)
         output.extend(select(row, ('implYy', 'implSeq', 'qualgbCd', 'qualgbNm', 'description',
             'docRegStartDt', 'docRegEndDt', 'docExamStartDt', 'docExamEndDt', 'docPassDt',
             'pracRegStartDt', 'pracRegEndDt', 'pracExamStartDt', 'pracExamEndDt', 'pracPassDt'))
-            for row in items(data))
+            for row in rows)
     if not output:
-        raise ValueError('empty exam response')
+        raise ValueError('empty exam response (rows=' + str(received) + ')')
     return output
 
 
@@ -99,14 +102,19 @@ def market_prices():
 
 def companies():
     output = []
+    received = 0
+    def company_key(value):
+        return str(value or '').replace(' ', '').replace('(주)', '').replace('㈜', '').replace('주식회사', '').lower()
     for name in COMPANIES:
         data = json.loads(request('1160100/service/GetCorpBasicInfoService_V2/getCorpOutline_V2', {
             'pageNo': '1', 'numOfRows': '5', 'resultType': 'json', 'corpNm': name}))
+        rows = items(data)
+        received += len(rows)
         output.extend(select(row, ('corpNm', 'crno', 'sicNm', 'enpMainBizNm',
-            'enpEmpeCnt', 'enpEstbDt', 'fssCorpChgDtm')) for row in items(data)
-            if str(row.get('corpNm', '')).replace(' ', '').lower() == name.replace(' ', '').lower())
+            'enpEmpeCnt', 'enpEstbDt', 'fssCorpChgDtm')) for row in rows
+            if company_key(row.get('corpNm')) == company_key(name))
     if not output:
-        raise ValueError('empty company response')
+        raise ValueError('empty company response (provider rows=' + str(received) + ')')
     return output
 
 
