@@ -107,6 +107,26 @@ def market_prices():
     return rows
 
 
+def tourism():
+    """Small official TourAPI sample for the TripMarket relay."""
+    today = datetime.now(KST).strftime('%Y%m%d')
+    requests = [('searchFestival2', {'eventStartDate': today}, 'travel_event'),
+                ('areaBasedList2', {'contentTypeId': '39', 'areaCode': '1'}, 'travel_place'),
+                ('areaBasedList2', {'contentTypeId': '39', 'areaCode': '6'}, 'travel_place')]
+    output = []
+    for method, extra, kind in requests:
+        data = json.loads(request('B551011/KorService2/' + method, {
+            'MobileOS': 'ETC', 'MobileApp': 'MarketOps', '_type': 'json',
+            'numOfRows': '30', 'pageNo': '1', 'arrange': 'A', **extra}))
+        for row in items(data):
+            if row.get('contentid') and row.get('title'):
+                output.append({'kind': kind, **select(row, ('contentid', 'title', 'addr1',
+                    'mapx', 'mapy', 'eventstartdate', 'eventenddate', 'modifiedtime'))})
+    if not output:
+        raise ValueError('empty tourism response')
+    return output
+
+
 def companies():
     output = []
     received = 0
@@ -146,7 +166,8 @@ def main():
     previous = json.loads(OUT.read_text(encoding='utf-8')) if OUT.exists() else {}
     current = dict(previous)
     failures = []
-    functions = {'exams': exams, 'ott': ott, 'marketPrices': market_prices, 'companies': companies}
+    functions = {'exams': exams, 'ott': ott, 'marketPrices': market_prices,
+                 'companies': companies, 'tourism': tourism}
     for name, fetcher in functions.items():
         try:
             if not KEY:

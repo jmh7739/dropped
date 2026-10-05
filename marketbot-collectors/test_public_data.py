@@ -47,6 +47,18 @@ class PublicDataTests(unittest.TestCase):
         self.assertEqual(len(result), 1)
         self.assertEqual(result[0]['fssCorpChgDtm'], '20261001')
 
+    def test_tourism_preserves_source_kind(self):
+        def fake_request(path, params, key_name='serviceKey'):
+            row = {'contentid': '123', 'title': '공식 행사', 'eventstartdate': '20261005'}
+            return json.dumps({'response': {'header': {'resultCode': '0000'},
+                'body': {'items': {'item': [row]}}}}).encode()
+
+        with patch.object(collector, 'request', side_effect=fake_request):
+            result = collector.tourism()
+        self.assertEqual([row['kind'] for row in result],
+                         ['travel_event', 'travel_place', 'travel_place'])
+        self.assertEqual(result[0]['contentid'], '123')
+
 
 if __name__ == '__main__':
     unittest.main()
