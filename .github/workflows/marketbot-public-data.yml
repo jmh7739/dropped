@@ -27,7 +27,7 @@ jobs:
           python-version: '3.12'
       - name: Collect public metadata
         env:
-          PUBLIC_DATA_SERVICE_KEY: ${{ secrets.PUBLIC_DATA_SERVICE_KEY }}
+          PUBLIC_DATA_SERVICE_KEY: ${{ secrets.DATA_GO_KR_KEY }}
         run: python marketbot-collectors/collect_public_data.py
       - name: Publish verified snapshots
         run: |
