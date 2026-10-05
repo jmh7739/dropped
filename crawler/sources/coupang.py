@@ -6,7 +6,7 @@
 - 딥링크 API로 상품URL → 제휴(추적) 링크 일괄 변환 (콜 절약)
 - 인증: CEA(HmacSHA256) 서명 헤더
 
-키가 없으면 빈 목록을 반환한다.
+키 한 쌍이 모두 없으면 빈 목록을 반환한다.
 공식 문서: 쿠팡 파트너스 > Open API. 엔드포인트/필드명이 바뀔 수 있으니
 실제 응답으로 매핑을 한 번 검증하세요.
 """
@@ -142,8 +142,8 @@ def _map_product(p: dict, default_slug: str) -> RawDeal:
 
 
 def fetch() -> list[RawDeal]:
-    if not config.COUPANG_ACCESS_KEY:
-        print("[coupang] 키 없음 → 건너뜀")
+    if not (config.COUPANG_ACCESS_KEY and config.COUPANG_SECRET_KEY):
+        print("[coupang] API 키 한 쌍이 없어 국내 가격 관측을 건너뜀")
         return []
 
     # 상품ID 기준 중복 제거하며 후보 수집

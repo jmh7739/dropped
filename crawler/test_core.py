@@ -1,5 +1,6 @@
 import unittest
 from unittest.mock import patch
+from types import SimpleNamespace
 import httpx
 
 import db
@@ -22,6 +23,30 @@ class AffiliateQueueTests(unittest.TestCase):
         self.assertTrue(affiliate_queue.eligible_product_url("https://www.coupang.com/vp/products/123?itemId=45"))
         self.assertFalse(affiliate_queue.eligible_product_url("https://www.coupang.com/np/search?q=cola"))
         self.assertFalse(affiliate_queue.eligible_product_url("https://www.coupang.com.evil.example/vp/products/123"))
+
+
+class CollectionHealthTests(unittest.TestCase):
+    @patch.object(run.config, "COUPANG_SECRET_KEY", "secret")
+    @patch.object(run.config, "COUPANG_ACCESS_KEY", "access")
+    def test_configured_coupang_is_a_core_source(self):
+        self.assertTrue(run.configured_core_source("coupang"))
+
+    @patch.object(run.config, "COUPANG_SECRET_KEY", "")
+    @patch.object(run.config, "COUPANG_ACCESS_KEY", "access")
+    def test_partial_coupang_credentials_are_not_configured(self):
+        self.assertFalse(run.configured_core_source("coupang"))
+
+    def test_non_api_feed_is_not_a_core_source(self):
+        self.assertFalse(run.configured_core_source("cps"))
+
+    @patch.object(run, "configured_core_source", return_value=True)
+    @patch.object(run, "SOURCES", [SimpleNamespace(__name__="sources.coupang", fetch=lambda: [])])
+    def test_configured_core_source_empty_result_is_an_error(self, configured):
+        _, scanned, _, _, errors, healthy = run.collect_and_flag()
+        self.assertEqual(scanned, 0)
+        self.assertEqual(errors, ["coupang:empty"])
+        self.assertEqual(healthy, 0)
+        configured.assert_called_once_with("coupang")
 
 
 class ExpirationSafetyTests(unittest.TestCase):

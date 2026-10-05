@@ -33,6 +33,15 @@ from sources import coupang, aliexpress, cps, hotdeal, popular, flights, auction
 SOURCES = [coupang, aliexpress, cps, hotdeal, popular]
 
 
+def configured_core_source(name: str) -> bool:
+    """API 자격 증명이 있는 핵심 가격 소스인지 확인한다."""
+    if name == "coupang":
+        return bool(config.COUPANG_ACCESS_KEY and config.COUPANG_SECRET_KEY)
+    if name == "aliexpress":
+        return bool(config.ALIEXPRESS_APP_KEY and config.ALIEXPRESS_APP_SECRET)
+    return False
+
+
 def collect_and_flag() -> tuple[int, int, set[int], set[int], list[str], int]:
     seen_product_ids: set[int] = set()
     flagged_ids: set[int] = set()
@@ -118,6 +127,11 @@ def collect_and_flag() -> tuple[int, int, set[int], set[int], list[str], int]:
             print(f"[{name}] 소스 실패 → 이 소스만 건너뜀: {type(e).__name__}: {e}")
             traceback.print_exc()
             errors.append(name)
+            continue
+        print(f"[{name}] 수집 결과 {len(raws)}건")
+        if configured_core_source(name) and not raws:
+            print(f"[{name}] 자격 증명이 설정된 핵심 가격 소스가 빈 결과를 반환함")
+            errors.append(f"{name}:empty")
             continue
         healthy_sources += 1
         source_seen = set()
