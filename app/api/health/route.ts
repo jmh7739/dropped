@@ -56,17 +56,25 @@ export async function GET() {
   };
   const overseasFresh = sources.aliexpress.ageHours !== null
     && sources.aliexpress.ageHours <= MAX_OBSERVATION_AGE_HOURS;
-  const domesticFresh = [sources.coupang.ageHours, sources.domesticPartners.ageHours]
-    .some((sourceAge) => sourceAge !== null && sourceAge <= MAX_OBSERVATION_AGE_HOURS);
+  const coupangFresh = sources.coupang.ageHours !== null
+    && sources.coupang.ageHours <= MAX_OBSERVATION_AGE_HOURS;
+  const domesticPartnersFresh = sources.domesticPartners.ageHours !== null
+    && sources.domesticPartners.ageHours <= MAX_OBSERVATION_AGE_HOURS;
+  const staleSources = [
+    ...(!overseasFresh ? ["aliexpress"] : []),
+    ...(!coupangFresh ? ["coupang"] : []),
+    ...(!domesticPartnersFresh ? ["domesticPartners"] : []),
+  ];
   const overallFresh = ageHours !== null && ageHours <= MAX_OBSERVATION_AGE_HOURS;
   const status = detailedHealthAvailable
-    ? (overseasFresh && domesticFresh ? "ok" : "degraded")
+    ? (staleSources.length === 0 ? "ok" : "degraded")
     : (overallFresh ? "ok" : "stale");
 
   return Response.json({ status,
     lastPriceObservation: latest,
     coupangLastPriceObservation: sourceTimes.coupang,
     ageHours: ageHours === null || !Number.isFinite(ageHours) ? null : Math.round(ageHours * 10) / 10,
-    sources },
+    sources,
+    staleSources: detailedHealthAvailable ? staleSources : undefined },
     { headers: { "Cache-Control": "no-store" } });
 }
