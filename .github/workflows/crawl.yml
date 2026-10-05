@@ -11,6 +11,9 @@ on:
   push:
     paths:
       - '.github/workflows/crawl.yml'
+      - 'crawler/config.py'
+      - 'crawler/run.py'
+      - 'crawler/sources/**'
 
 # 이전 수집이 안 끝났는데 또 시작되는 중복 실행 방지
 concurrency:
