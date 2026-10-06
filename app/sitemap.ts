@@ -7,6 +7,7 @@ import { GUIDES } from "@/lib/guides";
 import { getPriceInsights } from "@/lib/insights";
 import { priceStats } from "@/lib/priceReport";
 import { readPriceHistory } from "@/lib/priceHistory";
+import { supabase } from "@/lib/supabase";
 
 export const revalidate = 3600;
 
@@ -49,16 +50,30 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     })),
   ];
 
-  // getDeals intentionally returns lightweight cards with history: []. Fetch
-  // candidate histories separately, using the same threshold as /price/[id].
-  const candidates = [...new Set(deals
-    .filter((deal) => deal.status === "active" && !deal.isPriceError &&
-      (deal.historyPointCount ?? 0) >= 3)
-    .map((deal) => deal.productId))];
+  // The home list removes similar deal cards. A product can still have a valid
+  // price report even when its card was deduplicated, so use the raw active
+  // product IDs before applying the same history test as /price/[id].
+  const candidateIds = new Set(deals
+    .filter((deal) => deal.status === "active" && !deal.isPriceError)
+    .map((deal) => deal.productId));
+  if (supabase) {
+    try {
+      for (let offset = 0; offset < 3000; offset += 1000) {
+        const { data, error } = await supabase.from("v_active_deals")
+          .select("product_id").eq("status", "active").range(offset, offset + 999);
+        if (error) throw error;
+        for (const row of data ?? []) candidateIds.add(Number(row.product_id));
+        if (!data || data.length < 1000) break;
+      }
+    } catch (error) {
+      console.error("sitemap active product IDs unavailable:", error);
+    }
+  }
+  const candidates = [...candidateIds].filter((id) => Number.isSafeInteger(id) && id > 0);
   const indexableProducts = new Map<number, string>();
   for (let offset = 0; offset < candidates.length; offset += 25) {
     try {
-      const histories = await readPriceHistory(candidates.slice(offset, offset + 25));
+      const histories = await readPriceHistory(candidates.slice(offset, offset + 25), new Date(Date.now() - 90 * 86400000).toISOString());
       for (const [id, history] of histories) {
         const latest = history.at(-1);
         if (!latest) continue;
