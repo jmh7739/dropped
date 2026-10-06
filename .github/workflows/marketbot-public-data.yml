@@ -32,13 +32,29 @@ jobs:
       - name: Publish verified snapshots
         if: always()
         run: |
+          set -euo pipefail
           if ! test -f marketbot-data/public-feed.json; then
             echo 'No verified public feed to publish'
             exit 0
           fi
-          git add marketbot-data/public-feed.json
-          if ! git diff --cached --quiet; then
-            git -c user.name='MarketBot' -c user.email='marketbot@users.noreply.github.com' commit -m 'Refresh approved public data snapshots'
-            git pull --rebase origin main
-            git push
-          fi
+          cp marketbot-data/public-feed.json "$RUNNER_TEMP/collected-public-feed.json"
+          for attempt in 1 2 3; do
+            # Workflows share main. Start each attempt from the newest committed
+            # snapshot and merge groups by checkedAt before pushing.
+            git fetch origin main
+            git reset --hard origin/main
+            python marketbot-collectors/merge_public_feed.py \
+              "$RUNNER_TEMP/collected-public-feed.json" marketbot-data/public-feed.json
+            git add marketbot-data/public-feed.json
+            if git diff --cached --quiet; then
+              exit 0
+            fi
+            git -c user.name='MarketBot' -c user.email='marketbot@users.noreply.github.com' \
+              commit -m 'Refresh approved public data snapshots'
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+            sleep "$((attempt * 3))"
+          done
+          echo 'Could not publish public data after three attempts' >&2
+          exit 1
