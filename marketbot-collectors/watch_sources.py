@@ -22,8 +22,8 @@ BASE = {
     'TripMarket': 'https://tripmkt.kr',
 }
 CORE = {
-    'LifeMarket': {'unemployment', 'severance', 'housing-benefit'},
-    'TripMarket': {'donghae', 'busan-fireworks-2026'},
+    'LifeMarket': {'unemployment', 'severance', 'housing-benefit', 'school-entry'},
+    'TripMarket': {'donghae', 'busan-fireworks-2026', 'jeju-olle-walking-2026'},
 }
 
 
@@ -40,6 +40,35 @@ def normalized(html):
     text = re.sub(r'<[^>]*>', ' ', text)
     text = re.sub(r'&(?:nbsp|amp|lt|gt|quot);', ' ', text)
     return re.sub(r'\s+', ' ', text).strip()[:30_000]
+
+
+def article_div(html, opening):
+    start = re.search(opening, html, flags=re.I)
+    if not start:
+        return None
+    depth = 0
+    for tag in re.finditer(r'</?div\b[^>]*>', html[start.start():], flags=re.I):
+        depth += -1 if tag.group().lower().startswith('</div') else 1
+        if depth == 0:
+            return html[start.start():start.start() + tag.end()]
+    return None
+
+
+def content_for(url, html):
+    host = urlparse(url).hostname
+    if host == 'www.visitjeju.net':
+        article = article_div(html, r'<div\b[^>]*class=["\'][^"\']*\breal\b[^"\']*["\'][^>]*>')
+    elif host == 'www.moe.go.kr':
+        article = article_div(html, r'<div\b[^>]*id=["\']txt["\'][^>]*>')
+    else:
+        article = html
+    if not article:
+        raise ValueError('official article body missing')
+    return normalized(article)
+
+
+def content_version(url):
+    return 'article-v2' if urlparse(url).hostname in {'www.visitjeju.net', 'www.moe.go.kr'} else 'page-v1'
 
 
 def selected(site, sources):
@@ -87,11 +116,11 @@ def main():
         for row in selection:
             url = row['url']
             try:
-                content = normalized(get(url, timeout=12).decode('utf-8', errors='replace'))
+                content = content_for(url, get(url, timeout=12).decode('utf-8', errors='replace'))
                 if len(content) < 200:
                     continue
                 key = site + ':' + str(row['id'])
-                data[key] = {'url': url, 'hash': sha256(content.encode()).hexdigest(),
+                data[key] = {'url': url, 'hash': sha256(content.encode()).hexdigest(), 'version': content_version(url),
                              'checkedAt': datetime.now(timezone.utc).isoformat()}
                 checked += 1
             except Exception:
