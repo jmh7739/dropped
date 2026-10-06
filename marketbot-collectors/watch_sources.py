@@ -58,6 +58,8 @@ def content_for(url, html):
     host = urlparse(url).hostname
     if host == 'www.visitjeju.net':
         article = article_div(html, r'<div\b[^>]*class=["\'][^"\']*\breal\b[^"\']*["\'][^>]*>')
+    elif host == 'korean.visitseoul.net':
+        article = article_div(html, r'<div\b[^>]*class=["\'][^"\']*\bsub-contents-inner\b[^"\']*["\'][^>]*>')
     elif host == 'www.moe.go.kr':
         article = article_div(html, r'<div\b[^>]*id=["\']txt["\'][^>]*>')
     else:
@@ -68,7 +70,8 @@ def content_for(url, html):
 
 
 def content_version(url):
-    return 'article-v2' if urlparse(url).hostname in {'www.visitjeju.net', 'www.moe.go.kr'} else 'page-v1'
+    host = urlparse(url).hostname
+    return 'article-v3' if host == 'korean.visitseoul.net' else 'article-v2' if host in {'www.visitjeju.net', 'www.moe.go.kr'} else 'page-v1'
 
 
 def selected(site, sources):
