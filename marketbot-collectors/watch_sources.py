@@ -23,7 +23,7 @@ BASE = {
 }
 CORE = {
     'LifeMarket': {'unemployment', 'severance', 'housing-benefit', 'school-entry'},
-    'TripMarket': {'donghae', 'busan-fireworks-2026', 'jeju-olle-walking-2026'},
+    'TripMarket': {'donghae', 'busan-fireworks-2026', 'jeju-olle-walking-2026', 'je-hamdeok', 'je-bijarim'},
 }
 
 
