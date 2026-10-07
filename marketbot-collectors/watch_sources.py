@@ -76,6 +76,15 @@ def content_for(url, html):
         article = article_div(html, r'<div\b[^>]*id=["\']txt["\'][^>]*>')
     elif host == 'www.applyhome.co.kr':
         article = applyhome_guide(html)
+    elif host == 'www.kosaf.go.kr':
+        title = re.search(r'<th\b[^>]*id=["\']VIEW_TITLE["\'][^>]*>[\s\S]*?</th>', html, flags=re.I)
+        body = re.search(r'<td\b[^>]*id=["\']VIEW_MCONTENT["\'][^>]*>[\s\S]*?</td>', html, flags=re.I)
+        article = title.group() + ' ' + body.group() if title and body else None
+    elif host == 'korean.visitkorea.or.kr' and '/kfes/detail/' in urlparse(url).path:
+        info = article_div(html, r'<div\b[^>]*class=["\'][^"\']*\bfestival_info\b[^"\']*["\'][^>]*>')
+        body = article_div(html, r'<div\b[^>]*class=["\'][^"\']*\bposter_info_content\b[^"\']*["\'][^>]*>')
+        fixed_info = re.sub(r'^(?:축제 진행 중|축제 개최중|축제 예정|축제 종료)\s*', '', normalized(info)) if info else ''
+        article = fixed_info + ' ' + body if info and body else None
     else:
         article = html
     if not article:
@@ -85,7 +94,15 @@ def content_for(url, html):
 
 def content_version(url):
     host = urlparse(url).hostname
-    return 'article-v3' if host == 'korean.visitseoul.net' else 'guide-v1' if host == 'www.applyhome.co.kr' else 'article-v2' if host in {'www.visitjeju.net', 'www.moe.go.kr'} else 'page-v1'
+    if host == 'korean.visitseoul.net':
+        return 'article-v3'
+    if host == 'www.applyhome.co.kr':
+        return 'guide-v1'
+    if host == 'www.kosaf.go.kr':
+        return 'notice-v1'
+    if host == 'korean.visitkorea.or.kr' and '/kfes/detail/' in urlparse(url).path:
+        return 'festival-v1'
+    return 'article-v2' if host in {'www.visitjeju.net', 'www.moe.go.kr'} else 'page-v1'
 
 
 def selected(site, sources):
