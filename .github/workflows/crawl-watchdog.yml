@@ -25,7 +25,7 @@ jobs:
             });
             const latest = data.workflow_runs[0];
             const lastStarted = latest?.run_started_at && Date.parse(latest.run_started_at);
-            if (lastStarted && Date.now() - lastStarted < 150 * 60 * 1000) {
+            if (lastStarted && Date.now() - lastStarted < 75 * 60 * 1000) {
               core.info(`Price crawler recently started: ${latest.run_started_at}`);
               return;
             }
