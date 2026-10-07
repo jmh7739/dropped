@@ -31,11 +31,15 @@ export async function generateMetadata({
   const [routeParams, query] = await Promise.all([params, searchParams]);
   const cat = SHOPPING_CATS.find((c) => c.slug === routeParams.slug);
   if (!cat) return { title: "카테고리 없음", robots: { index: false, follow: false } };
-  const deals = await getDeals({ category: cat.slug });
+  // Use the same site-wide deduplicated set as sitemap.ts. A category-only
+  // query can include cards omitted from the global sitemap and accidentally
+  // mark a page indexable while its URL is absent there.
+  const deals = await getDeals();
+  const indexableCount = deals.filter((deal) => deal.categorySlug === cat.slug && isVerifiedBestDeal(deal)).length;
   return {
     title: `${cat.name} 가격 이력·특가`,
     description: `${cat.name} 상품의 현재 가격, 실제 추적 기간, 평균 대비 변화를 확인하세요. 이력이 부족한 상품은 별도로 안내합니다.`,
-    robots: { index: deals.filter(isVerifiedBestDeal).length >= 3 && Object.keys(query).length === 0, follow: true },
+    robots: { index: indexableCount >= 3 && Object.keys(query).length === 0, follow: true },
     alternates: { canonical: `${SITE_URL}/category/${cat.slug}` },
   };
 }
