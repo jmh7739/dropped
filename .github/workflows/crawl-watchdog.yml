@@ -1,0 +1,35 @@
+name: 가격 수집 지연 복구
+
+on:
+  workflow_run:
+    workflows: ["실시간 인기·트렌드 상품 자동 갱신"]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  actions: write
+
+jobs:
+  recover-crawl:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch crawler only when its last run is overdue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const { data } = await github.rest.actions.listWorkflowRuns({
+              owner, repo, workflow_id: 'crawl.yml', per_page: 1,
+            });
+            const latest = data.workflow_runs[0];
+            const lastStarted = latest?.run_started_at && Date.parse(latest.run_started_at);
+            if (lastStarted && Date.now() - lastStarted < 150 * 60 * 1000) {
+              core.info(`Price crawler recently started: ${latest.run_started_at}`);
+              return;
+            }
+            await github.rest.actions.createWorkflowDispatch({
+              owner, repo, workflow_id: 'crawl.yml',
+              ref: context.payload.repository.default_branch,
+            });
+            core.info(`Price crawler recovery dispatched; previous run: ${latest?.run_started_at || 'none'}`);
