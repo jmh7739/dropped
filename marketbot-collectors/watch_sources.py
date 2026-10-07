@@ -54,6 +54,18 @@ def article_div(html, opening):
     return None
 
 
+def applyhome_guide(html):
+    box = article_div(html, r'<div\b[^>]*class=["\'][^"\']*\bsub_content_box\b[^"\']*["\'][^>]*>')
+    if not box:
+        return None
+    heading = re.search(r'<h4\b[^>]*class=["\'][^"\']*\bsub_tit\b[^"\']*["\'][^>]*>[\s\S]*?</h4>', box, re.I)
+    intro = article_div(box, r'<div\b[^>]*class=["\'][^"\']*\bnoti_line\b[^"\']*["\'][^>]*>')
+    notes = re.search(r'<ul\b[^>]*class=["\'][^"\']*\bbul_list\b[^"\']*["\'][^>]*>[\s\S]*?</ul>', box, re.I)
+    if not heading or not intro or not notes:
+        return None
+    return ' '.join((heading.group(), intro, notes.group()))
+
+
 def content_for(url, html):
     host = urlparse(url).hostname
     if host == 'www.visitjeju.net':
@@ -62,6 +74,8 @@ def content_for(url, html):
         article = article_div(html, r'<div\b[^>]*class=["\'][^"\']*\bsub-contents-inner\b[^"\']*["\'][^>]*>')
     elif host == 'www.moe.go.kr':
         article = article_div(html, r'<div\b[^>]*id=["\']txt["\'][^>]*>')
+    elif host == 'www.applyhome.co.kr':
+        article = applyhome_guide(html)
     else:
         article = html
     if not article:
@@ -71,7 +85,7 @@ def content_for(url, html):
 
 def content_version(url):
     host = urlparse(url).hostname
-    return 'article-v3' if host == 'korean.visitseoul.net' else 'article-v2' if host in {'www.visitjeju.net', 'www.moe.go.kr'} else 'page-v1'
+    return 'article-v3' if host == 'korean.visitseoul.net' else 'guide-v1' if host == 'www.applyhome.co.kr' else 'article-v2' if host in {'www.visitjeju.net', 'www.moe.go.kr'} else 'page-v1'
 
 
 def selected(site, sources):
