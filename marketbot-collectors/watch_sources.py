@@ -71,7 +71,10 @@ def content_for(url, html):
     if host == 'www.visitjeju.net':
         article = article_div(html, r'<div\b[^>]*class=["\'][^"\']*\breal\b[^"\']*["\'][^>]*>')
     elif host == 'korean.visitseoul.net':
-        article = article_div(html, r'<div\b[^>]*class=["\'][^"\']*\bsub-contents-inner\b[^"\']*["\'][^>]*>')
+        root = article_div(html, r'<div\b[^>]*class=["\'][^"\']*\bsub-contents-inner\b[^"\']*["\'][^>]*>')
+        description = article_div(root, r'<div\b[^>]*class=["\'][^"\']*\btext-area\b[^"\']*["\'][^>]*>') if root else None
+        facts = article_div(root, r'<div\b[^>]*class=["\'][^"\']*\bdetial-cont-element\b[^"\']*["\'][^>]*>') if root else None
+        article = description + ' ' + facts if description and facts else None
     elif host == 'www.moe.go.kr':
         article = article_div(html, r'<div\b[^>]*id=["\']txt["\'][^>]*>')
     elif host == 'www.applyhome.co.kr':
@@ -95,7 +98,7 @@ def content_for(url, html):
 def content_version(url):
     host = urlparse(url).hostname
     if host == 'korean.visitseoul.net':
-        return 'article-v3'
+        return 'article-v4'
     if host == 'www.applyhome.co.kr':
         return 'guide-v1'
     if host == 'www.kosaf.go.kr':
