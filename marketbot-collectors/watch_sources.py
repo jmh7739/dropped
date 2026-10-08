@@ -76,7 +76,7 @@ def content_for(url, html):
         root = article_div(html, r'<div\b[^>]*class=["\'][^"\']*\bsub-contents-inner\b[^"\']*["\'][^>]*>')
         description = article_div(root, r'<div\b[^>]*class=["\'][^"\']*\btext-area\b[^"\']*["\'][^>]*>') if root else None
         facts = article_div(root, r'<div\b[^>]*class=["\'][^"\']*\bdetial-cont-element\b[^"\']*["\'][^>]*>') if root else None
-        article = description + ' ' + facts if description and facts else None
+        article = description + (' ' + facts if facts else '') if description else None
     elif host == 'www.moe.go.kr':
         article = article_div(html, r'<div\b[^>]*id=["\']txt["\'][^>]*>')
     elif host == 'www.applyhome.co.kr':
@@ -102,7 +102,7 @@ def content_version(url):
     if host == 'english.visitkorea.or.kr' and 'vcontsId=182518' in url:
         return 'apsan-article-v1'
     if host == 'korean.visitseoul.net':
-        return 'article-v4'
+        return 'article-v5'
     if host == 'www.applyhome.co.kr':
         return 'guide-v1'
     if host == 'www.kosaf.go.kr':
