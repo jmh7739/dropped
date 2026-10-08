@@ -5,6 +5,8 @@ name: CI (빌드·임포트 검증)
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - 'marketbot-data/**'
   pull_request:
     branches: [main]
 
