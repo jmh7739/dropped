@@ -47,3 +47,5 @@ dropped-trend-bot/**/.env.local
 .vinext/
 .wrangler/
 supabase/.temp/
+
+/.sites-runtime/
