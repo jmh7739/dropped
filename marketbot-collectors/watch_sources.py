@@ -8,10 +8,13 @@ from datetime import datetime, timezone
 from hashlib import sha256
 from pathlib import Path
 from urllib.parse import urlparse
+from urllib.error import URLError
 from urllib.request import Request, urlopen
 from urllib.robotparser import RobotFileParser
 import json
 import re
+import ssl
+import subprocess
 import time
 
 
@@ -29,8 +32,18 @@ CORE = {
 
 def get(url, timeout=10):
     req = Request(url, headers={'User-Agent': USER_AGENT, 'Accept': 'text/html,application/json'})
-    with urlopen(req, timeout=timeout) as response:
-        return response.read(1_000_000)
+    try:
+        with urlopen(req, timeout=timeout) as response:
+            return response.read(1_000_000)
+    except URLError as exc:
+        # Some public servers close Python's TLS handshake early. Retry the same
+        # allowed URL once with curl; never retry HTTP denials or access controls.
+        if not isinstance(exc.reason, ssl.SSLError) or 'UNEXPECTED_EOF' not in str(exc.reason):
+            raise
+        result = subprocess.run(['curl', '--fail', '--location', '--silent', '--show-error',
+            '--max-time', str(timeout), '--user-agent', USER_AGENT, url],
+            capture_output=True, timeout=timeout + 2, check=True)
+        return result.stdout[:1_000_000]
 
 
 def normalized(html):
