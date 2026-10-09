@@ -148,7 +148,7 @@ export const getRecentlyTrackedProducts = cache(async function getRecentlyTracke
   const safeLimit = Math.min(Math.max(limit, 1), 300);
   const { data: prods, error } = await supabase
     .from("products")
-    .select("id,title,image_url,mall_name,platform,unit_price,created_at, categories(slug,name)")
+    .select("id,title,image_url,mall_name,platform,external_product_id,unit_price,created_at, categories(slug,name)")
     .order("created_at", { ascending: false })
     .limit(safeLimit);
   if (error || !prods?.length) return [];
@@ -156,7 +156,7 @@ export const getRecentlyTrackedProducts = cache(async function getRecentlyTracke
   const ids = prods.map((p: any) => p.id);
   const since = new Date(Date.now() - 90 * 86400000).toISOString();
   const byProduct = await readPriceHistory(ids, since);
-  const candidates = new Map<string, { row: TrackedProductRow; imageQuality: number }>();
+  const candidates = new Map<string, { row: TrackedProductRow; imageQuality: number; verifiedFeed: boolean }>();
   const gameSoftware = /(?:steam|스팀\s*(?:키|코드|게임)|pc\s*게임|게임\s*타이틀|(?:ps4|ps5|playstation|플레이스테이션)\s*(?:게임|타이틀|소프트)|(?:닌텐도\s*스위치|nintendo\s*switch)\s*(?:게임|타이틀|소프트))/i;
 
   for (const p of prods as any[]) {
@@ -169,6 +169,7 @@ export const getRecentlyTrackedProducts = cache(async function getRecentlyTracke
     const mallName = canonicalMallName(p.mall_name, p.platform);
     const imageUrl = normalizeProductImage(p.image_url);
     const imageQuality = productImageQuality(imageUrl);
+    const verifiedFeed = p.platform === 'cps' && /^lp_[a-z0-9_:-]+$/i.test(p.external_product_id ?? '');
     const fingerprint = `${p.title.replace(/[^0-9a-z가-힣]/gi, "").toLowerCase()}|${(mallName ?? p.platform).toLowerCase()}`;
     const rate = stats.avg30 && stats.avg30 > current
       ? Math.round(((stats.avg30 - current) / stats.avg30) * 100)
@@ -199,10 +200,10 @@ export const getRecentlyTrackedProducts = cache(async function getRecentlyTracke
       createdAt: p.created_at,
     };
     const existing = candidates.get(fingerprint);
-    if (!existing || imageQuality > existing.imageQuality) candidates.set(fingerprint, { row, imageQuality });
+    if (!existing || imageQuality > existing.imageQuality) candidates.set(fingerprint, { row, imageQuality, verifiedFeed });
   }
   return [...candidates.values()]
-    .filter((candidate) => candidate.imageQuality > 0)
+    .filter((candidate) => candidate.imageQuality > 0 || candidate.verifiedFeed)
     .map((candidate) => candidate.row)
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 });
@@ -224,7 +225,7 @@ export async function searchProducts(
 
   const { data: prods, error } = await supabase
     .from("products")
-    .select("id,title,image_url,mall_name,platform,unit_price, categories(slug,name)")
+    .select("id,title,image_url,mall_name,platform,external_product_id,unit_price, categories(slug,name)")
     .ilike("title", pattern)
     .limit(40);
   if (error || !prods || prods.length === 0) return [];
@@ -236,7 +237,8 @@ export async function searchProducts(
   const rows: ProductSearchRow[] = [];
   for (const p of prods as any[]) {
     const imageUrl = normalizeProductImage(p.image_url);
-    if (!usableProductTitle(p.title ?? "") || productImageQuality(imageUrl) === 0) continue;
+    if (!usableProductTitle(p.title ?? "") || (productImageQuality(imageUrl) === 0 &&
+        !(p.platform === 'cps' && /^lp_[a-z0-9_:-]+$/i.test(p.external_product_id ?? '')))) continue;
     const history = byProduct.get(p.id);
     if (!history || history.length === 0) continue; // 이력 없으면 상세가 404 → 제외
     const current = history[history.length - 1].price;
