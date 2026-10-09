@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
   const db = adminDb();
   if (!db) return NextResponse.json({ error: 'database_unavailable' }, { status: 503 });
   const sourceId = request.nextUrl.searchParams.get('sourceId') || '';
-  if (!/^lp_[a-z0-9_:-]{5,180}$/i.test(sourceId)) return NextResponse.json({ error: 'invalid_id' }, { status: 400 });
+  if (!/^(?:lp|pp)_[a-z0-9_:-]{5,180}$/i.test(sourceId)) return NextResponse.json({ error: 'invalid_id' }, { status: 400 });
   const { data: product, error } = await db.from('products').select('id,title,product_url,affiliate_url,mall_name,platform,external_product_id')
     .eq('platform', 'cps').eq('external_product_id', sourceId).maybeSingle();
   if (error) return NextResponse.json({ error: 'read_failed' }, { status: 503 });
@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
   let original: URL, affiliate: URL;
   try { original = new URL(originalUrl); affiliate = new URL(affiliateUrl); }
   catch { return NextResponse.json({ error: 'invalid_url' }, { status: 400 }); }
-  if (!/^lp_[a-z0-9_:-]{5,180}$/i.test(sourceId) || !title || title.length > 160 ||
+  if (!/^(?:lp|pp)_[a-z0-9_:-]{5,180}$/i.test(sourceId) || !title || title.length > 160 ||
       !merchant || merchant.length > 80 || !Number.isInteger(price) || price <= 0 || price > 100_000_000 ||
       original.protocol !== 'https:' || original.username || original.password ||
       original.hostname === 'click.linkprice.com' || affiliate.protocol !== 'https:' ||
