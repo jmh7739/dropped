@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from hashlib import sha256
 from pathlib import Path
 from urllib.parse import urlparse
-from urllib.error import URLError
+from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 from urllib.robotparser import RobotFileParser
 import json
@@ -44,6 +44,17 @@ def get(url, timeout=10):
             '--max-time', str(timeout), '--user-agent', USER_AGENT, url],
             capture_output=True, timeout=timeout + 2, check=True)
         return result.stdout[:1_000_000]
+
+
+def parse_robots(origin, rules):
+    if rules.lstrip('\ufeff \t\r\n').startswith('<'):
+        raise ValueError('robots.txt returned an HTML maintenance page')
+    lines = rules.splitlines()
+    if not any(line.strip().lower().startswith('user-agent:') for line in lines):
+        raise ValueError('robots.txt has no User-agent directive')
+    parser = RobotFileParser(origin + '/robots.txt')
+    parser.parse(lines)
+    return parser
 
 
 def normalized(html):
@@ -171,16 +182,18 @@ def main():
                 continue
             origin = parsed.scheme + '://' + parsed.netloc
             if origin not in robots:
-                parser = RobotFileParser(origin + '/robots.txt')
-                try:
-                    rules = get(origin + '/robots.txt', timeout=7).decode('utf-8', errors='replace')
-                    if rules.lstrip('\ufeff \t\r\n').startswith('<'):
-                        raise ValueError('robots.txt returned an HTML maintenance page')
-                    parser.parse(rules.splitlines())
-                    robots[origin] = parser
-                except Exception as exc:
-                    robots[origin] = None
-                    robots_errors[origin] = str(exc)[:120] or type(exc).__name__
+                for attempt in range(2):
+                    try:
+                        rules = get(origin + '/robots.txt', timeout=7).decode('utf-8-sig', errors='replace')
+                        parser = parse_robots(origin, rules)
+                        robots[origin] = parser
+                        break
+                    except Exception as exc:
+                        if attempt == 0 and not isinstance(exc, (HTTPError, ValueError)):
+                            time.sleep(1)
+                            continue
+                        robots[origin] = None
+                        robots_errors[origin] = str(exc)[:120] or type(exc).__name__
             parser = robots[origin]
             if parser is None and row.get('id') in CORE[site]:
                 robots_unavailable[site + ':' + str(row['id'])] = {
