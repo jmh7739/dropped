@@ -22,8 +22,8 @@ BASE = {
     'TripMarket': 'https://tripmkt.kr',
 }
 CORE = {
-    'LifeMarket': {'unemployment', 'severance', 'housing-benefit', 'school-entry'},
-    'TripMarket': {'donghae', 'busan-fireworks-2026', 'jeju-olle-walking-2026', 'je-hamdeok', 'je-bijarim'},
+    'LifeMarket': {'unemployment', 'severance', 'housing-benefit', 'school-entry', 'loan-check'},
+    'TripMarket': {'donghae', 'busan-fireworks-2026', 'jeju-olle-walking-2026', 'je-hamdeok', 'je-bijarim', 'dj-seongsim'},
 }
 
 
@@ -154,7 +154,10 @@ def main():
             if origin not in robots:
                 parser = RobotFileParser(origin + '/robots.txt')
                 try:
-                    parser.parse(get(origin + '/robots.txt', timeout=7).decode('utf-8', errors='replace').splitlines())
+                    rules = get(origin + '/robots.txt', timeout=7).decode('utf-8', errors='replace')
+                    if rules.lstrip('\ufeff \t\r\n').startswith('<'):
+                        raise ValueError('robots.txt returned an HTML maintenance page')
+                    parser.parse(rules.splitlines())
                     robots[origin] = parser
                 except Exception:
                     robots[origin] = None
