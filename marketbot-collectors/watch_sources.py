@@ -136,6 +136,7 @@ def selected(site, sources):
 def main():
     previous = json.loads(OUT.read_text(encoding='utf-8')) if OUT.exists() else {}
     data = dict(previous)
+    unavailable = {}
     robots = {}
     for site, base in BASE.items():
         try:
@@ -168,19 +169,21 @@ def main():
         checked = 0
         for row in selection:
             url = row['url']
+            key = site + ':' + str(row['id'])
             try:
                 content = content_for(url, get(url, timeout=12).decode('utf-8', errors='replace'))
                 if len(content) < 200:
-                    continue
-                key = site + ':' + str(row['id'])
+                    raise ValueError('official article too short')
                 data[key] = {'url': url, 'hash': sha256(content.encode()).hexdigest(), 'version': content_version(url),
                              'checkedAt': datetime.now(timezone.utc).isoformat()}
                 checked += 1
-            except Exception:
-                pass
+            except Exception as exc:
+                unavailable[key] = {'reason': str(exc)[:120] or type(exc).__name__,
+                                    'checkedAt': datetime.now(timezone.utc).isoformat()}
             time.sleep(0.7)
         print(site + ': ' + str(checked) + '/' + str(len(selection)) +
               ' selected official pages verified; ' + str(len(sources) - len(eligible)) + ' robots-excluded')
+    data['unavailable'] = unavailable
     if data != previous:
         OUT.parent.mkdir(exist_ok=True)
         OUT.write_text(json.dumps(data, ensure_ascii=False, separators=(',', ':')) + '\n', encoding='utf-8')
