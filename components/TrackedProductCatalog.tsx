@@ -29,7 +29,7 @@ export default function TrackedProductCatalog({ rows }: { rows: TrackedProductRo
         if (sort === "price-high") return b.currentPrice - a.currentPrice;
         if (sort === "tracked") return b.trackedDays - a.trackedDays;
         if (sort === "drop") return b.rate - a.rate;
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        return new Date(b.lastCheckedAt).getTime() - new Date(a.lastCheckedAt).getTime();
       });
   }, [rows, query, mall, category, sort]);
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
@@ -50,7 +50,7 @@ export default function TrackedProductCatalog({ rows }: { rows: TrackedProductRo
         <option value="">모든 카테고리</option>{categories.map(([slug, name]) => <option key={slug} value={slug}>{name}</option>)}
       </select>
       <select value={sort} onChange={(e) => update(setSort)(e.target.value)} aria-label="정렬" className="h-11 rounded-lg border border-gray-300 bg-white px-3 text-sm">
-        <option value="recent">최근 추가순</option><option value="drop">평균 대비 하락순</option><option value="tracked">오래 추적한 순</option><option value="price-low">낮은 가격순</option><option value="price-high">높은 가격순</option>
+        <option value="recent">최근 확인순</option><option value="drop">평균 대비 하락순</option><option value="tracked">오래 추적한 순</option><option value="price-low">낮은 가격순</option><option value="price-high">높은 가격순</option>
       </select>
     </div>
     <p className="mb-3 text-sm font-semibold text-gray-700">조건에 맞는 상품 {filtered.length}개</p>

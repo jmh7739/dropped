@@ -156,9 +156,14 @@ export const getRecentlyTrackedProducts = cache(async function getRecentlyTracke
   // A product can have been discovered days ago and only receive its first
   // verified MarketBot price today. Include tracked affiliate products even
   // when their original creation date falls outside the recent rows.
-  const { data: affiliate } = await supabase.from("products").select(selection)
-    .eq("platform", "cps").order("created_at", { ascending: false }).limit(500);
-  const prods = [...new Map([...(recent as any[]), ...((affiliate ?? []) as any[])]
+  const [major, popular] = await Promise.all([
+    supabase.from("products").select(selection).eq("platform", "cps")
+      .like("external_product_id", "lp_%").order("created_at", { ascending: false }).limit(300),
+    supabase.from("products").select(selection).eq("platform", "cps")
+      .like("external_product_id", "pp_%").order("created_at", { ascending: false }).limit(300),
+  ]);
+  const prods = [...new Map([...(recent as any[]), ...((major.data ?? []) as any[]),
+    ...((popular.data ?? []) as any[])]
     .map(product => [product.id, product])).values()];
 
   const ids = prods.map((p: any) => p.id);
