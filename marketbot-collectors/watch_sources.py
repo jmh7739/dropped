@@ -151,6 +151,8 @@ def main():
     data = dict(previous)
     unavailable = {}
     robots = {}
+    robots_errors = {}
+    robots_unavailable = {}
     for site, base in BASE.items():
         try:
             sources = json.loads(get(base + '/api/marketbot/sources'))['sources']
@@ -172,9 +174,14 @@ def main():
                         raise ValueError('robots.txt returned an HTML maintenance page')
                     parser.parse(rules.splitlines())
                     robots[origin] = parser
-                except Exception:
+                except Exception as exc:
                     robots[origin] = None
+                    robots_errors[origin] = str(exc)[:120] or type(exc).__name__
             parser = robots[origin]
+            if parser is None and row.get('id') in CORE[site]:
+                robots_unavailable[site + ':' + str(row['id'])] = {
+                    'reason': robots_errors.get(origin, 'robots.txt unavailable'),
+                    'checkedAt': datetime.now(timezone.utc).isoformat()}
             if parser is None or not parser.can_fetch(USER_AGENT, url):
                 continue
             eligible.append(row)
@@ -200,6 +207,7 @@ def main():
         print(site + ': ' + str(checked) + '/' + str(len(selection)) +
               ' selected official pages verified; ' + str(len(sources) - len(eligible)) + ' robots-excluded')
     data['unavailable'] = unavailable
+    data['robotsUnavailable'] = robots_unavailable
     if data != previous:
         OUT.parent.mkdir(exist_ok=True)
         OUT.write_text(json.dumps(data, ensure_ascii=False, separators=(',', ':')) + '\n', encoding='utf-8')
