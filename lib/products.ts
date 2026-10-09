@@ -162,8 +162,27 @@ export const getRecentlyTrackedProducts = cache(async function getRecentlyTracke
     supabase.from("products").select(selection).eq("platform", "cps")
       .like("external_product_id", "pp_%").order("created_at", { ascending: false }).limit(300),
   ]);
+  // Surface products whose price was freshly verified even if the product was
+  // originally created long before the newest 300 affiliate rows.
+  const activeIds = new Set<number>();
+  const activeSince = new Date(Date.now() - 6 * 3600_000).toISOString();
+  for (let offset = 0; offset < 2000; offset += 1000) {
+    const { data: history, error: historyError } = await supabase.from("price_history")
+      .select("product_id").gte("collected_at", activeSince)
+      .order("collected_at", { ascending: false }).range(offset, offset + 999);
+    if (historyError || !history?.length) break;
+    for (const item of history) activeIds.add(item.product_id);
+    if (history.length < 1000) break;
+  }
+  const activeAffiliate: any[] = [];
+  const activeList = [...activeIds];
+  for (let offset = 0; offset < activeList.length; offset += 100) {
+    const { data } = await supabase.from("products").select(selection)
+      .eq("platform", "cps").in("id", activeList.slice(offset, offset + 100));
+    if (data) activeAffiliate.push(...data);
+  }
   const prods = [...new Map([...(recent as any[]), ...((major.data ?? []) as any[]),
-    ...((popular.data ?? []) as any[])]
+    ...((popular.data ?? []) as any[]), ...activeAffiliate]
     .map(product => [product.id, product])).values()];
 
   const ids = prods.map((p: any) => p.id);
