@@ -110,17 +110,20 @@ def market_prices():
 def tourism():
     """Small official TourAPI sample for the TripMarket relay."""
     today = datetime.now(KST).strftime('%Y%m%d')
-    requests = [('searchFestival2', {'eventStartDate': today}, 'travel_event'),
-                ('areaBasedList2', {'contentTypeId': '39', 'areaCode': '1'}, 'travel_place'),
-                ('areaBasedList2', {'contentTypeId': '39', 'areaCode': '6'}, 'travel_place')]
+    requests = [('searchFestival2', {'eventStartDate': today}, 'travel_event', '축제·행사'),
+                ('areaBasedList2', {'contentTypeId': '39', 'areaCode': '1'}, 'travel_place', '음식점'),
+                ('areaBasedList2', {'contentTypeId': '39', 'areaCode': '6'}, 'travel_place', '음식점'),
+                ('areaBasedList2', {'contentTypeId': '12', 'areaCode': '1'}, 'travel_place', '관광지'),
+                ('areaBasedList2', {'contentTypeId': '12', 'areaCode': '6'}, 'travel_place', '관광지'),
+                ('areaBasedList2', {'contentTypeId': '12', 'areaCode': '39'}, 'travel_place', '관광지')]
     output = []
-    for method, extra, kind in requests:
+    for method, extra, kind, category in requests:
         data = json.loads(request('B551011/KorService2/' + method, {
             'MobileOS': 'ETC', 'MobileApp': 'MarketOps', '_type': 'json',
             'numOfRows': '30', 'pageNo': '1', 'arrange': 'A', **extra}))
         for row in items(data):
             if row.get('contentid') and row.get('title'):
-                output.append({'kind': kind, **select(row, ('contentid', 'title', 'addr1',
+                output.append({'kind': kind, 'category': category, **select(row, ('contentid', 'title', 'addr1',
                     'mapx', 'mapy', 'eventstartdate', 'eventenddate', 'modifiedtime'))})
     if not output:
         raise ValueError('empty tourism response')
