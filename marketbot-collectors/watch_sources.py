@@ -72,6 +72,8 @@ def content_for(url, html):
         article = article_div(html, r'<div\b[^>]*class=["\'][^"\']*\breal\b[^"\']*["\'][^>]*>')
     elif host == 'english.visitkorea.or.kr' and 'vcontsId=182518' in url:
         article = article_div(html, r'<div\b[^>]*class=["\'][^"\']*\balley\b[^"\']*\bdaegu\b[^"\']*["\'][^>]*>')
+    elif host == 'english.visitkorea.or.kr' and 'vcontsId=249989' in url:
+        article = article_div(html, r'<div\b[^>]*class=["\'][^"\']*\bpage4_wrap\b[^"\']*["\'][^>]*>')
     elif host == 'korean.visitseoul.net':
         root = article_div(html, r'<div\b[^>]*class=["\'][^"\']*\bsub-contents-inner\b[^"\']*["\'][^>]*>')
         description = article_div(root, r'<div\b[^>]*class=["\'][^"\']*\btext-area\b[^"\']*["\'][^>]*>') if root else None
@@ -101,6 +103,8 @@ def content_version(url):
     host = urlparse(url).hostname
     if host == 'english.visitkorea.or.kr' and 'vcontsId=182518' in url:
         return 'apsan-article-v1'
+    if host == 'english.visitkorea.or.kr' and 'vcontsId=249989' in url:
+        return 'shopping-article-v1'
     if host == 'korean.visitseoul.net':
         return 'article-v5'
     if host == 'www.applyhome.co.kr':
