@@ -68,8 +68,12 @@ def applyhome_guide(html):
 
 def content_for(url, html):
     host = urlparse(url).hostname
+    if host == 'finlife.fss.or.kr' and ('금융감독원 대국민 서비스 중단 안내' in html or '전기설비 안전점검에 따른 정전' in html):
+        raise ValueError('official financial service maintenance')
     if host == 'www.visitjeju.net':
         article = article_div(html, r'<div\b[^>]*class=["\'][^"\']*\breal\b[^"\']*["\'][^>]*>')
+    elif host == 'sungsimdang.co.kr':
+        article = article_div(html, r'<div\b[^>]*class=["\'][^"\']*\btbl_view_head\b[^"\']*["\'][^>]*>')
     elif host == 'english.visitkorea.or.kr' and 'vcontsId=182518' in url:
         article = article_div(html, r'<div\b[^>]*class=["\'][^"\']*\balley\b[^"\']*\bdaegu\b[^"\']*["\'][^>]*>')
     elif host == 'english.visitkorea.or.kr' and 'vcontsId=249989' in url:
@@ -101,6 +105,10 @@ def content_for(url, html):
 
 def content_version(url):
     host = urlparse(url).hostname
+    if host == 'sungsimdang.co.kr':
+        return 'store-facts-v1'
+    if host == 'finlife.fss.or.kr':
+        return 'finance-guide-v1'
     if host == 'english.visitkorea.or.kr' and 'vcontsId=182518' in url:
         return 'apsan-article-v1'
     if host == 'english.visitkorea.or.kr' and 'vcontsId=249989' in url:
