@@ -169,7 +169,7 @@ export const getRecentlyTrackedProducts = cache(async function getRecentlyTracke
     const mallName = canonicalMallName(p.mall_name, p.platform);
     const imageUrl = normalizeProductImage(p.image_url);
     const imageQuality = productImageQuality(imageUrl);
-    const verifiedFeed = p.platform === 'cps' && /^lp_[a-z0-9_:-]+$/i.test(p.external_product_id ?? '');
+    const verifiedFeed = p.platform === 'cps' && /^(?:lp|pp)_[a-z0-9_:-]+$/i.test(p.external_product_id ?? '');
     const fingerprint = `${p.title.replace(/[^0-9a-z가-힣]/gi, "").toLowerCase()}|${(mallName ?? p.platform).toLowerCase()}`;
     const rate = stats.avg30 && stats.avg30 > current
       ? Math.round(((stats.avg30 - current) / stats.avg30) * 100)
@@ -238,7 +238,7 @@ export async function searchProducts(
   for (const p of prods as any[]) {
     const imageUrl = normalizeProductImage(p.image_url);
     if (!usableProductTitle(p.title ?? "") || (productImageQuality(imageUrl) === 0 &&
-        !(p.platform === 'cps' && /^lp_[a-z0-9_:-]+$/i.test(p.external_product_id ?? '')))) continue;
+        !(p.platform === 'cps' && /^(?:lp|pp)_[a-z0-9_:-]+$/i.test(p.external_product_id ?? '')))) continue;
     const history = byProduct.get(p.id);
     if (!history || history.length === 0) continue; // 이력 없으면 상세가 404 → 제외
     const current = history[history.length - 1].price;
