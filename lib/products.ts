@@ -146,12 +146,20 @@ export const getRecentlyTrackedProducts = cache(async function getRecentlyTracke
 ): Promise<TrackedProductRow[]> {
   if (!supabase) return [];
   const safeLimit = Math.min(Math.max(limit, 1), 300);
-  const { data: prods, error } = await supabase
+  const selection = "id,title,image_url,mall_name,platform,external_product_id,unit_price,created_at, categories(slug,name)";
+  const { data: recent, error } = await supabase
     .from("products")
-    .select("id,title,image_url,mall_name,platform,external_product_id,unit_price,created_at, categories(slug,name)")
+    .select(selection)
     .order("created_at", { ascending: false })
     .limit(safeLimit);
-  if (error || !prods?.length) return [];
+  if (error || !recent?.length) return [];
+  // A product can have been discovered days ago and only receive its first
+  // verified MarketBot price today. Include tracked affiliate products even
+  // when their original creation date falls outside the recent rows.
+  const { data: affiliate } = await supabase.from("products").select(selection)
+    .eq("platform", "cps").order("created_at", { ascending: false }).limit(500);
+  const prods = [...new Map([...(recent as any[]), ...((affiliate ?? []) as any[])]
+    .map(product => [product.id, product])).values()];
 
   const ids = prods.map((p: any) => p.id);
   const since = new Date(Date.now() - 90 * 86400000).toISOString();
@@ -205,7 +213,7 @@ export const getRecentlyTrackedProducts = cache(async function getRecentlyTracke
   return [...candidates.values()]
     .filter((candidate) => candidate.imageQuality > 0 || candidate.verifiedFeed)
     .map((candidate) => candidate.row)
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    .sort((a, b) => new Date(b.lastCheckedAt).getTime() - new Date(a.lastCheckedAt).getTime());
 });
 
 /**
