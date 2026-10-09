@@ -91,6 +91,8 @@ def content_for(url, html):
         article = article_div(html, r'<div\b[^>]*class=["\'][^"\']*\balley\b[^"\']*\bdaegu\b[^"\']*["\'][^>]*>')
     elif host == 'english.visitkorea.or.kr' and 'vcontsId=249989' in url:
         article = article_div(html, r'<div\b[^>]*class=["\'][^"\']*\bpage4_wrap\b[^"\']*["\'][^>]*>')
+    elif host == 'access.visitkorea.or.kr' and 'cotId=8ef62580-8851-4e8d-846d-1c193e349992' in url:
+        article = article_div(html, r'<div\b[^>]*class=["\'][^"\']*\btravel_cos\b[^"\']*["\'][^>]*>')
     elif host == 'korean.visitseoul.net':
         root = article_div(html, r'<div\b[^>]*class=["\'][^"\']*\bsub-contents-inner\b[^"\']*["\'][^>]*>')
         description = article_div(root, r'<div\b[^>]*class=["\'][^"\']*\btext-area\b[^"\']*["\'][^>]*>') if root else None
@@ -122,6 +124,8 @@ def content_version(url):
         return 'store-facts-v1'
     if host == 'finlife.fss.or.kr':
         return 'finance-guide-v1'
+    if host == 'access.visitkorea.or.kr' and 'cotId=8ef62580-8851-4e8d-846d-1c193e349992' in url:
+        return 'route-article-v1'
     if host == 'english.visitkorea.or.kr' and 'vcontsId=182518' in url:
         return 'apsan-article-v1'
     if host == 'english.visitkorea.or.kr' and 'vcontsId=249989' in url:
