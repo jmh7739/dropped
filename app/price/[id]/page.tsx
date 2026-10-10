@@ -188,6 +188,11 @@ export default async function ProductPricePage({
             )}
             <ShippingBadge fee={r.shippingFee} />
           </div>
+          {stats?.enoughData && stats.avg30 != null && currentPrice != null && (
+            <p className="mt-2 text-xs text-gray-600">
+              최근 30일 관측 평균 {formatWon(stats.avg30)} 대비 {realRate > 0 ? `${realRate}% 낮음` : "하락 아님"} · 가격 점수는 이전 최저가와 추적 기간도 함께 반영합니다.
+            </p>
+          )}
 
           <div className="mt-4 rounded-xl bg-gray-50 p-4">
             {currentPrice != null && r.listPrice > 0 && r.listPrice > currentPrice && (

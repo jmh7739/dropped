@@ -38,6 +38,30 @@ async function main() {
   assert.equal(listDiscountRate(100, 120), 0, 'invalid list price must not create a discount');
 
   const { priceStats, dealVerdict } = load('lib/priceReport.ts');
+  const { rowToDeal } = load('lib/deals.ts', {
+    './supabase': { supabase: null }, './types': {}, './dropMetrics': {}, './priceHistory': {},
+    './format': { listDiscountRate }, './unitPrice': { deriveUnitPrice },
+    './priceReport': { priceStats }, react: { cache: fn => fn },
+  });
+  const newer = new Date(Date.now() - 60_000).toISOString();
+  const earlier = new Date(Date.now() - 3600_000).toISOString();
+  const reconciled = rowToDeal({ deal_id: 1, product_id: 11166, platform: 'aliexpress', title: 'POLVCDG X9',
+    list_price: 40000, current_price: 26392, avg30_price: 33317, discount_vs_avg: 21,
+    is_lowest_ever: true, status: 'active', checked_at: earlier, detected_at: earlier,
+    baseline_price: 33317, history_points: 20 }, [
+      { price: 26392, collectedAt: earlier }, { price: 29999, collectedAt: newer },
+    ]);
+  assert.equal(reconciled.currentPrice, 29999, 'home deal card must use the detail page latest observed price');
+  assert.equal(reconciled.checkedAt, newer);
+  assert.equal(reconciled.isLowestEver, false, 'an earlier low must not remain a current-low badge');
+  assert.equal(reconciled.discountVsList, 25, 'list discount must follow the reconciled price');
+  const newerView = rowToDeal({ deal_id: 2, product_id: 11166, platform: 'aliexpress', title: 'POLVCDG X9',
+    current_price: 31000, avg30_price: 33000, discount_vs_avg: 6, is_lowest_ever: false,
+    status: 'active', checked_at: newer, detected_at: earlier }, [
+      { price: 26392, collectedAt: earlier },
+    ]);
+  assert.equal(newerView.currentPrice, 31000, 'an older history point must not replace a newer deal observation');
+  assert.equal(newerView.checkedAt, newer);
   const now = Date.now();
   const at = days => new Date(now - days * 86400000).toISOString();
   const stats = priceStats([{price:100,collectedAt:at(14)},{price:120,collectedAt:at(13)}],120);
@@ -102,6 +126,6 @@ async function main() {
     then(resolve){return Promise.resolve(resolve({data:null,error:{code:'network_failure'}}))},
   }}}}});
   await assert.rejects(failing.readPriceHistory([1]),/unavailable/);
-  console.log('PASS: invalid/future prices, actual tracking duration, honest minimum labels, multi-page latest prices, failed fetch');
+  console.log('PASS: latest deal price reconciliation, invalid/future prices, actual tracking duration, honest minimum labels, multi-page latest prices, failed fetch');
 }
 main().catch(error=>{console.error(error);process.exitCode=1;});

@@ -25,10 +25,17 @@ export const DEAL_SORTS: { key: SortKey; label: string }[] = [
 ];
 
 /** DB 행 → Deal 매핑 */
-function rowToDeal(row: any, history: PricePoint[]): Deal {
+export function rowToDeal(row: any, history: PricePoint[]): Deal {
   const listPrice = Number(row.list_price ?? 0);
-  const currentPrice = Number(row.current_price ?? 0);
-  const stats = history.length ? priceStats(history, currentPrice) : null;
+  // v_active_deals can retain an earlier hot_deals price after price_history
+  // has recorded a newer observation. The product detail uses this same history.
+  const lastObservation = history[history.length - 1];
+  const rowCheckedAt = Date.parse(row.checked_at ?? row.updated_at ?? "");
+  const observationAt = Date.parse(lastObservation?.collectedAt ?? "");
+  const useObservation = lastObservation && Number.isFinite(observationAt)
+    && (!Number.isFinite(rowCheckedAt) || observationAt >= rowCheckedAt);
+  const currentPrice = Number(useObservation ? lastObservation.price : row.current_price ?? 0);
+  const stats = useObservation ? priceStats(history, currentPrice) : null;
   return {
     id: row.deal_id,
     productId: row.product_id,
@@ -46,17 +53,18 @@ function rowToDeal(row: any, history: PricePoint[]): Deal {
     currentPrice,
     baselinePrice: row.baseline_price ?? 0,
     discountVsList: listDiscountRate(listPrice, currentPrice),
-    discountVsAvg:
-      row.discount_vs_avg !== null ? Number(row.discount_vs_avg) : null,
-    isLowestEver: Boolean(row.is_lowest_ever),
+    discountVsAvg: stats?.avg30 != null && stats.avg30 > 0
+      ? Math.round(((stats.avg30 - currentPrice) / stats.avg30) * 100)
+      : row.discount_vs_avg != null ? Number(row.discount_vs_avg) : null,
+    isLowestEver: stats?.isLowest ?? Boolean(row.is_lowest_ever),
     isPriceError: Boolean(row.is_price_error),
     status: row.status,
     detectedAt: row.detected_at,
     endedAt: row.ended_at,
-    checkedAt: row.checked_at ?? row.updated_at ?? null,
+    checkedAt: useObservation ? lastObservation.collectedAt : row.checked_at ?? row.updated_at ?? null,
     avg30Price: stats?.avg30 ?? (row.avg30_price != null ? Number(row.avg30_price) : null),
-    min90Price: row.min90_price != null ? Number(row.min90_price) : null,
-    max90Price: row.max90_price != null ? Number(row.max90_price) : null,
+    min90Price: stats?.min90 ?? (row.min90_price != null ? Number(row.min90_price) : null),
+    max90Price: stats?.max90 ?? (row.max90_price != null ? Number(row.max90_price) : null),
     // DB 뷰는 경과일을 ceil()로 집계한다. 89일 몇 시간이 90일로 보이는
     // 과장을 피하려고 화면에서는 완료된 일수만 보수적으로 표시한다.
     trackedDays: row.tracked_days != null
