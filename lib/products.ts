@@ -1,6 +1,6 @@
 import { supabase } from "./supabase";
 import { PricePoint } from "./types";
-import { priceStats, buyVerdict, VerdictTier } from "./priceReport";
+import { priceStats, buyVerdict, isFreshPriceObservation, stalePriceVerdict, VerdictTier } from "./priceReport";
 import { readPriceHistory } from "./priceHistory";
 import { cache } from "react";
 import { averagePeriodLabel, lowestPeriodLabel } from "./dropMetrics";
@@ -206,7 +206,10 @@ export const getRecentlyTrackedProducts = cache(async function getRecentlyTracke
     const rate = stats.avg30 && stats.avg30 > current
       ? Math.round(((stats.avg30 - current) / stats.avg30) * 100)
       : 0;
-    const v = buyVerdict(rate, stats.isLowest, stats.lowestLabel, stats.enoughData);
+    const checkedAt = history[history.length - 1].collectedAt;
+    const v = isFreshPriceObservation(checkedAt)
+      ? buyVerdict(rate, stats.isLowest, stats.lowestLabel, stats.enoughData)
+      : stalePriceVerdict();
     const cat = p.categories;
     const row: TrackedProductRow = {
       id: p.id,
@@ -228,7 +231,7 @@ export const getRecentlyTrackedProducts = cache(async function getRecentlyTracke
       lowestPrice: stats.trackedDays >= 90 ? (stats.min90 ?? stats.minAll) : stats.minAll,
       averageLabel: averagePeriodLabel(stats.trackedDays),
       lowestLabel: lowestPeriodLabel(stats.trackedDays),
-      lastCheckedAt: history[history.length - 1].collectedAt,
+      lastCheckedAt: checkedAt,
       createdAt: p.created_at,
     };
     const existing = candidates.get(fingerprint);
@@ -280,7 +283,10 @@ export async function searchProducts(
       stats.avg30 && stats.avg30 > current
         ? Math.round(((stats.avg30 - current) / stats.avg30) * 100)
         : 0;
-    const v = buyVerdict(rate, stats.isLowest, stats.lowestLabel, stats.enoughData);
+    const checkedAt = history[history.length - 1].collectedAt;
+    const v = isFreshPriceObservation(checkedAt)
+      ? buyVerdict(rate, stats.isLowest, stats.lowestLabel, stats.enoughData)
+      : stalePriceVerdict();
     const cat = p.categories;
     rows.push({
       id: p.id,
@@ -302,7 +308,7 @@ export async function searchProducts(
       lowestPrice: stats.trackedDays >= 90 ? (stats.min90 ?? stats.minAll) : stats.minAll,
       averageLabel: averagePeriodLabel(stats.trackedDays),
       lowestLabel: lowestPeriodLabel(stats.trackedDays),
-      lastCheckedAt: history[history.length - 1].collectedAt,
+      lastCheckedAt: checkedAt,
     });
   }
 

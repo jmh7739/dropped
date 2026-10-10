@@ -37,7 +37,13 @@ async function main() {
   assert.equal(listDiscountRate(14530, 9030), 38, 'badge and detail discount must use the same price calculation');
   assert.equal(listDiscountRate(100, 120), 0, 'invalid list price must not create a discount');
 
-  const { priceStats, dealVerdict } = load('lib/priceReport.ts');
+  const { priceStats, dealVerdict, isFreshPriceObservation, stalePriceVerdict } = load('lib/priceReport.ts');
+  const fixedNow = Date.parse('2026-10-10T12:00:00Z');
+  assert.equal(isFreshPriceObservation('2026-10-08T12:00:00Z', fixedNow), true);
+  assert.equal(isFreshPriceObservation('2026-10-08T11:59:59Z', fixedNow), false);
+  assert.equal(isFreshPriceObservation(null, fixedNow), false);
+  assert.equal(isFreshPriceObservation('2026-10-11T12:00:00Z', fixedNow), false);
+  assert.equal(stalePriceVerdict().title, '가격 재확인 필요');
   const { rowToDeal } = load('lib/deals.ts', {
     './supabase': { supabase: null }, './types': {}, './dropMetrics': {}, './priceHistory': {},
     './format': { listDiscountRate }, './unitPrice': { deriveUnitPrice },

@@ -98,6 +98,19 @@ export type Verdict = {
   cls: string; // 배너 색
 };
 
+export function isFreshPriceObservation(checkedAt: string | null | undefined, now = Date.now()): boolean {
+  const checked = checkedAt ? Date.parse(checkedAt) : NaN;
+  return Number.isFinite(checked) && checked <= now + 5 * 60_000 && now - checked <= 48 * 3600_000;
+}
+
+export function stalePriceVerdict(): Verdict {
+  return {
+    tier: "wait", icon: "⚪", title: "가격 재확인 필요",
+    reason: "최근 48시간 안에 확인된 가격이 아닙니다. 판매 페이지에서 현재 가격을 확인하세요.",
+    cls: "border-gray-300 bg-gray-100 text-gray-700",
+  };
+}
+
 /**
  * 최종 판정. rate = 대표 하락률(급락딜=평균대비, 국내몰=원가대비).
  *   충분한 데이터가 있고 현재가가 최저면 🟢, 아니면 하락폭으로 🟢/🟡/🔴.

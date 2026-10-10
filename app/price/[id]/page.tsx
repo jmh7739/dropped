@@ -4,7 +4,7 @@ import type { Metadata } from "next";
 import { getProductReport } from "@/lib/products";
 import { getRelatedDeals } from "@/lib/deals";
 import { formatWon, timeAgo } from "@/lib/format";
-import { priceStats, buyVerdict } from "@/lib/priceReport";
+import { priceStats, buyVerdict, isFreshPriceObservation, stalePriceVerdict } from "@/lib/priceReport";
 import { PLATFORM_LABEL, Platform } from "@/lib/types";
 import { dropScore } from "@/lib/dropMetrics";
 import PriceChart from "@/components/PriceChart";
@@ -72,11 +72,12 @@ export default async function ProductPricePage({
     stats && currentPrice != null && stats.avg30 && stats.avg30 > currentPrice
       ? Math.round(((stats.avg30 - currentPrice) / stats.avg30) * 100)
       : 0;
+  const freshObservation = isFreshPriceObservation(r.lastCheckedAt);
   const verdict = stats
-    ? buyVerdict(realRate, stats.isLowest, stats.lowestLabel, stats.enoughData)
+    ? freshObservation ? buyVerdict(realRate, stats.isLowest, stats.lowestLabel, stats.enoughData) : stalePriceVerdict()
     : null;
   const score =
-    stats && verdict && currentPrice != null
+    stats && verdict && currentPrice != null && freshObservation
       ? dropScore({
           platform: r.platform as Platform,
           categorySlug: r.categorySlug,
@@ -171,6 +172,10 @@ export default async function ProductPricePage({
           {currentPrice == null ? (
             <div className="mt-3 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-medium text-blue-900">
               요즘 뜨는 상품으로 새로 등록됐습니다. 가격 이력 수집을 준비하고 있습니다.
+            </div>
+          ) : !freshObservation ? (
+            <div className="mt-3 rounded-lg border border-gray-300 bg-gray-100 px-3 py-2 text-sm font-medium text-gray-800">
+              마지막 가격 확인이 48시간을 넘었습니다. 아래 가격은 이력이며 현재 판매가와 구매 판정은 판매 페이지에서 다시 확인해 주세요.
             </div>
           ) : !r.hasActiveDeal && (
             <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-900">
