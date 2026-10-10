@@ -60,7 +60,7 @@ export function isVerifiedBestDeal(d: Deal): boolean {
   const checkedAt = d.checkedAt ? new Date(d.checkedAt).getTime() : 0;
   const fresh = checkedAt > 0 && Date.now() - checkedAt <= 24 * 3600_000;
   // A seller's list-price discount cannot substitute for a measured average.
-  return !d.isCurated && (d.trackedDays ?? 0) >= 14 &&
+  return !d.isCurated && !d.isPriceError && (d.trackedDays ?? 0) >= 14 &&
     (d.historyPointCount ?? 0) >= 20 && Boolean(d.avg30Price && d.avg30Price > d.currentPrice) &&
     fresh && score >= 50 && headlineDropRate(d) >= 5;
 }

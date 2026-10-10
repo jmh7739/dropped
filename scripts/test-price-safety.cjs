@@ -98,6 +98,8 @@ async function main() {
     historyPointCount:19};
   assert.equal(isVerifiedBestDeal(candidate),false,'19회 관측은 검증 딜이 아님');
   assert.equal(isVerifiedBestDeal({...candidate,historyPointCount:20}),true);
+  assert.equal(isVerifiedBestDeal({...candidate,historyPointCount:20,isPriceError:true}),false,
+    '가격 오류 의심 상품은 검증된 핫딜 목록에 게시하지 않아야 함');
   assert.equal(isVerifiedBestDeal({...candidate,historyPointCount:20,avg30Price:null,discountVsList:50}),false,
     '판매처 정가 할인만으로 가격 이력 검증을 통과하지 않아야 함');
   assert.equal(trackingStage(30,14).label,'가격 기록 축적 중',
