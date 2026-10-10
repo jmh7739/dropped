@@ -58,7 +58,8 @@ export function lowestPeriodLabel(trackedDays?: number | null): string {
 export function isVerifiedBestDeal(d: Deal): boolean {
   const score = dropScore(d).score ?? 0;
   const checkedAt = d.checkedAt ? new Date(d.checkedAt).getTime() : 0;
-  const fresh = checkedAt > 0 && Date.now() - checkedAt <= 24 * 3600_000;
+  const ageMs = Date.now() - checkedAt;
+  const fresh = Number.isFinite(checkedAt) && checkedAt > 0 && ageMs >= 0 && ageMs <= 24 * 3600_000;
   // A seller's list-price discount cannot substitute for a measured average.
   return !d.isCurated && !d.isPriceError && (d.trackedDays ?? 0) >= 14 &&
     (d.historyPointCount ?? 0) >= 20 && Boolean(d.avg30Price && d.avg30Price > d.currentPrice) &&
@@ -163,14 +164,15 @@ export function dropScore(d: ScoreInput): DropScoreResult {
   const healthPenalty = d.categorySlug === "health" ? 10 : 0;
   const confidencePenalty =
     days >= 30 ? 0 : days >= 14 ? 5 : days >= 7 ? 12 : 20;
-  const staleHours = d.checkedAt
-    ? (Date.now() - new Date(d.checkedAt).getTime()) / 3600000
-    : 48;
-  if (staleHours > 72) {
+  const observedAt = d.checkedAt ? new Date(d.checkedAt).getTime() : NaN;
+  const staleHours = (Date.now() - observedAt) / 3600000;
+  if (!Number.isFinite(staleHours) || staleHours < 0 || staleHours > 72) {
     return {
       score: null,
       label: "가격 재확인 필요",
-      reason: `마지막 가격 확인이 ${Math.floor(staleHours / 24)}일 전입니다. 현재 구매 판단은 판매 페이지에서 가격을 다시 확인한 뒤 결정하세요.`,
+      reason: Number.isFinite(staleHours) && staleHours > 72
+        ? `마지막 가격 확인이 ${Math.floor(staleHours / 24)}일 전입니다. 현재 구매 판단은 판매 페이지에서 가격을 다시 확인한 뒤 결정하세요.`
+        : "마지막 가격 관측 시각을 확인할 수 없습니다. 판매 페이지에서 가격을 다시 확인한 뒤 결정하세요.",
       tone: "weak",
     };
   }

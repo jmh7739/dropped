@@ -92,7 +92,7 @@ async function main() {
   assert.doesNotMatch(dealVerdict({discountVsAvg:20,avg30Price:120,currentPrice:100,isLowestEver:true,
     trackedDays:90,historyPointCount:100}).reason,/역대/);
 
-  const {isVerifiedListing,isVerifiedBestDeal,trackingStage} = load('lib/dropMetrics.ts');
+  const {isVerifiedListing,isVerifiedBestDeal,trackingStage,dropScore} = load('lib/dropMetrics.ts');
   assert.equal(isVerifiedListing({}), true);
   assert.equal(isVerifiedListing({sec:'best'}), true);
   assert.equal(isVerifiedListing({scope:'domestic'}), true);
@@ -113,6 +113,11 @@ async function main() {
   assert.equal(isVerifiedBestDeal({...candidate,trackedDays:13,historyPointCount:20}),false);
   assert.equal(isVerifiedBestDeal({...candidate,historyPointCount:20,checkedAt:new Date(Date.now()-25*3600000).toISOString()}),false,
     '24시간 넘게 확인하지 못한 가격은 검증 핫딜에서 제외');
+  for (const checkedAt of ['invalid-date', new Date(Date.now()+3600000).toISOString(), null]) {
+    const unverified = {...candidate,historyPointCount:20,checkedAt};
+    assert.equal(isVerifiedBestDeal(unverified), false, '관측 시각이 없거나 미래면 검증 핫딜에서 제외');
+    assert.equal(dropScore(unverified).score, null, '관측 시각이 없거나 미래면 가격 점수를 보류');
+  }
 
   const rows = Array.from({length:2005}, (_,i) => ({id:i+1,product_id:i%2+1,price:100+i,
     collected_at:new Date(Date.now()-86400000+i*1000).toISOString()}));
