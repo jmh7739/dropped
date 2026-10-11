@@ -245,7 +245,7 @@ export default async function ProductPricePage({
             </div>
           </div>
           <p className="mt-2 text-center text-[11px] text-gray-400">
-            제휴 링크입니다. 구매 시 판매 페이지에서 최종 가격을 확인하세요.
+            제휴 링크입니다. 표시 가격은 선택 옵션·배송지·배송비·쿠폰 적용에 따라 최종 결제금액과 다를 수 있습니다. 구매 전에 판매 페이지에서 옵션과 총액을 확인하세요.
           </p>
           <PriceWatch productId={r.id} currentPrice={currentPrice}
             lowestPrice={stats?.min90 ?? stats?.minAll ?? null} checkedAt={r.lastCheckedAt} trackedDays={stats?.trackedDays ?? null} />
