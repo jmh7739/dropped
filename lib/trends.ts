@@ -51,8 +51,8 @@ function blockedTrendKeyword(value: unknown): boolean {
     || /(?:belgium|france|england|germany|spain|italy|portugal|brazil|argentina|japan|korea)(?:vs|versus)(?:belgium|france|england|germany|spain|italy|portugal|brazil|argentina|japan|korea)/.test(keyword)
     || /(?:벨기에|프랑스|잉글랜드|영국|독일|스페인|이탈리아|포르투갈|브라질|아르헨티나|일본|한국)(?:대|전|vs)(?:벨기에|프랑스|잉글랜드|영국|독일|스페인|이탈리아|포르투갈|브라질|아르헨티나|일본|한국)/.test(keyword)
     || /(?:축구|야구|농구|배구|테니스|국가대표|챔피언스리그|프리미어리그|유로파리그|경기예측|선발명단|하이라이트)/.test(keyword);
-  const companyOnly = /^(?:삼성전기|삼성전자|lg전자|엘지전자|sk하이닉스|현대자동차|현대차|기아|포스코홀딩스|현대모비스|한화오션|두산에너빌리티)$/.test(keyword)
-    || /(?:그룹|홀딩스|증권|건설|중공업|바이오로직스|모비스|전기|전자)$/.test(keyword)
+  const companyOnly = /^(?:삼성전기|삼성전자|삼성디스플레이|lg전자|엘지전자|lg디스플레이|엘지디스플레이|sk하이닉스|현대자동차|현대차|기아|포스코홀딩스|현대모비스|한화오션|두산에너빌리티)$/.test(keyword)
+    || /(?:그룹|홀딩스|증권|건설|중공업|바이오로직스|모비스|전기|전자|디스플레이)$/.test(keyword)
     || /(?:주가|실적|공시|배당|채용|회장|대표|노조|파업)$/.test(keyword);
   const nonCommerceTrend = /^(?:상사화|꽃무릇|벚꽃|진달래|개나리|유채꽃|코스모스|억새|단풍)$/.test(keyword)
     || /(?:꽃축제|벚꽃축제|불꽃축제|축제일정|개화시기|개화상황|단풍시기|명소|날씨|차례상|제사상|명절음식|연휴)$/.test(keyword)
@@ -128,15 +128,17 @@ export async function getRealtimeTrends(): Promise<RealtimeTrend[]> {
   const collectedAt = latest[0].collected_at;
   const { data, error } = await supabase.from("realtime_trends").select("keyword,normalized_keyword,rank,previous_rank,rank_change,status,hot_score,category,affiliate_search_url,collected_at").eq("collected_at", collectedAt).eq("is_published", true).order("rank").limit(20);
   if (error || !data) return [];
-  return (data as RealtimeTrendRow[]).filter((row) => likelyProductTrend(row.keyword)).map((row) => {
+  return (data as RealtimeTrendRow[]).filter((row) => likelyProductTrend(row.keyword)).map((row, index) => {
     const key = row.normalized_keyword || row.keyword.toLowerCase().replace(/\s+/g, "");
+    const sourceRank = Number(row.rank);
+    const rank = index + 1;
     return {
       keyword: row.keyword,
       normalizedKeyword: key,
-      rank: Number(row.rank),
-      previousRank: row.previous_rank,
-      rankChange: row.rank_change,
-      status: row.status,
+      rank,
+      previousRank: sourceRank === rank ? row.previous_rank : null,
+      rankChange: sourceRank === rank ? row.rank_change : null,
+      status: sourceRank === rank ? row.status : "same",
       hotScore: Number(row.hot_score),
       category: row.category || "",
       affiliateUrl: row.affiliate_search_url || null,

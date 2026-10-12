@@ -25,8 +25,8 @@ test("범용 가전·사무·생활용품 키워드를 제외한다", () => {
 });
 
 test("Google 급상승에서는 사람·뉴스·A4 용지를 빼고 상품형 검색어만 허용한다", () => {
-  ["이서진", "손예진 아들", "한화 대 SSG", "A4용지", "전자레인지", "삼성전기", "삼성전자 주가", "삼성", "애플", "정관장", "추석차례상"].forEach(value => assert.equal(isLikelyShoppingKeyword(value), false));
-  ["아디다스 운동화", "아이폰 듀오", "추석 선물세트", "AHC 아이크림", "삼성 갤럭시 S26"].forEach(value => assert.equal(isLikelyShoppingKeyword(value), true));
+  ["이서진", "손예진 아들", "한화 대 SSG", "A4용지", "전자레인지", "삼성전기", "삼성디스플레이", "삼성 디스플레이", "LG디스플레이", "삼성전자 주가", "삼성", "애플", "정관장", "추석차례상"].forEach(value => assert.equal(isLikelyShoppingKeyword(value), false));
+  ["아디다스 운동화", "아이폰 듀오", "추석 선물세트", "AHC 아이크림", "삼성 갤럭시 S26", "삼성 모니터"].forEach(value => assert.equal(isLikelyShoppingKeyword(value), true));
 });
 
 test("Google RSS에서 상품형 급상승 검색어만 파싱한다", () => {
