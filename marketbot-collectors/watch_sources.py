@@ -36,9 +36,13 @@ def get(url, timeout=10):
         with urlopen(req, timeout=timeout) as response:
             return response.read(1_000_000)
     except URLError as exc:
-        # Some public servers close Python's TLS handshake early. Retry the same
-        # allowed URL once with curl; never retry HTTP denials or access controls.
-        if not isinstance(exc.reason, ssl.SSLError) or 'UNEXPECTED_EOF' not in str(exc.reason):
+        # Retry only transient TLS/timeout failures against the same public URL.
+        # HTTP denials and access controls are never retried or bypassed.
+        if isinstance(exc, HTTPError) or not (
+            (isinstance(exc.reason, ssl.SSLError) and 'UNEXPECTED_EOF' in str(exc.reason))
+            or isinstance(exc.reason, TimeoutError)
+            or 'timed out' in str(exc.reason).lower()
+        ):
             raise
         result = subprocess.run(['curl', '--fail', '--location', '--silent', '--show-error',
             '--max-time', str(timeout), '--user-agent', USER_AGENT, url],
