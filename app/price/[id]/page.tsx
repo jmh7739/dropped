@@ -37,7 +37,7 @@ export async function generateMetadata({
   const stats = r.currentPrice == null ? null : priceStats(r.history, r.currentPrice);
   const lastCheck = r.lastCheckedAt ? new Date(r.lastCheckedAt).getTime() : 0;
   const indexable = Boolean(stats?.enoughData && lastCheck > 0 && Date.now() - lastCheck <= 14 * 86400000);
-  const period = stats ? `추적 ${stats.trackedDays}일 · ${stats.points}회 가격 확인` : "가격 이력 수집 중";
+  const period = stats ? `추적 ${stats.trackedDays}일 · ${stats.points}회 가격 확인 · 서로 다른 날짜 ${stats.observedDays}일` : "가격 이력 수집 중";
   const displayTitle = productDisplayTitle(r.title);
   return {
     title: stats?.enoughData ? `${displayTitle} 가격 추이` : `${displayTitle} 마지막 확인 가격`,
@@ -227,11 +227,11 @@ export default async function ProductPricePage({
             <div className="mt-4 rounded-xl border border-gray-200 bg-white p-4">
               <h2 className="text-sm font-extrabold text-gray-900">이 상품의 가격 이력</h2>
               {stats.enoughData ? <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-2 text-sm">
-                <div><dt className="text-gray-500">관측 범위</dt><dd className="font-bold">{stats.trackedDays}일 · {stats.points}회</dd></div>
+                <div><dt className="text-gray-500">관측 범위</dt><dd className="font-bold">추적 {stats.trackedDays}일 · {stats.points}회 · 관측일 {stats.observedDays}일</dd></div>
                 <div><dt className="text-gray-500">{stats.trackedDays >= 30 ? "30일 평균" : `추적 ${stats.trackedDays}일 평균`}</dt><dd className="font-bold">{stats.avg30 != null ? formatWon(stats.avg30) : "자료 없음"}</dd></div>
                 <div><dt className="text-gray-500">{stats.lowestLabel}</dt><dd className="font-bold">{formatWon(stats.trackedDays >= 90 ? stats.min90 ?? stats.minAll : stats.minAll)}</dd></div>
                 <div><dt className="text-gray-500">가격 위치</dt><dd className="font-bold">더 낮았던 기록 {stats.percentile}%</dd></div>
-              </dl> : <p className="mt-2 text-sm text-gray-600">추적 {stats.trackedDays}일 · 가격 확인 {stats.points}회. 평소보다 싼지 판단하기에는 이력이 부족합니다.</p>}
+              </dl> : <p className="mt-2 text-sm text-gray-600">추적 {stats.trackedDays}일 · 가격 확인 {stats.points}회 중 서로 다른 관측일은 {stats.observedDays}일입니다. 가격 판정에는 최소 14일의 추적 기간과 서로 다른 관측일 14일이 모두 필요합니다.</p>}
             </div>
           )}
 
