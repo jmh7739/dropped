@@ -7,10 +7,12 @@ GitHub Actions secret and is never written to files or error messages.
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from urllib.parse import urlencode
+from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 import json
 import os
 import sys
+import time
 import xml.etree.ElementTree as ET
 
 
@@ -24,8 +26,18 @@ def request(path, params, key_name='serviceKey'):
     query = urlencode({key_name: KEY, **params})
     req = Request('https://apis.data.go.kr/' + path + '?' + query,
                   headers={'User-Agent': 'MarketBot/1.0', 'Accept': 'application/json, application/xml, text/xml'})
-    with urlopen(req, timeout=30) as response:
-        body = response.read(3_000_000)
+    for attempt in range(3):
+        try:
+            with urlopen(req, timeout=30) as response:
+                body = response.read(3_000_000)
+            break
+        except HTTPError as exc:
+            if exc.code not in (429, 500, 502, 503, 504) or attempt == 2:
+                raise
+        except URLError:
+            if attempt == 2:
+                raise
+        time.sleep(1 + attempt * 2)
     if b'SERVICE_KEY_IS_NOT_REGISTERED_ERROR' in body or b'SERVICE_ACCESS_DENIED_ERROR' in body:
         raise ValueError('API authorization failed')
     return body
