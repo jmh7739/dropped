@@ -36,4 +36,11 @@ jobs:
       - name: Publish new travel news
         run: curl --fail --show-error --silent --retry 2 --max-time 40 --request POST https://tripmkt.kr/api/updates/refresh
       - name: Refresh jobs and official exam dates
-        run: curl --fail --show-error --silent --retry 2 --max-time 90 https://jobmarket.kr/api/catalog/wake
+        run: |
+          curl --fail --show-error --silent --retry 2 --max-time 90 \
+            https://jobmarket.kr/api/catalog/wake -o wake.json
+          jq -e '.ok == true and (.qnet.issues | length == 0) and
+            ([.sources[] | select(.state == "error")] | length == 0)' wake.json >/dev/null || {
+            jq '{checkedAt, sourceErrors: [.sources[] | select(.state == "error") | {id, state, message}], examIssues: .qnet.issues}' wake.json
+            exit 1
+          }
