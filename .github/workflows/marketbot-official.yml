@@ -31,7 +31,18 @@ jobs:
           git add marketbot-data/
           if ! git diff --cached --quiet; then
             git -c user.name='MarketBot' -c user.email='marketbot@users.noreply.github.com' commit -m 'Refresh official source snapshots'
-            git push
+            for attempt in 1 2 3; do
+              git fetch origin main
+              git rebase origin/main
+              if git push origin HEAD:main; then
+                break
+              fi
+              if test "$attempt" -eq 3; then
+                echo 'Could not publish official snapshots after three attempts' >&2
+                exit 1
+              fi
+              sleep "$((attempt * 3))"
+            done
           fi
       - name: Publish new travel news
         run: curl --fail --show-error --silent --retry 2 --max-time 40 --request POST https://tripmkt.kr/api/updates/refresh
