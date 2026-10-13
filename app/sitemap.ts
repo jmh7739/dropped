@@ -68,12 +68,27 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     } catch (error) {
       console.error("sitemap active product IDs unavailable:", error);
     }
+    try {
+      // Popular-feed products keep useful price histories after their deal card
+      // ends. Their canonical pages may still be indexable, so include them in
+      // the same history check instead of limiting the sitemap to active deals.
+      for (let offset = 0; offset < 3000; offset += 1000) {
+        const { data, error } = await supabase.from("products")
+          .select("id").eq("platform", "cps")
+          .like("external_product_id", "pp_%").range(offset, offset + 999);
+        if (error) throw error;
+        for (const row of data ?? []) candidateIds.add(Number(row.id));
+        if (!data || data.length < 1000) break;
+      }
+    } catch (error) {
+      console.error("sitemap popular product IDs unavailable:", error);
+    }
   }
   const candidates = [...candidateIds].filter((id) => Number.isSafeInteger(id) && id > 0);
   const indexableProducts = new Map<number, string>();
-  for (let offset = 0; offset < candidates.length; offset += 25) {
+  for (let offset = 0; offset < candidates.length; offset += 100) {
     try {
-      const histories = await readPriceHistory(candidates.slice(offset, offset + 25), new Date(Date.now() - 90 * 86400000).toISOString());
+      const histories = await readPriceHistory(candidates.slice(offset, offset + 100), new Date(Date.now() - 90 * 86400000).toISOString());
       for (const [id, history] of histories) {
         const latest = history.at(-1);
         if (!latest) continue;
