@@ -13,9 +13,9 @@ const DETAIL_NAV = [
 export default async function Header() {
   const trends = await getRealtimeTrends();
   return (
-    <header className="sticky top-0 z-20 border-b border-gray-200 bg-white">
+    <header data-site-header="Dropped" className="sticky top-0 z-20 border-b border-gray-200 bg-white">
       <div className="mx-auto flex h-14 max-w-6xl items-center gap-3 px-4">
-        <Link href="/" className="flex items-center gap-2">
+        <Link href="/" className="flex shrink-0 items-center gap-2 whitespace-nowrap" aria-label="떨어졌다 홈">
           <svg width="26" height="26" viewBox="0 0 48 48" aria-hidden="true">
             <rect width="48" height="48" rx="13" fill="#ef4444" />
             <path d="M24 12 V27" stroke="#fff" strokeWidth="4.2" strokeLinecap="round" />
@@ -29,7 +29,7 @@ export default async function Header() {
       <div className="border-t border-gray-100">
         <div className="mx-auto flex min-h-12 max-w-6xl items-center gap-3 overflow-x-auto px-4 py-2">
           <Suspense fallback={
-            <nav className="flex items-center gap-1.5" aria-label="주요 섹션">
+            <nav className="flex shrink-0 items-center gap-1.5 whitespace-nowrap" aria-label="주요 섹션">
               <Link href="/" className="rounded-full bg-brand px-4 py-1.5 text-sm font-extrabold text-white shadow-sm">🔥 핫딜</Link>
               <Link href="/tracking" className="rounded-full border border-gray-200 bg-white px-4 py-1.5 text-sm font-extrabold text-gray-700">🛍️ 전체상품</Link>
               <Link href="/?category=flight" className="rounded-full border border-gray-200 bg-white px-4 py-1.5 text-sm font-extrabold text-gray-700">✈️ 여행딜</Link>

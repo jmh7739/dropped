@@ -21,13 +21,13 @@ export default function SectionNav() {
       : null;
 
   return (
-    <nav className="flex items-center gap-1.5" aria-label="주요 섹션">
+    <nav className="flex shrink-0 items-center gap-1.5 whitespace-nowrap" aria-label="주요 섹션">
       {SECTIONS.map((section) => (
         <Link
           key={section.key}
           href={section.href}
           aria-current={active === section.key ? "page" : undefined}
-          className={`rounded-full px-4 py-1.5 text-sm font-extrabold transition ${
+          className={`shrink-0 rounded-full px-4 py-1.5 text-sm font-extrabold transition ${
             active === section.key
               ? "bg-brand text-white shadow-sm"
               : "border border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50"
