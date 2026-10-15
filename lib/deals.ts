@@ -430,7 +430,12 @@ export async function getRelatedDeals(
     .neq("product_id", excludeProductId)
     .limit(limit * 3);
   if (!data) return [];
-  const deals = data.map((row) => rowToDeal(row, []));
+  // A second tracking row for the same visible product can carry a different
+  // observation age and price. Do not present it as an alternative deal.
+  const titleKey = (title: string) => title.normalize('NFKC').toLocaleLowerCase('ko').replace(/[^0-9a-z가-힣]+/gi, '');
+  const referenceKey = titleKey(referenceTitle);
+  const deals = data.map((row) => rowToDeal(row, []))
+    .filter((deal) => !referenceKey || titleKey(deal.title) !== referenceKey);
   const families = [
     /삼다수|생수|먹는\s*샘물|광천수|미네랄\s*워터|무라벨\s*(?:생수|물)/,
     /방향제|디퓨저|탈취제/,
