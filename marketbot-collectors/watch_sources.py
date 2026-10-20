@@ -189,8 +189,11 @@ def main():
         except Exception as exc:
             print(site + ' manifest: ' + type(exc).__name__)
             continue
+        # Select first: unselected sources are not policy-checked or counted as
+        # verified. This bounds network waits without bypassing robots checks.
+        candidates = selected(site, sources)
         eligible = []
-        for row in sources:
+        for row in candidates:
             url = row.get('url', '')
             parsed = urlparse(url)
             if parsed.scheme != 'https' or not parsed.netloc:
@@ -217,10 +220,12 @@ def main():
             if parser is None or not parser.can_fetch(USER_AGENT, url):
                 continue
             eligible.append(row)
-        selection = selected(site, eligible)
+        selection = eligible
         data.setdefault('selection', {})[site] = {'day': int(time.time() // 86400),
             'ids': [str(row['id']) for row in selection], 'eligibleCount': len(eligible),
-            'robotsExcluded': len(sources) - len(eligible)}
+            'robotsExcluded': len(candidates) - len(eligible),
+            'knownSourceCount': len(sources), 'policyCheckedCount': len(candidates),
+            'scope': 'selected-sample-only'}
         checked = 0
         for row in selection:
             url = row['url']
@@ -230,6 +235,7 @@ def main():
                 if len(content) < 200:
                     raise ValueError('official article too short')
                 data[key] = {'url': url, 'hash': sha256(content.encode()).hexdigest(), 'version': content_version(url),
+                             **({field: row[field] for field in ('primaryUrl', 'monitorScope') if field in row}),
                              'checkedAt': datetime.now(timezone.utc).isoformat()}
                 checked += 1
             except Exception as exc:
@@ -237,7 +243,7 @@ def main():
                                     'checkedAt': datetime.now(timezone.utc).isoformat()}
             time.sleep(0.7)
         print(site + ': ' + str(checked) + '/' + str(len(selection)) +
-              ' selected official pages verified; ' + str(len(sources) - len(eligible)) + ' robots-excluded')
+              ' selected official pages verified; ' + str(len(candidates) - len(eligible)) + ' selected robots-excluded')
     data['unavailable'] = unavailable
     data['robotsUnavailable'] = robots_unavailable
     if data != previous:
