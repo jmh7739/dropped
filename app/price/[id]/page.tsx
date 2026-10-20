@@ -271,7 +271,7 @@ export default async function ProductPricePage({
       {r.history.length >= 3 && (stats?.trackedDays ?? 0) >= 2 && <section className="mt-8">
         <h2 className="mb-2 text-base font-bold">📉 가격 변동 그래프</h2>
         <div className="rounded-xl border border-gray-200 bg-white p-4">
-          <PriceChart history={r.history} />
+          <PriceChart history={r.history} referenceTime={Date.now()} />
         </div>
       </section>}
 

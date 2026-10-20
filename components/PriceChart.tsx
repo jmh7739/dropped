@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { PricePoint } from "@/lib/types";
 import { formatWon } from "@/lib/format";
 import { dailyPricePoints } from "@/lib/priceReport";
+import { priceChartDate } from "@/lib/chart-dates";
 
 /**
  * 의존성 없는 SVG 가격 변동 그래프 (다나와 스타일).
@@ -14,10 +15,12 @@ import { dailyPricePoints } from "@/lib/priceReport";
  */
 export default function PriceChart({
   history,
+  referenceTime,
   width = 640,
   height = 220,
 }: {
   history: PricePoint[];
+  referenceTime: number;
   width?: number;
   height?: number;
 }) {
@@ -26,9 +29,9 @@ export default function PriceChart({
     const daily = dailyPricePoints(history);
     if (range === "all") return daily;
     return daily.filter(
-      (h) => Date.now() - new Date(h.collectedAt).getTime() <= range * 86400000
+      (h) => referenceTime - new Date(h.collectedAt).getTime() <= range * 86400000
     );
-  }, [history, range]);
+  }, [history, range, referenceTime]);
   const chartHistory = filtered;
 
   if (chartHistory.length < 2) {
@@ -68,11 +71,7 @@ export default function PriceChart({
   const lastIdx = n - 1;
   const minIdx = prices.indexOf(min);
   const latestPoint = chartHistory[lastIdx];
-  const latestLabel = new Date(latestPoint.collectedAt).toLocaleDateString("ko-KR", {
-    month: "short",
-    day: "numeric",
-  });
-  const newest = Math.max(...history.map((item) => new Date(item.collectedAt).getTime()));
+  const latestLabel = priceChartDate(latestPoint.collectedAt);
   const options: { label: string; value: 7 | 30 | 90 | "all" }[] = [
     ...([7, 30, 90] as const).map(days => ({ label: `${days}일`, value: days })),
     { label: "전체", value: "all" },
@@ -130,10 +129,7 @@ export default function PriceChart({
 
         {/* 축 라벨 (처음/끝 날짜) */}
         <text x={padX} y={h - 6} fontSize="10" fill="#9ca3af">
-          {new Date(chartHistory[0].collectedAt).toLocaleDateString("ko-KR", {
-            month: "short",
-            day: "numeric",
-          })}
+          {priceChartDate(chartHistory[0].collectedAt)}
         </text>
         <text
           x={w - padX}
