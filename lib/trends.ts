@@ -48,6 +48,7 @@ function blockedTrendKeyword(value: unknown): boolean {
   const raw = String(value || "").toLowerCase().trim();
   const keyword = raw.replace(/[^0-9a-z가-힣]/gi, "");
   const matchOrSports = /(?:^|\s)(?:vs\.?|versus|v)(?:\s|$)/i.test(raw)
+    || /^(?:kia|기아|lg|엘지|삼성|한화|두산|롯데|키움|kt|케이티|nc|엔씨|ssg|에스에스지)(?:타이거즈|트윈스|라이온즈|이글스|베어스|자이언츠|히어로즈|위즈|다이노스|랜더스)?(?:대|전|vs)(?:kia|기아|lg|엘지|삼성|한화|두산|롯데|키움|kt|케이티|nc|엔씨|ssg|에스에스지)(?:타이거즈|트윈스|라이온즈|이글스|베어스|자이언츠|히어로즈|위즈|다이노스|랜더스)?$/.test(keyword)
     || /(?:belgium|france|england|germany|spain|italy|portugal|brazil|argentina|japan|korea)(?:vs|versus)(?:belgium|france|england|germany|spain|italy|portugal|brazil|argentina|japan|korea)/.test(keyword)
     || /(?:벨기에|프랑스|잉글랜드|영국|독일|스페인|이탈리아|포르투갈|브라질|아르헨티나|일본|한국)(?:대|전|vs)(?:벨기에|프랑스|잉글랜드|영국|독일|스페인|이탈리아|포르투갈|브라질|아르헨티나|일본|한국)/.test(keyword)
     || /(?:축구|야구|농구|배구|테니스|국가대표|챔피언스리그|프리미어리그|유로파리그|경기예측|선발명단|하이라이트)/.test(keyword);

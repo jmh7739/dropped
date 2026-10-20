@@ -23,6 +23,7 @@ const NON_COMMERCE_TREND_PATTERNS = [
   /(?:아시안게임|올림픽|월드컵|대통령|국회의원|금리|환율|코스피|코스닥)$/,
 ];
 const MATCH_OR_SPORTS_PATTERNS = [
+  /^(?:kia|기아|lg|엘지|삼성|한화|두산|롯데|키움|kt|케이티|nc|엔씨|ssg|에스에스지)(?:타이거즈|트윈스|라이온즈|이글스|베어스|자이언츠|히어로즈|위즈|다이노스|랜더스)?(?:대|전|vs)(?:kia|기아|lg|엘지|삼성|한화|두산|롯데|키움|kt|케이티|nc|엔씨|ssg|에스에스지)(?:타이거즈|트윈스|라이온즈|이글스|베어스|자이언츠|히어로즈|위즈|다이노스|랜더스)?$/i,
   /(?:^|\s)(?:vs\.?|versus|v)(?:\s|$)/i,
   /(?:belgium|france|england|germany|spain|italy|portugal|brazil|argentina|japan|korea)(?:vs|versus)(?:belgium|france|england|germany|spain|italy|portugal|brazil|argentina|japan|korea)/i,
   /(?:벨기에|프랑스|잉글랜드|영국|독일|스페인|이탈리아|포르투갈|브라질|아르헨티나|일본|한국)(?:대|전|vs)(?:벨기에|프랑스|잉글랜드|영국|독일|스페인|이탈리아|포르투갈|브라질|아르헨티나|일본|한국)/i,
