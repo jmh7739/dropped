@@ -110,6 +110,14 @@ def content_for(url, html):
         raise ValueError('official financial service maintenance')
     if host == 'www.visitjeju.net':
         article = article_div(html, r'<div\b[^>]*class=["\'][^"\']*\breal\b[^"\']*["\'][^>]*>')
+    elif host == 'www.fsc.go.kr':
+        root = article_div(html, r'<div\b[^>]*class=["\'][^"\']*\bboard-view-wrap\b[^"\']*["\'][^>]*>')
+        subject = article_div(root, r'<div\b[^>]*class=["\'][^"\']*\bsubject\b[^"\']*["\'][^>]*>') if root else None
+        body = article_div(root, r'<div\b[^>]*class=["\'][^"\']*\bcont\b[^"\']*["\'][^>]*>') if root else None
+        files = article_div(root, r'<div\b[^>]*class=["\'][^"\']*\bfile\b[^"\']*["\'][^>]*>') if root else None
+        # View counters, global navigation and related notices are not changes
+        # to this policy document. Keep the title, complete body and filenames.
+        article = subject + ' ' + body + (' ' + files if files else '') if subject and body else None
     elif host == 'sungsimdang.co.kr':
         article = article_div(html, r'<div\b[^>]*class=["\'][^"\']*\btbl_view_head\b[^"\']*["\'][^>]*>')
     elif host == 'www.khug.or.kr' and urlparse(url).path.endswith('/igdr000004.jsp'):
@@ -147,6 +155,8 @@ def content_for(url, html):
 
 def content_version(url):
     host = urlparse(url).hostname
+    if host == 'www.fsc.go.kr':
+        return 'fsc-article-v1'
     if host == 'sungsimdang.co.kr':
         return 'store-facts-v1'
     if host == 'www.khug.or.kr' and urlparse(url).path.endswith('/igdr000004.jsp'):

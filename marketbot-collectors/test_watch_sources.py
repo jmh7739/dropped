@@ -72,6 +72,20 @@ class BoundedPolicyChecksTests(unittest.TestCase):
 
 
 class OfficialArticleExtractionTests(unittest.TestCase):
+    def test_fsc_document_ignores_view_counter_but_keeps_policy_and_attachments(self):
+        url = 'https://www.fsc.go.kr/po010102/83833'
+        html = ('<nav>인기 소식 1</nav><div class="board-view-wrap">'
+                '<div class="header"><div class="subject">중도상환수수료 안내</div>'
+                '<div class="day">2025-01-09 조회수 123</div></div>'
+                '<div class="body"><div class="cont"><p>신규 계약부터 적용합니다.</p></div>'
+                '<div class="file">공식자료.pdf</div></div></div>')
+        self.assertEqual(content_for(url, html), content_for(url, html.replace('조회수 123', '조회수 124').replace('인기 소식 1', '인기 소식 2')))
+        self.assertNotEqual(content_for(url, html), content_for(url, html.replace('신규 계약', '갱신 계약')))
+        self.assertNotEqual(content_for(url, html), content_for(url, html.replace('공식자료.pdf', '정정자료.pdf')))
+        self.assertEqual(content_version(url), 'fsc-article-v1')
+        with self.assertRaises(ValueError):
+            content_for(url, '<div class="board-view-wrap"><div class="subject">안내</div></div>')
+
     def test_hug_guarantee_ignores_navigation_but_detects_contact_change(self):
         url = 'https://www.khug.or.kr/hug/web/ig/dr/igdr000004.jsp?tabMenu=Y'
         facts = (
