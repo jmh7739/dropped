@@ -4,8 +4,30 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
 import watch_sources
+from http.client import RemoteDisconnected
+from urllib.error import HTTPError
+from types import SimpleNamespace
 
 from watch_sources import content_for, content_version
+
+
+class TransientRetryTests(unittest.TestCase):
+    def test_remote_disconnect_gets_one_same_url_retry(self):
+        url = 'https://official.example/guide'
+        with patch.object(watch_sources, 'urlopen', side_effect=RemoteDisconnected()), \
+             patch.object(watch_sources.subprocess, 'run', return_value=SimpleNamespace(stdout=b'official')) as retry:
+            self.assertEqual(watch_sources.get(url), b'official')
+            retry.assert_called_once()
+            self.assertEqual(retry.call_args.args[0][-1], url)
+            self.assertNotIn('--insecure', retry.call_args.args[0])
+
+    def test_http_denial_is_not_retried(self):
+        url = 'https://official.example/guide'
+        with patch.object(watch_sources, 'urlopen', side_effect=HTTPError(url,403,'denied',{},None)), \
+             patch.object(watch_sources.subprocess, 'run') as retry:
+            with self.assertRaises(HTTPError):
+                watch_sources.get(url)
+            retry.assert_not_called()
 
 
 class BoundedPolicyChecksTests(unittest.TestCase):

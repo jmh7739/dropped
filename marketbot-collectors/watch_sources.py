@@ -6,6 +6,7 @@ pages remain unverified in MarketOps rather than being counted as healthy.
 
 from datetime import datetime, timezone
 from hashlib import sha256
+from http.client import RemoteDisconnected
 from pathlib import Path
 from urllib.parse import urlparse
 from urllib.error import HTTPError, URLError
@@ -35,13 +36,15 @@ def get(url, timeout=10):
     try:
         with urlopen(req, timeout=timeout) as response:
             return response.read(1_000_000)
-    except URLError as exc:
+    except (URLError, RemoteDisconnected) as exc:
         # Retry only transient TLS/timeout failures against the same public URL.
         # HTTP denials and access controls are never retried or bypassed.
+        reason = exc.reason if isinstance(exc, URLError) else exc
         if isinstance(exc, HTTPError) or not (
-            (isinstance(exc.reason, ssl.SSLError) and 'UNEXPECTED_EOF' in str(exc.reason))
-            or isinstance(exc.reason, TimeoutError)
-            or 'timed out' in str(exc.reason).lower()
+            isinstance(exc, RemoteDisconnected)
+            or (isinstance(reason, ssl.SSLError) and 'UNEXPECTED_EOF' in str(reason))
+            or isinstance(reason, TimeoutError)
+            or 'timed out' in str(reason).lower()
         ):
             raise
         result = subprocess.run(['curl', '--fail', '--location', '--silent', '--show-error',
