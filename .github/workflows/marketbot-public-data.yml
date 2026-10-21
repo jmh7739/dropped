@@ -40,7 +40,7 @@ jobs:
           fi
           git -c user.name='MarketBot' -c user.email='marketbot@users.noreply.github.com' commit -m 'Refresh verified retailer observations'
           for attempt in 1 2 3; do
-            git pull --rebase origin main
+            git -c user.name='MarketBot' -c user.email='marketbot@users.noreply.github.com' pull --rebase origin main
             if git push origin HEAD:main; then
               exit 0
             fi
