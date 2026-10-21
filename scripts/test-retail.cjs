@@ -53,3 +53,14 @@ assert.equal(m.retailImageUrl({retailer:'cu',imageUrl:'https://tqklhszfkvzk65186
 assert.equal(m.retailImageUrl({retailer:'homeplus',imageUrl:'javascript:alert(1)'}),null);
 assert.equal(m.retailImageUrl({retailer:'nobrand',imageUrl:pictured[0].imageUrl}),null);
 console.log('Observed merchant image origins and paths validated');
+
+const chicken=catalog.offers.find(o=>o.id==='homeplus-2649');
+assert.equal(m.merchantSavings(chicken).amount,4000);
+assert.equal(m.merchantSavings({...chicken,merchantOriginalPrice:9990}),null);
+assert.equal(m.merchantSavings({...chicken,merchantOriginalPrice:-1}),null);
+assert.equal(m.merchantSavings({...chicken,giftQuantity:1}),null);
+assert.equal(m.merchantSavings({...chicken,priceKind:'reference'}),null);
+console.log('Merchant reference savings: 13990 - 9990 = 4000; invalid/multi-buy/reference excluded');
+assert.equal(m.preserveObservedImage({...chicken,imageUrl:undefined},chicken).imageUrl,chicken.imageUrl);
+assert.equal(m.preserveObservedImage({...chicken,imageUrl:undefined,name:'different'},chicken).imageUrl,undefined);
+assert.equal(m.preserveObservedImage({...chicken,imageUrl:null},chicken).imageUrl,null);

@@ -10,7 +10,7 @@ export const RETAILERS = [
 ] as const;
 export type RetailerId = typeof RETAILERS[number]['id'];
 export type Observation = { checkedAt: string; revision: string; name?: string; barcode?: string | null; unitPrice: number | null; buyQuantity: number | null; giftQuantity: number | null; promotion: string; priceKind?: 'promotion' | 'reference' | null; startDate: string | null; endDate: string | null };
-export type RetailOffer = Observation & { id: string; sourceId: string; retailer: RetailerId; kind: 'product' | 'event'; name: string; category: string; sourceUrl: string; imageUrl?: string | null; conditions: string[]; scope: string; priceLabel?: string; firstSeenAt: string; lastSeenAt: string; history: Observation[] };
+export type RetailOffer = Observation & { id: string; sourceId: string; retailer: RetailerId; kind: 'product' | 'event'; name: string; category: string; sourceUrl: string; imageUrl?: string | null; merchantOriginalPrice?: number | null; conditions: string[]; scope: string; priceLabel?: string; firstSeenAt: string; lastSeenAt: string; history: Observation[] };
 // Only URLs actually observed in the merchant's product listing are stored.
 // Never derive a filename from a barcode, accept arbitrary hosts, or proxy it.
 export function retailImageUrl(o: Pick<RetailOffer, 'retailer' | 'imageUrl'>) {
@@ -21,6 +21,18 @@ export function retailImageUrl(o: Pick<RetailOffer, 'retailer' | 'imageUrl'>) {
 }
 export type RetailCatalog = { schemaVersion: 1; checkedAt: string; sources: Record<string, { status: string; checkedAt?: string; attemptedAt?: string; count?: number }>; offers: RetailOffer[] };
 export const retailer = (id: string) => RETAILERS.find(r => r.id === id)!;
+export function merchantSavings(o: RetailOffer & { merchantOriginalPrice?: number | null }) {
+  const original = o.merchantOriginalPrice;
+  if (o.retailer !== 'homeplus' || o.priceKind === 'reference' || o.giftQuantity !== 0 || o.buyQuantity !== 1 || !Number.isSafeInteger(original) || !original || !o.unitPrice || original <= o.unitPrice) return null;
+  return { original, amount: original - o.unitPrice };
+}
+export function preserveObservedImage(o: RetailOffer, saved?: RetailOffer): RetailOffer {
+  // Older in-flight collectors did not include this optional field. Preserve
+  // the observed photo only for an unchanged product/pack/period/price.
+  if (o.imageUrl !== undefined || !saved || !retailImageUrl(saved)) return o;
+  const keys = ['id','retailer','name','barcode','unitPrice','buyQuantity','giftQuantity','startDate','endDate','sourceUrl'] as const;
+  return keys.every(k => o[k] === saved[k]) ? { ...o, imageUrl: saved.imageUrl } : o;
+}
 export const isPublishableRetailOffer = (o: RetailOffer) => !(o.id === 'homeplus-2645' && o.startDate === '2026-10-15' && o.endDate === '2026-10-21'); // Digital/printed original price conflict under review; preserve raw history.
 export const money = (amount: number) => new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 1 }).format(amount) + '원';
 export const kstDay = (time: number = Date.now()) => new Date(time + 9 * 3600000).toISOString().slice(0, 10);

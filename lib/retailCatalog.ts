@@ -1,8 +1,12 @@
 import snapshot from '@/data/retail-promotions.json';
-import { isPublishableRetailOffer, validCatalog, type RetailCatalog } from './retail';
+import { isPublishableRetailOffer, preserveObservedImage, validCatalog, type RetailCatalog } from './retail';
 
 const FEED = 'https://raw.githubusercontent.com/jmh7739/dropped/main/marketbot-data/retail-promotions.json';
-const publishable = (c: RetailCatalog): RetailCatalog => ({ ...c, offers: c.offers.filter(isPublishableRetailOffer) });
+const storedSnapshot: unknown = snapshot;
+const publishable = (c: RetailCatalog): RetailCatalog => {
+  const savedOffers = validCatalog(storedSnapshot) ? storedSnapshot.offers : [];
+  return { ...c, offers: c.offers.filter(isPublishableRetailOffer).map(o => preserveObservedImage(o, savedOffers.find(saved => saved.id === o.id))) };
+};
 export async function getRetailCatalog(): Promise<{ catalog: RetailCatalog; usingSaved: boolean }> {
   try {
     const response = await fetch(FEED, { next: { revalidate: 1800 }, signal: AbortSignal.timeout(6000) });

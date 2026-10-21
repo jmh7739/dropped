@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import RetailProductImage from './RetailProductImage';
+import RetailDiscount from './RetailDiscount';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { RETAILERS, RETAIL_STORAGE, bundlePrice, canAddToShopping, checkedDate, emptyPreferences, filterOffers, money, offerStatus, parsePreferences, periodText, previousPrice, readFilters, retailer, type RetailCatalog, type RetailFilters, type RetailOffer, type RetailPreferences } from '@/lib/retail';
@@ -64,6 +65,7 @@ function OfferCard({ o, controls: c }: { o: RetailOffer; controls: Controls }) {
       <p className="mt-1 text-xl font-black text-gray-950">{money(p.total)} <span className="text-xs font-medium text-gray-600">{o.priceKind === 'reference' ? '참고가' : '총액'}</span></p>
       {o.giftQuantity ? <p className="mt-1 text-sm font-bold text-red-700">개당 {money(p.each)} <span className="font-normal text-gray-500">(동일 상품 기준)</span></p> : <p className="mt-1 text-xs font-bold text-red-700">{o.priceLabel || '전단 판매 단위 기준'}</p>}
     </div> : <p className="my-4 rounded-xl bg-gray-50 p-3 text-sm text-gray-600">혜택·참여 조건은 공식 안내 확인</p>}
+    <RetailDiscount offer={o} />
     <div className="mb-4 space-y-1 text-xs leading-5 text-gray-600">
       <p>{state === 'ended' ? '종료 · ' : state === 'upcoming' ? '예정 · ' : state === 'old' ? '이전 확인 기록 · ' : ''}{periodText(o)}</p>
       <p>공식 원문 확인 {checkedDate(o.lastSeenAt)}</p>
