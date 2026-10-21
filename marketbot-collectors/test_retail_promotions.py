@@ -60,9 +60,12 @@ class RetailTests(unittest.TestCase):
     def test_homeplus_numeric_price_and_detail_dates_must_match(self):
         item={'goodsId':2756,'goodsNm':'행복대란 30개입','price':'5,520','origPrice':'7,890','tags':[{'tagNm':'멤버특가 30% 할인'}],'startTime':'20261015 00:00:00','endTime':'20261021 23:59:59'}
         row=parse_homeplus({'data':{'goodsList':[item]}})[0]
-        detail='<h2 class="prd__name">행복대란 30개입</h2><span>멤버특가</span><span class="prd__discount"><strong>5,520</strong>원</span><div class="prd__promotion-date"><span>10. 15.(목) ~ 10. 21.(수)</span></div>'
+        detail='<h2 class="prd__name">행복대란 30개입</h2><span>멤버특가</span><span class="prd__discount"><strong>5,520</strong>원</span><del class="prd__price">7,890원</del><div class="prd__promotion-date"><span>10. 15.(목) ~ 10. 21.(수)</span></div>'
         self.assertTrue(confirm_homeplus(row,detail))
         self.assertFalse(confirm_homeplus(row,detail.replace('5,520','5,530')))
+        self.assertEqual(row['merchantOriginalPrice'],7890)
+        self.assertFalse(confirm_homeplus(row,detail.replace('7,890','8,890')))
+        self.assertFalse(confirm_homeplus(row,detail.replace('<del class="prd__price">7,890원</del>','')))
         self.assertFalse(confirm_homeplus(row,detail.replace('10. 21.','10. 22.')))
         self.assertEqual(row['giftQuantity'],0)
         self.assertNotIn('listPrice',row) # Printed reference prices are not observed history.

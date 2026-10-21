@@ -152,17 +152,20 @@ def parse_homeplus(payload):
             # this record as a validated price until the original is corrected.
             continue
         promo = '1+1' if '1+1' in tags else '2+1' if '2+1' in tags else '멤버특가' if '멤버특가' in tags else '전단가'
+        original = str(item.get('origPrice', '')).replace(',', '')
+        original = int(original) if original.isdigit() and int(original) > int(price) and promo not in ('1+1','2+1') else None
         # Complex multi-buy/coupon-only totals need a different, explicit contract.
         if re.search(r'교차|골라|쿠폰|\d+개.*(?:구매|할인|원)', tags) and promo not in ('1+1','2+1'):
             continue
         rows.append({'id':'homeplus-'+ident,'sourceId':ident,'retailer':'homeplus','kind':'product',
             'imageUrl':product_image(str(item.get('goodsImgUrl') or ''), 'homeplus'),
+            'merchantOriginalPrice':original,
             'name':name,'category':category(name),'unitPrice':int(price),'buyQuantity':2 if promo=='2+1' else 1,
             'giftQuantity':1 if promo in ('1+1','2+1') else 0,'promotion':promo,'barcode':None,
             'startDate':start_date,'endDate':end_date,'sourceUrl':HOMEPLUS+'/lft/prd_view?id='+ident,
             'conditions': ['마이홈플러스 멤버특가 표시는 회원 조건 적용' if '멤버특가' in tags else '공식 디지털 전단의 판매 단위와 행사 조건 적용',
                 '상품명에 표시된 용량·묶음·판매 단위 기준이며, 취급 점포·재고·온오프라인 적용이 다를 수 있습니다',
-                '판매처의 할인율·기존 가격은 가격 이력으로 보지 않아 비교 수치에서 제외합니다'],
+                '판매처 표시 기준가·할인액은 전단의 표시 금액이며, 실제 관측한 과거 가격 이력과 구분합니다'],
             'scope':'홈플러스 공식 디지털 전단 · 취급 점포에 한함', 'priceLabel':'회원 조건 적용' if '멤버특가' in tags else '전단 판매 단위 기준'})
     return rows
 
@@ -172,6 +175,10 @@ def confirm_homeplus(row, html):
     period = re.search(r'class=["\']prd__promotion-date["\'][^>]*>([\s\S]*?)</div>', html)
     if not name or not price or not period or text(name[1]) != row['name'] or int(price[1].replace(',','')) != row['unitPrice']:
         return False
+    if row.get('merchantOriginalPrice'):
+        original = re.search(r'<del[^>]*class=["\']prd__price["\'][^>]*>\s*([\d,]+)', html)
+        if not original or int(original[1].replace(',','')) != row['merchantOriginalPrice']:
+            return False
     dates = re.findall(r'(\d{1,2})\.\s*(\d{1,2})\.', text(period[1]))
     expected = [(str(int(d[5:7])),str(int(d[8:10]))) for d in (row['startDate'],row['endDate'])]
     if [(str(int(a)),str(int(b))) for a,b in dates] != expected:
