@@ -5,7 +5,7 @@ export const RETAILERS = [
   { id: 'lotte', name: '롯데마트', type: '마트', color: '#c80028', url: 'https://company.lottemart.com/mobiledowa/event/event_list.asp', note: '공식 이벤트의 참여 대상·기간 확인' },
   { id: 'costco', name: '코스트코', type: '창고형', color: '#00529b', url: 'https://www.costco.co.kr/', note: '온라인몰과 매장 행사·회원 조건을 구분해 확인' },
   { id: 'traders', name: '트레이더스', type: '창고형', color: '#387526', url: 'https://www.traders.co.kr/index.do', note: '방문 점포·회원 전용 혜택·행사 조건 확인' },
-  { id: 'nobrand', name: '노브랜드', type: '마트', color: '#846600', url: 'https://emartapp.emart.com/branch/list.do', note: '점포 찾기에서 노브랜드 선택 · 이마트 내 상품과 전문점 행사는 다를 수 있습니다' },
+  { id: 'nobrand', name: '노브랜드', type: '마트', color: '#846600', url: 'https://store.emart.com/branch/list.do?trcknCode=header_store', note: '점포 찾기에서 노브랜드 선택 · 이마트 내 상품과 전문점 행사는 다를 수 있습니다' },
   { id: 'homeplus', name: '홈플러스', type: '마트', color: '#c52528', url: 'https://my.homeplus.co.kr/leaflet', note: '다른 매장 전단 보기에서 방문 점포 선택 · 상품별 행사일 확인' },
 ] as const;
 export type RetailerId = typeof RETAILERS[number]['id'];

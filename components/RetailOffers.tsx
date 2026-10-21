@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { RETAILERS, RETAIL_STORAGE, bundlePrice, checkedDate, emptyPreferences, filterOffers, money, offerStatus, parsePreferences, periodText, previousPrice, readFilters, retailer, type RetailCatalog, type RetailFilters, type RetailOffer, type RetailPreferences } from '@/lib/retail';
 
 function useRetailPreferences() {
@@ -90,17 +90,27 @@ export function RetailDetailActions({ offer }: { offer: RetailOffer }) {
 export default function RetailOffers({ catalog, usingSaved }: { catalog: RetailCatalog; usingSaved: boolean }) {
   const params = useSearchParams(), router = useRouter(), pathname = usePathname();
   const filters = readFilters(new URLSearchParams(params.toString()));
-  const [query, setQuery] = useState(filters.q);
+  const pendingFilters = useRef(filters);
+  const searchForm = useRef<HTMLFormElement>(null);
   const [view, setView] = useState<'all' | 'favorites' | 'brands' | 'changes'>('all');
   const [limit, setLimit] = useState(24), [share, setShare] = useState('');
   const controls = useRetailPreferences();
-  useEffect(() => { setQuery(filters.q); setLimit(24); }, [params.toString()]);
+  useEffect(() => { pendingFilters.current = filters; setLimit(24); }, [params.toString()]);
   const update = (patch: Partial<RetailFilters>) => {
-    const next = { ...filters, ...patch };
-    if (patch.type && filters.brand && retailer(filters.brand).type !== patch.type) next.brand = '';
+    const previous = pendingFilters.current;
+    const next = { ...previous, ...patch };
+    if (patch.type && previous.brand && retailer(previous.brand).type !== patch.type) next.brand = '';
+    pendingFilters.current = next;
     const search = new URLSearchParams();
     Object.entries(next).forEach(([key, val]) => { if (val && !(key === 'period' && val === 'current')) search.set(key, val); });
     router.push(pathname + (search.size ? '?' + search.toString() : ''), { scroll: false });
+  };
+  const clearFilters = () => {
+    pendingFilters.current = readFilters(new URLSearchParams());
+    searchForm.current?.reset();
+    router.push(pathname, { scroll: false });
+    setView('all');
+    setLimit(24);
   };
   const visible = useMemo(() => {
     const matched = filterOffers(catalog.offers, filters).filter(o => view === 'all' || view === 'favorites' && controls.prefs.favorites.includes(o.id) || view === 'brands' && controls.prefs.brands.includes(o.retailer) || view === 'changes' && !!controls.since && (Date.parse(o.firstSeenAt) > Date.parse(controls.since) || o.history.some((h, i) => i > 0 && h.revision !== o.history[i - 1].revision && Date.parse(h.checkedAt) > Date.parse(controls.since!))));
@@ -118,14 +128,16 @@ export default function RetailOffers({ catalog, usingSaved }: { catalog: RetailC
       <div className="mt-5 flex flex-wrap gap-3 text-xs font-bold"><span className="rounded-full bg-white px-3 py-2">확인한 상품 {current.filter(o => o.kind === 'product').length}종</span><span className="rounded-full bg-white px-3 py-2">공식 안내 {RETAILERS.length}개 브랜드</span><a href="#my-shopping" className="rounded-full bg-gray-950 px-3 py-2 text-white">내 장보기 {Object.keys(controls.prefs.cart).length}종 ↓</a></div>
     </header>
     <section aria-label="행사 검색과 필터" className="rounded-2xl border border-gray-200 bg-white p-4 sm:p-5">
-      <form onSubmit={e => { e.preventDefault(); update({ q: query }); }} className="flex gap-2"><label className="min-w-0 flex-1"><span className="sr-only">행사 상품 검색</span><input type="search" maxLength={80} placeholder="상품명·용량으로 검색" value={query} onChange={e => setQuery(e.target.value)} className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm" /></label><button className="rounded-xl bg-red-600 px-5 text-sm font-extrabold text-white" type="submit">검색</button></form>
+      <form ref={searchForm} action="/store-deals" method="get" onSubmit={e => { e.preventDefault(); update({ q: String(new FormData(e.currentTarget).get('q') || '') }); }} className="flex gap-2">
+        {Object.entries(filters).filter(([key,value]) => key !== 'q' && !!value).map(([key,value]) => <input key={key} type="hidden" name={key} value={value} />)}
+        <label className="min-w-0 flex-1"><span className="sr-only">행사 상품 검색</span><input key={filters.q} name="q" type="search" maxLength={80} placeholder="상품명·용량으로 검색" defaultValue={filters.q} className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm" /></label><button className="rounded-xl bg-red-600 px-5 text-sm font-extrabold text-white" type="submit">검색</button></form>
       <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-        <label className="text-xs font-bold text-gray-600">기간<select aria-label="기간" value={filters.period} onChange={e => update({ period: e.target.value })} className="mt-1 w-full rounded-lg border bg-white p-2.5 text-sm text-gray-950"><option value="current">최근 확인 행사</option><option value="week">7일 내 종료일 확인</option><option value="upcoming">예정 행사</option><option value="ended">종료 행사 기록</option><option value="all">전체 관측 기록</option></select></label>
-        <label className="text-xs font-bold text-gray-600">매장 종류<select aria-label="매장 종류" value={filters.type} onChange={e => update({ type: e.target.value })} className="mt-1 w-full rounded-lg border bg-white p-2.5 text-sm text-gray-950"><option value="">전체</option>{['마트','편의점','창고형'].map(v => <option key={v}>{v}</option>)}</select></label>
-        <label className="text-xs font-bold text-gray-600">브랜드<select aria-label="브랜드" value={filters.brand} onChange={e => update({ brand: e.target.value, type: '' })} className="mt-1 w-full rounded-lg border bg-white p-2.5 text-sm text-gray-950"><option value="">전체 브랜드</option>{RETAILERS.map(r => <option value={r.id} key={r.id}>{r.name}</option>)}</select></label>
-        <label className="text-xs font-bold text-gray-600">행사 유형<select aria-label="행사 유형" value={filters.promo} onChange={e => update({ promo: e.target.value })} className="mt-1 w-full rounded-lg border bg-white p-2.5 text-sm text-gray-950"><option value="">전체</option>{['1+1','2+1','멤버특가','전단가','행사 안내'].map(v => <option key={v}>{v}</option>)}</select></label>
-        <label className="text-xs font-bold text-gray-600">품목<select aria-label="품목" value={filters.category} onChange={e => update({ category: e.target.value })} className="mt-1 w-full rounded-lg border bg-white p-2.5 text-sm text-gray-950"><option value="">전체 품목</option>{['음료','과자·디저트','생활용품','식품·기타','행사 안내'].map(v => <option key={v}>{v}</option>)}</select></label>
-        <div className="col-span-2 flex items-end gap-2 sm:col-span-1"><button type="button" className={outline + ' whitespace-nowrap'} onClick={() => { setQuery(''); router.push(pathname, { scroll: false }); setView('all'); }}>초기화</button><button type="button" className={outline + ' whitespace-nowrap'} onClick={copyLink}>링크 공유</button></div>
+        <label className="text-xs font-bold text-gray-600">기간<select disabled={!controls.ready} aria-label="기간" value={filters.period} onChange={e => update({ period: e.target.value })} className="mt-1 w-full rounded-lg border bg-white p-2.5 text-sm text-gray-950"><option value="current">최근 확인 행사</option><option value="week">7일 내 종료일 확인</option><option value="upcoming">예정 행사</option><option value="ended">종료 행사 기록</option><option value="all">전체 관측 기록</option></select></label>
+        <label className="text-xs font-bold text-gray-600">매장 종류<select disabled={!controls.ready} aria-label="매장 종류" value={filters.type} onChange={e => update({ type: e.target.value })} className="mt-1 w-full rounded-lg border bg-white p-2.5 text-sm text-gray-950"><option value="">전체</option>{['마트','편의점','창고형'].map(v => <option key={v}>{v}</option>)}</select></label>
+        <label className="text-xs font-bold text-gray-600">브랜드<select disabled={!controls.ready} aria-label="브랜드" value={filters.brand} onChange={e => update({ brand: e.target.value, type: '' })} className="mt-1 w-full rounded-lg border bg-white p-2.5 text-sm text-gray-950"><option value="">전체 브랜드</option>{RETAILERS.map(r => <option value={r.id} key={r.id}>{r.name}</option>)}</select></label>
+        <label className="text-xs font-bold text-gray-600">행사 유형<select disabled={!controls.ready} aria-label="행사 유형" value={filters.promo} onChange={e => update({ promo: e.target.value })} className="mt-1 w-full rounded-lg border bg-white p-2.5 text-sm text-gray-950"><option value="">전체</option>{['1+1','2+1','멤버특가','전단가','행사 안내'].map(v => <option key={v}>{v}</option>)}</select></label>
+        <label className="text-xs font-bold text-gray-600">품목<select disabled={!controls.ready} aria-label="품목" value={filters.category} onChange={e => update({ category: e.target.value })} className="mt-1 w-full rounded-lg border bg-white p-2.5 text-sm text-gray-950"><option value="">전체 품목</option>{['음료','과자·디저트','생활용품','식품·기타','행사 안내'].map(v => <option key={v}>{v}</option>)}</select></label>
+        <div className="col-span-2 flex items-end gap-2 sm:col-span-1"><button type="button" className={outline + ' whitespace-nowrap'} onClick={clearFilters}>초기화</button><button type="button" className={outline + ' whitespace-nowrap'} onClick={copyLink}>링크 공유</button></div>
       </div><p className="mt-3 text-xs leading-5 text-gray-500">‘최근 확인’은 48시간 안에 공식 목록에서 확인한 기록입니다. 종료일이 없는 상품은 ‘7일 내 종료’에 넣지 않습니다.</p>{share && <p role="status" className="mt-2 break-all text-xs text-red-700">{share}</p>}
     </section>
     <div aria-label="브랜드별 내부 가격 목록" className="flex flex-wrap gap-2">{RETAILERS.map(r => { const count = current.filter(o => o.kind === 'product' && o.retailer === r.id).length; return <button key={r.id} type="button" onClick={() => update({brand:r.id,type:''})} aria-pressed={filters.brand === r.id} className={outline + (filters.brand === r.id ? ' border-red-500 bg-red-50' : '')}>{r.name} <span className="ml-1 text-xs text-gray-500">{count ? `${count}종` : '확인 중'}</span></button>; })}</div>
@@ -139,7 +151,7 @@ export default function RetailOffers({ catalog, usingSaved }: { catalog: RetailC
       <div className="my-4 flex flex-wrap gap-2" aria-label="저장 기록 필터">{([['all','전체'],['favorites',`관심 상품 ${controls.prefs.favorites.length}`],['brands','관심 브랜드'],['changes','지난 방문 이후']] as const).map(([v,label]) => <button key={v} type="button" aria-pressed={view === v} onClick={() => { setView(v); setLimit(24); }} className={view === v ? 'rounded-full bg-gray-950 px-4 py-2 text-xs font-bold text-white' : 'rounded-full border bg-white px-4 py-2 text-xs font-bold text-gray-600'}>{label}</button>)}</div>
       {view === 'changes' && !controls.since && <p className="mb-4 text-sm text-gray-600">첫 방문입니다. 다음 방문부터 새 상품과 실제 조건 변경을 구분해 보여드립니다.</p>}
       {usingSaved && <p role="status" className="mb-4 rounded-xl bg-amber-50 p-3 text-xs leading-5 text-amber-900">최근 자료를 불러오지 못해 저장된 확인 기록을 표시합니다. 아래 상품별 확인시각을 확인해 주세요.</p>}
-      {!visible.length ? <div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-7"><h3 className="font-bold">이 조건으로 확인된 상품 기록이 없습니다.</h3><p className="mt-2 text-sm leading-6 text-gray-600">매장에 행사가 없다는 뜻은 아닙니다. 위 공식 안내에서 점포·기간을 확인하거나 필터를 바꿔 보세요. 가격을 확인하지 못한 상품은 채워 넣지 않습니다.</p><button type="button" className={outline + ' mt-4'} onClick={() => { router.push(pathname, { scroll: false }); setView('all'); }}>전체 행사로 돌아가기</button></div> : <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{visible.slice(0,limit).map(o => <OfferCard key={o.id} o={o} controls={controls} />)}</div>}
+      {!visible.length ? <div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-7"><h3 className="font-bold">이 조건으로 확인된 상품 기록이 없습니다.</h3><p className="mt-2 text-sm leading-6 text-gray-600">매장에 행사가 없다는 뜻은 아닙니다. 위 공식 안내에서 점포·기간을 확인하거나 필터를 바꿔 보세요. 가격을 확인하지 못한 상품은 채워 넣지 않습니다.</p><button type="button" className={outline + ' mt-4'} onClick={clearFilters}>전체 행사로 돌아가기</button></div> : <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{visible.slice(0,limit).map(o => <OfferCard key={o.id} o={o} controls={controls} />)}</div>}
       {visible.length > limit && <button type="button" onClick={() => setLimit(n => n + 24)} className={outline + ' mx-auto mt-5 block px-8'}>상품 더 보기 ({limit}/{visible.length})</button>}
       <p className="mt-4 text-xs leading-5 text-gray-500">CU는 공식 1+1·2+1 목록에서 각 2페이지, 홈플러스는 공식 디지털 전단 목록과 상품 상세를 대조한 기록입니다. 전체 매장의 행사 수가 아닙니다. 브랜드별로 확인된 가격만 내부 목록에 반영합니다. 판매처 표시 행사와 이력 기반 최저가 판정은 다릅니다.</p>
     </section>
