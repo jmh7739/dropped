@@ -35,7 +35,7 @@ class PublicReader:
     def raw(self, url, body=None):
         time.sleep(max(0, 0.7 - (time.monotonic() - self.last)))
         self.last = time.monotonic()
-        req = Request(url, data=body, headers={'User-Agent': UA, 'Accept': 'application/json' if '/digital/getLft' in url else 'text/html',
+        req = Request(url, data=body, headers={'User-Agent': UA, 'Accept': 'text/plain' if urlparse(url).path == '/robots.txt' else 'application/json' if '/digital/getLft' in url else 'text/html',
             **({'Content-Type': 'application/x-www-form-urlencoded'} if body else {})})
         with self.opener.open(req, timeout=15) as response:
             return response.read(1_500_000).decode('utf-8-sig', errors='replace')

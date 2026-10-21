@@ -48,7 +48,7 @@ def parse_lotte_lookup(html, clean, keyword):
         spec=clean(size[2])
         # Start with explicitly specified multipacks; ambiguous POS sale units
         # such as a bare 240ML with a bundle price stay outside publication.
-        if not re.search(r'[*×xX]\s*[2-9]\d*',spec): continue
+        if not re.search(r'(?:ML|G|KG|L|매|개|롤|입)\s*[*×xX]\s*[2-9]\d*\s*(?:입|개|팩|롤)?(?:$|[^0-9])',spec,re.I): continue
         value=int(price[1].replace(',',''))
         if value<=0:continue
         barcode=size[1];ident='2200'+barcode

@@ -11,6 +11,17 @@ CARD='''<li class="prod_list"><a href="javascript:view(270);"><div class="name">
 DETAIL='''<p class="tit">농심)캔디50g</p><ul class="prodTag"><li>1+1</li></ul><dd class="prodPrice"><p><span>900</span>원</p></dd>'''
 
 class RetailTests(unittest.TestCase):
+    def test_policy_requests_plain_text_without_changing_bot_identity(self):
+        from unittest.mock import MagicMock
+        from collect_retail_promotions import UA
+        reader=PublicReader()
+        response=MagicMock();response.__enter__.return_value.read.return_value=b'User-agent: *\nAllow: /'
+        with patch.object(reader.opener,'open',return_value=response) as opened:
+            reader.raw('https://company.lottemart.com/robots.txt')
+            request=opened.call_args.args[0]
+            self.assertEqual(request.get_header('Accept'),'text/plain')
+            self.assertEqual(request.get_header('User-agent'),UA)
+
     def test_product_images_are_observed_https_urls_not_guessed_paths(self):
         url='//tqklhszfkvzk6518638.edge.naverncp.com/product/8801234567890_1.png'
         self.assertEqual(product_image(url,'cu'),'https:'+url)
@@ -35,6 +46,7 @@ class RetailTests(unittest.TestCase):
         self.assertIn('서울역점',row['scope'])
         self.assertEqual(row['priceKind'],'reference')
         self.assertEqual(parse_lotte_lookup(html.replace('200ML*3','240ML'),text,'우유'),[])
+        self.assertEqual(parse_lotte_lookup(html.replace('200ML*3','20*21.8CM'),text,'휴지'),[])
         self.assertEqual(parse_lotte_lookup(html.replace('class="layer-head">테스트 우유','class="layer-head">다른 우유'),text,'우유'),[])
     def test_policy_redirect_unknown_html_still_stops_collection(self):
         reader=PublicReader()
