@@ -8,7 +8,7 @@ on:
       retailer:
         description: 'Limit a manual verification to one source; scheduled runs remain all'
         type: choice
-        options: [all, lotte]
+        options: [all, lotte, cu, homeplus, coverage]
         default: all
   push:
     paths:
@@ -30,7 +30,7 @@ concurrency:
 jobs:
   retail-notices:
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -65,7 +65,7 @@ jobs:
           echo 'Could not publish retailer observations after three attempts' >&2
           exit 1
   collect:
-    if: github.event_name != 'workflow_dispatch' || inputs.retailer != 'lotte'
+    if: github.event_name != 'workflow_dispatch' || inputs.retailer == 'all'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:

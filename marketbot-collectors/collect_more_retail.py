@@ -8,10 +8,53 @@ import re
 from hashlib import sha256
 from pathlib import Path
 from urllib.parse import urlencode
+from urllib.robotparser import RobotFileParser
+from datetime import datetime, timezone, timedelta
 
 RULES = Path(__file__).with_name('retail_official_price_rules.json')
 NEWSROOM = 'https://www.shinsegaegroupnewsroom.com'
 LOTTE_SEARCH = 'https://company.lottemart.com/mobiledowa/product/search_product.asp'
+
+def inspect_gs25_policy(reader, now):
+    origin='https://www.gsretail.com'
+    state={'status':'crawl_path_restricted','attemptedAt':now,'count':0,'coverage':'not_connected','paginationComplete':False,
+           'sourceUrl':origin+'/brand/gs25','policyUrl':origin+'/robots.txt'}
+    try:
+        policy=reader.raw(origin+'/robots.txt')
+        if policy.lstrip().startswith('<') or 'user-agent:' not in policy.lower():
+            raise ValueError('GS25 policy unavailable')
+        parser=RobotFileParser(origin+'/robots.txt');parser.parse(policy.splitlines())
+        state['policyCheckedAt']=now
+        from collect_retail_promotions import robots_allowed, UA
+        state['apiAllowed']=robots_allowed(policy,UA,origin+'/api/')
+        state['crawlDelaySeconds']=parser.crawl_delay('MarketBot/1.0') or 10
+        # Honor the published UTC visit window; don't read content outside it.
+        match=re.search(r'^Visit-time:\s*(\d{4})\s*-\s*(\d{4})',policy,re.M|re.I)
+        current=datetime.fromisoformat(now.replace('Z','+00:00')).astimezone(timezone.utc)
+        if not match: raise ValueError('GS25 visit window must be reviewed')
+        start,end=match.groups();hhmm=current.strftime('%H%M')
+        state['visitWindowUtc']=start+'-'+end
+        if not start<=hhmm<=end:
+            next_day=current if hhmm<start else current+timedelta(days=1)
+            state['nextEligibleAt']=next_day.replace(hour=int(start[:2]),minute=int(start[2:]),second=0,microsecond=0).isoformat()
+            state['reason']='outside_official_visit_window_api_not_collected'
+            return state
+        reader.policies[origin]=parser
+        reader.policy_text[origin]=policy
+        # Only the public HTML page. Never request a disallowed product API.
+        html=reader.get(origin+'/brand/gs25')
+        state.update(status='public_html_unavailable',htmlCheckedAt=now,reason='public_html_has_no_verified_product_contract')
+        state['publicHtmlBytes']=len(html.encode('utf-8'))
+        return state
+    except Exception as exc:
+        state.update(status='policy_check_failed',reason=type(exc).__name__)
+        return state
+
+def collect_source_coverage(reader, now):
+    return {'gs25':inspect_gs25_policy(reader,now),
+      **{key:{'status':'limited_coverage','attemptedAt':now,'coverage':'selected_official_announcements',
+        'paginationComplete':False,'discountFeedConnected':False if key in ('nobrand','traders') else None,
+        'reason':'product_release_reference_only' if key in ('nobrand','traders') else 'selected_campaign_products_only'} for key in ('nobrand','traders','emart')}}
 
 def parse_press(html, rule, clean):
     if rule['publishedDate'] not in html and rule['publishedDate'].replace('-','.') not in html:
@@ -66,7 +109,7 @@ def parse_lotte_lookup(html, clean, keyword):
 def collect_more(reader, clean, now):
     rows=[];statuses={
       'costco':{'status':'permission_required','attemptedAt':now,'reason':'terms_section_17_product_aggregation_and_bots'},
-      'gs25':{'status':'permission_required','attemptedAt':now,'reason':'official_product_api_disallowed_by_robots'}}
+      'gs25':inspect_gs25_policy(reader,now)}
     for rule in json.loads(RULES.read_text(encoding='utf-8')):
         key=rule['retailer'];existing=statuses.get(key,{}).get('count',0)
         try:
@@ -79,6 +122,9 @@ def collect_more(reader, clean, now):
                            'count':existing+len(verified),'referenceOnly':rule['priceKind']=='reference'}
         except Exception as exc:
             statuses[key]={'status':'partial' if existing else 'unavailable','attemptedAt':now,'count':existing,'reason':type(exc).__name__}
+    for key in ('emart','nobrand','traders'):
+        statuses.setdefault(key,{}).update(coverage='selected_official_announcements',paginationComplete=False,
+            discountFeedConnected=key=='emart')
     additional, state = collect_lotte(reader, clean, now)
     rows.extend(additional); statuses['lotte'] = state
     return rows,statuses

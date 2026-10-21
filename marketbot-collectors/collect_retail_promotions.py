@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from hashlib import sha256
 from html import unescape
 from pathlib import Path
-from urllib.parse import urlencode, urljoin, urlparse
+from urllib.parse import urlencode, urljoin, urlparse, unquote
 from urllib.request import Request, build_opener, HTTPRedirectHandler
 from urllib.error import HTTPError
 from urllib.robotparser import RobotFileParser
@@ -22,6 +22,39 @@ CU = 'https://cu.bgfretail.com'
 LOTTE = 'https://company.lottemart.com/mobiledowa/event/event_list.asp'
 HOMEPLUS = 'https://my.homeplus.co.kr'
 
+def robots_allowed(policy, user_agent, url):
+    """RFC9309 longest matching rule; stdlib's first-match can allow /api/.
+
+    Never borrow another crawler's explicit permissions. Combine equally specific
+    groups; a longer disallow beats Allow:/, and allow wins only equal-length ties.
+    """
+    groups=[];agents=[];rules=[];directives=False
+    for raw in policy.splitlines():
+        line=raw.split('#',1)[0].strip()
+        if ':' not in line: continue
+        key,value=(s.strip() for s in line.split(':',1));key=key.lower()
+        if key=='user-agent':
+            if directives:
+                groups.append((agents,rules));agents=[];rules=[];directives=False
+            agents.append(value.lower())
+        elif agents:
+            directives=True
+            if key in ('allow','disallow') and value:rules.append((key,value))
+    if agents:groups.append((agents,rules))
+    token=user_agent.split('/',1)[0].lower();matches=[]
+    for names,entries in groups:
+        lengths=[0 if name=='*' else len(name) for name in names if name=='*' or name in token]
+        if lengths:matches.append((max(lengths),entries))
+    if not matches:return True
+    best=max(m[0] for m in matches);parsed=urlparse(url);target=unquote(parsed.path+('?' + parsed.query if parsed.query else ''))
+    choices=[]
+    for length,entries in matches:
+        if length!=best:continue
+        for kind,value in entries:
+            value=unquote(value);end=value.endswith('$');pattern=re.escape(value[:-1] if end else value).replace(r'\*','.*')
+            if re.match('^'+pattern+('$' if end else ''),target):choices.append((len(value.rstrip('$').replace('*','')),kind=='allow'))
+    return max(choices)[1] if choices else True
+
 class NoRedirect(HTTPRedirectHandler):
     def redirect_request(self, req, fp, code, msg, headers, newurl):
         return None
@@ -29,11 +62,13 @@ class NoRedirect(HTTPRedirectHandler):
 class PublicReader:
     def __init__(self):
         self.policies = {}
+        self.policy_text = {}
         self.last = 0
         self.opener = build_opener(NoRedirect)
 
     def raw(self, url, body=None):
-        time.sleep(max(0, 0.7 - (time.monotonic() - self.last)))
+        delay = 10 if urlparse(url).netloc == 'www.gsretail.com' else 0.7
+        time.sleep(max(0, delay - (time.monotonic() - self.last)))
         self.last = time.monotonic()
         req = Request(url, data=body, headers={'User-Agent': UA, 'Accept': 'text/plain' if urlparse(url).path == '/robots.txt' else 'application/json' if '/digital/getLft' in url else 'text/html',
             **({'Content-Type': 'application/x-www-form-urlencoded'} if body else {})})
@@ -42,7 +77,7 @@ class PublicReader:
 
     def get(self, url, body=None):
         parsed = urlparse(url)
-        if parsed.scheme != 'https' or parsed.netloc not in {'cu.bgfretail.com', 'company.lottemart.com', 'my.homeplus.co.kr', 'www.shinsegaegroupnewsroom.com'}:
+        if parsed.scheme != 'https' or parsed.netloc not in {'cu.bgfretail.com', 'company.lottemart.com', 'my.homeplus.co.kr', 'www.shinsegaegroupnewsroom.com', 'www.gsretail.com'}:
             raise ValueError('unapproved retailer origin')
         origin = parsed.scheme + '://' + parsed.netloc
         if origin not in self.policies:
@@ -72,7 +107,9 @@ class PublicReader:
                     raise
                 parser.parse(['User-agent: *', 'Allow: /'])
             self.policies[origin] = parser
-        if not self.policies[origin].can_fetch(UA, url):
+            self.policy_text[origin] = rules if 'rules' in locals() else 'User-agent: *\nAllow: /'
+        allowed = robots_allowed(self.policy_text[origin],UA,url) if origin in self.policy_text else self.policies[origin].can_fetch(UA,url)
+        if not allowed:
             raise ValueError('retailer policy denies this path')
         return self.raw(url, body)
 
@@ -230,33 +267,112 @@ def merge_catalog(old, collected, statuses, now):
     return {'schemaVersion': 1, 'checkedAt': now, 'sources': {**old.get('sources', {}), **statuses},
             'offers': sorted(offers.values(), key=lambda row: row['id'])}
 
+def collect_cu(reader, old, now):
+    candidates, pages, complete, mismatches = {}, {}, True, 0
+    try:
+        for condition in ('23', '24'):
+            seen = set()
+            pages[condition] = 0
+            for page in range(1, 201):
+                body = urlencode({'pageIndex':page,'listType':0,'searchCondition':condition}).encode()
+                html = reader.get(CU+'/event/plusAjax.do',body)
+                first = parse_cu_list(html)
+                if not first:
+                    complete = False  # An empty/error response is not proof that pagination ended.
+                    break
+                ids = {r['id'] for r in first}
+                if not ids - seen:
+                    complete = False  # Ignored page parameter/repeated page is not an end marker.
+                    break
+                seen.update(ids)
+                pages[condition] += 1
+                second = {r['id']:r for r in parse_cu_list(reader.get(CU+'/event/plusAjax.do',body))}
+                for row in first:
+                    if second.get(row['id']) == row: candidates[row['id']] = row
+                    else: mismatches += 1
+                if set(second) != ids: complete = False
+                if not re.search(r'javascript:nextPage\(',html): break
+            else:
+                complete = False  # Safety stop, explicitly partial; never report all pages collected.
+        if not candidates: raise ValueError('CU official list has no stable verified candidates')
+        previous = {r['id']:r for r in old.get('offers',[]) if r.get('retailer')=='cu'}
+        verified, reused, consecutive_errors = [], 0, 0
+        fields = ('name','unitPrice','buyQuantity','giftQuantity','promotion','barcode')
+        for index,row in enumerate(candidates.values()):
+            try:
+                prior = previous.get(row['id'],{})
+                detail_time = prior.get('detailVerifiedAt') or prior.get('lastSeenAt')
+                age = (datetime.fromisoformat(now.replace('Z','+00:00'))-datetime.fromisoformat(detail_time.replace('Z','+00:00'))).total_seconds() if detail_time else -1
+                if 0 <= age < 86400 and all(prior.get(k)==row.get(k) for k in fields):
+                    row['detailVerifiedAt'] = detail_time
+                    reused += 1
+                elif confirm_cu(row,reader.get(row['sourceUrl'])):
+                    row['detailVerifiedAt'] = datetime.now(timezone.utc).isoformat()
+                else: continue
+                verified.append(row)
+                consecutive_errors = 0
+            except Exception:
+                consecutive_errors += 1
+                if consecutive_errors >= 5: break
+                continue
+            if (index+1)%100==0:
+                print(json.dumps({'source':'cu','progress':index+1,'candidates':len(candidates),'verified':len(verified)}),flush=True)
+        state={'status':'verified' if complete and not mismatches and len(verified)==len(candidates) else 'partial',
+               'checkedAt':now,'count':len(verified),'discovered':len(candidates),'notConfirmed':len(candidates)-len(verified),
+               'listPages':pages,'paginationComplete':complete,'unstableRows':mismatches,'detailReuseCount':reused,
+               'scope':'official_1plus1_2plus1','coverage':'all_available_list_pages' if complete else 'incomplete_list_pages',
+               'periodPrecision':'not_provided'}
+        return verified,state
+    except Exception as exc:
+        return [],{'status':'unavailable','attemptedAt':now,'count':0,'paginationComplete':False,'reason':type(exc).__name__}
+
+def collect_homeplus(reader, now):
+    products, seen_pages, excluded = {}, set(), 0
+    requested, complete = 0, False
+    try:
+        for _ in range(200):
+            payload=json.loads(reader.get(HOMEPLUS+'/digital/getLftMainGoods',urlencode({'sortBy':'P','page':requested}).encode()))
+            if payload.get('success') is False and payload.get('errCode')==2001:
+                return [],{'status':'source_preparing','attemptedAt':now,'count':0,'paginationComplete':False,'reason':'official_goods_preparing_2001','coverage':'official_digital_leaflet'}
+            data=payload.get('data')
+            if not isinstance(data,dict) or not isinstance(data.get('goodsList'),list):
+                raise ValueError('Homeplus list contract unavailable')
+            current,total=data.get('cpage'),data.get('tpage')
+            if not str(current).isdigit() or not str(total).isdigit():
+                raise ValueError('Homeplus pagination metadata unavailable')
+            current,total=int(current),int(total)
+            if current in seen_pages:break
+            seen_pages.add(current)
+            first=parse_homeplus(payload)
+            second_payload=json.loads(reader.get(HOMEPLUS+'/digital/getLftMainGoods',urlencode({'sortBy':'P','page':requested}).encode()))
+            second={r['id']:r for r in parse_homeplus(second_payload)}
+            excluded+=len(data['goodsList'])-len(first)
+            for row in first:
+                if second.get(row['id'])==row:products[row['id']]=row
+                else:excluded+=1
+            if current>=total:
+                complete=True;break
+            requested=current+1  # The official page uses cpage+1; page=0 can alias page 1.
+        verified=[];errors=0
+        for row in products.values():
+            try:
+                if confirm_homeplus(row,reader.get(row['sourceUrl'])):verified.append(row)
+                errors=0
+            except Exception:
+                errors+=1
+                if errors>=5:break
+        return verified,{'status':'verified' if complete and not excluded and len(verified)==len(products) else 'partial',
+            'checkedAt':now,'count':len(verified),'discovered':len(products),'notConfirmed':len(products)-len(verified),
+            'excludedFromPublication':excluded,'paginationComplete':complete,'listPages':len(seen_pages),
+            'coverage':'all_available_digital_leaflet_pages' if complete else 'incomplete_list_pages'}
+    except Exception as exc:
+        return [],{'status':'unavailable','attemptedAt':now,'count':0,'paginationComplete':False,'reason':type(exc).__name__}
+
 def collect(reader, old):
     now = datetime.now(timezone.utc).isoformat()
     rows, statuses = [], {}
-    cu = {}
-    try:
-        for condition in ('23', '24'):
-            for page in range(1, 3):
-                html = reader.get(CU + '/event/plusAjax.do', urlencode({'pageIndex':page,'listType':0,'searchCondition':condition}).encode())
-                for row in parse_cu_list(html):
-                    cu[row['id']] = row
-        if not cu:
-            raise ValueError('CU official list has no parsable promotion')
-        verified = []
-        for row in cu.values():
-            try:
-                if confirm_cu(row, reader.get(row['sourceUrl'])):
-                    verified.append(row)
-            except Exception:
-                # A single unavailable detail must not discard other verified items.
-                continue
-        if not verified:
-            raise ValueError('CU detail verification did not match')
-        rows += verified
-        statuses['cu'] = {'status':'verified' if len(verified) == len(cu) else 'partial', 'checkedAt':now,'count':len(verified),
-                          'notConfirmed':len(cu)-len(verified),'periodPrecision':'not_provided'}
-    except Exception as exc:
-        statuses['cu'] = {'status':'unavailable','attemptedAt':now,'reason':type(exc).__name__}
+    cu_rows,statuses['cu']=collect_cu(reader,old,now)
+    rows.extend(cu_rows)
     try:
         events = parse_lotte(reader.get(LOTTE))
         if not events:
@@ -272,27 +388,8 @@ def collect(reader, old):
         statuses['lotte'] = {'status':'verified','checkedAt':now,'count':len(verified)}
     except Exception as exc:
         statuses['lotte'] = {'status':'unavailable','attemptedAt':now,'reason':type(exc).__name__}
-    try:
-        products = {}
-        for page in (0, 2, 3):
-            payload = json.loads(reader.get(HOMEPLUS+'/digital/getLftMainGoods', urlencode({'sortBy':'P','page':page}).encode()))
-            for row in parse_homeplus(payload):
-                products[row['id']] = row
-        if not products:
-            raise ValueError('Homeplus public digital list has no verified candidates')
-        verified = []
-        for row in products.values():
-            try:
-                if confirm_homeplus(row, reader.get(row['sourceUrl'])):
-                    verified.append(row)
-            except Exception:
-                continue
-        if not verified:
-            raise ValueError('Homeplus detail verification did not match')
-        rows += verified
-        statuses['homeplus'] = {'status':'verified' if len(verified)==len(products) else 'partial','checkedAt':now,'count':len(verified),'notConfirmed':len(products)-len(verified)}
-    except Exception as exc:
-        statuses['homeplus'] = {'status':'unavailable','attemptedAt':now,'reason':type(exc).__name__}
+    home_rows,statuses['homeplus']=collect_homeplus(reader,now)
+    rows.extend(home_rows)
     from collect_more_retail import collect_more
     additional, source_status = collect_more(reader, text, now)
     rows.extend(additional)
@@ -302,18 +399,27 @@ def collect(reader, old):
 def main():
     old = json.loads(OUT.read_text(encoding='utf-8')) if OUT.exists() else {}
     import argparse
-    parser=argparse.ArgumentParser();parser.add_argument('--retailer',choices=['all','lotte'],default='all');args=parser.parse_args()
+    parser=argparse.ArgumentParser();parser.add_argument('--retailer',choices=['all','lotte','cu','homeplus','coverage'],default='all');parser.add_argument('--output',type=Path,default=OUT);args=parser.parse_args()
     if args.retailer == 'lotte':
         from collect_more_retail import collect_lotte
         now=datetime.now(timezone.utc).isoformat();rows,status=collect_lotte(PublicReader(),text,now)
         result=merge_catalog(old,rows,{'lotte':status},now)
+    elif args.retailer=='cu':
+        now=datetime.now(timezone.utc).isoformat();rows,status=collect_cu(PublicReader(),old,now)
+        result=merge_catalog(old,rows,{'cu':status},now)
+    elif args.retailer=='coverage':
+        from collect_more_retail import collect_source_coverage
+        now=datetime.now(timezone.utc).isoformat();result=merge_catalog(old,[],collect_source_coverage(PublicReader(),now),now)
+    elif args.retailer=='homeplus':
+        now=datetime.now(timezone.utc).isoformat();rows,status=collect_homeplus(PublicReader(),now)
+        result=merge_catalog(old,rows,{'homeplus':status},now)
     else:
         result = collect(PublicReader(), old)
-    OUT.parent.mkdir(exist_ok=True)
-    OUT.write_text(json.dumps(result,ensure_ascii=False,separators=(',',':'))+'\n',encoding='utf-8')
+    args.output.parent.mkdir(exist_ok=True,parents=True)
+    args.output.write_text(json.dumps(result,ensure_ascii=False,separators=(',',':'))+'\n',encoding='utf-8')
     print(json.dumps({'offers':len(result['offers']), 'sources':result['sources']},ensure_ascii=False))
-    source='lotte' if args.retailer=='lotte' else 'cu'
-    if result['sources'].get(source, {}).get('status') == 'unavailable':
+    source=args.retailer if args.retailer in ('lotte','cu','homeplus') else 'cu'
+    if args.retailer != 'coverage' and result['sources'].get(source, {}).get('status') == 'unavailable':
         raise SystemExit(source+' observations unavailable; retained history is not a successful refresh')
 
 if __name__ == '__main__':

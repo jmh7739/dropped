@@ -4,13 +4,96 @@ from collect_retail_promotions import PublicReader, parse_cu_list, confirm_cu, p
 from urllib.error import HTTPError
 from merge_retail_catalogs import merge
 from collect_more_retail import parse_press, parse_lotte_lookup, RULES
-from collect_retail_promotions import text, revision, product_image
+from collect_retail_promotions import text, revision, product_image, collect_cu, robots_allowed, collect_homeplus
+from collect_more_retail import inspect_gs25_policy
 import json
 
 CARD='''<li class="prod_list"><a href="javascript:view(270);"><div class="name"><p>농심)캔디50g</p></div><div class="price"><strong>900</strong></div><!-- plus2 example --><span class="plus1">1+1</span><img src="/product/6921211104292.jpg"></a></li>'''
 DETAIL='''<p class="tit">농심)캔디50g</p><ul class="prodTag"><li>1+1</li></ul><dd class="prodPrice"><p><span>900</span>원</p></dd>'''
 
 class RetailTests(unittest.TestCase):
+    def test_homeplus_follows_reported_page_numbers_including_zero_alias(self):
+        from urllib.parse import parse_qs
+        class Reader:
+            requested=[]
+            def get(self,url,body=None):
+                if body:
+                    page=int(parse_qs(body.decode())['page'][0]);self.requested.append(page)
+                    current=1 if page==0 else page
+                    item={'goodsId':1000+current,'goodsNm':'테스트 식품','price':'1000','tags':[], 'startTime':'20261022 00:00:00','endTime':'20261028 23:59:59'}
+                    return json.dumps({'success':True,'data':{'goodsList':[item],'cpage':current,'tpage':3}})
+                return '<h2 class="prd__name">테스트 식품</h2><span class="prd__price"><strong>1,000</strong></span><div class="prd__promotion-date">10. 22. ~ 10. 28.</div>'
+        reader=Reader();rows,state=collect_homeplus(reader,'2026-10-22T00:00:00Z')
+        self.assertEqual(reader.requested,[0,0,2,2,3,3])
+        self.assertEqual(len(rows),3)
+        self.assertTrue(state['paginationComplete'])
+        self.assertEqual(state['status'],'verified')
+
+    def test_homeplus_official_preparing_is_neither_an_empty_success_nor_parser_failure(self):
+        class Reader:
+            def get(self,url,body=None):return json.dumps({'success':False,'data':None,'errCode':2001,'errMessage':'상품 준비중 입니다.'})
+        rows,state=collect_homeplus(Reader(),'2026-10-22T00:00:00Z')
+        self.assertEqual(rows,[])
+        self.assertEqual(state['status'],'source_preparing')
+        self.assertFalse(state['paginationComplete'])
+
+    def test_longer_robots_denial_beats_root_allow_without_borrowing_other_bot(self):
+        rules='User-agent: *\nAllow: /\nDisallow: /api/\nDisallow: /private/*\nAllow: /private/public$\n\nUser-agent: Googlebot\nAllow: /\n'
+        self.assertFalse(robots_allowed(rules,'MarketBot/1.0','https://example.com/api/items'))
+        self.assertFalse(robots_allowed(rules,'MarketBot/1.0','https://example.com/%61pi/items'))
+        self.assertTrue(robots_allowed(rules,'MarketBot/1.0','https://example.com/brand/gs25'))
+        self.assertTrue(robots_allowed(rules,'MarketBot/1.0','https://example.com/private/public'))
+        self.assertFalse(robots_allowed(rules,'MarketBot/1.0','https://example.com/private/public/extra'))
+        self.assertFalse(robots_allowed('User-agent: *\nDisallow: /\n\nUser-agent: Googlebot\nAllow: /','MarketBot/1.0','https://example.com/'))
+    def test_cu_walks_beyond_two_pages_and_stops_at_public_end_marker(self):
+        from urllib.parse import parse_qs
+        class Reader:
+            def get(self,url,body=None):
+                if not body:return DETAIL
+                p=parse_qs(body.decode());page=int(p['pageIndex'][0]);condition=p['searchCondition'][0]
+                ident=str(int(condition)*100+page)
+                html=CARD.replace('view(270)','view('+ident+')')
+                return html+('<a href="javascript:nextPage('+str(page)+');">더보기</a>' if page<3 else '')
+        rows,state=collect_cu(Reader(),{},'2026-10-22T00:00:00Z')
+        self.assertEqual(len(rows),6)
+        self.assertEqual(state['listPages'],{'23':3,'24':3})
+        self.assertTrue(state['paginationComplete'])
+        self.assertEqual(state['status'],'verified')
+
+    def test_repeated_page_is_partial_not_a_successful_full_collection(self):
+        class Reader:
+            def get(self,url,body=None):return CARD+'<a href="javascript:nextPage(1);">더보기</a>' if body else DETAIL
+        rows,state=collect_cu(Reader(),{},'2026-10-22T00:00:00Z')
+        self.assertFalse(state['paginationComplete'])
+        self.assertEqual(state['status'],'partial')
+
+    def test_detail_outage_stops_after_five_errors_without_inventing_verified_rows(self):
+        class Reader:
+            calls=0
+            def get(self,url,body=None):
+                if body:return ''.join(CARD.replace('view(270)','view('+str(i)+')') for i in range(10))
+                self.calls+=1
+                raise TimeoutError('temporary outage')
+        reader=Reader();rows,state=collect_cu(reader,{},'2026-10-22T00:00:00Z')
+        self.assertEqual(reader.calls,5)
+        self.assertEqual(rows,[])
+        self.assertEqual(state['status'],'partial')
+        self.assertEqual(state['notConfirmed'],10)
+
+    def test_gs25_does_not_fetch_content_outside_published_visit_window(self):
+        reader=PublicReader()
+        policy='User-agent: *\nDisallow: /api/\nCrawl-delay: 10\nVisit-time: 0400-0845\n'
+        with patch.object(reader,'raw',return_value=policy) as raw,patch.object(reader,'get') as content:
+            state=inspect_gs25_policy(reader,'2026-10-21T16:00:00Z')
+            self.assertFalse(state['apiAllowed'])
+            self.assertEqual(state['status'],'crawl_path_restricted')
+            self.assertEqual(state['nextEligibleAt'],'2026-10-22T04:00:00+00:00')
+            content.assert_not_called()
+        with patch.object(reader,'raw',return_value=policy),patch.object(reader,'get',return_value='<div id="app"></div>') as content:
+            state=inspect_gs25_policy(reader,'2026-10-22T06:40:00Z')
+            self.assertEqual(state['status'],'public_html_unavailable')
+            content.assert_called_once_with('https://www.gsretail.com/brand/gs25')
+
     def test_policy_requests_plain_text_without_changing_bot_identity(self):
         from unittest.mock import MagicMock
         from collect_retail_promotions import UA
