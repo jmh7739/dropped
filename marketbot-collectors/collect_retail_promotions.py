@@ -127,6 +127,10 @@ def parse_homeplus(payload):
             continue
         if start_date > end_date or re.search(r'주류|소주|맥주|와인|위스키|담배', name):
             continue
+        if ident == '2645' and start_date == '2026-10-15' and end_date == '2026-10-21':
+            # Public digital and printed leaflet prices disagree. Do not refresh
+            # this record as a validated price until the original is corrected.
+            continue
         promo = '1+1' if '1+1' in tags else '2+1' if '2+1' in tags else '멤버특가' if '멤버특가' in tags else '전단가'
         # Complex multi-buy/coupon-only totals need a different, explicit contract.
         if re.search(r'교차|골라|쿠폰|\d+개.*(?:구매|할인|원)', tags) and promo not in ('1+1','2+1'):
