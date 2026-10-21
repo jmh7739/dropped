@@ -94,4 +94,4 @@ def collect_lotte(reader, clean, now):
                 if second.get(row['id'])==row:verified[row['id']]=row
         return list(verified.values()), {'status':'verified' if verified else 'unavailable','checkedAt':now,'count':len(verified),'referenceOnly':True,'scope':'store_2200'}
     except Exception as exc:
-        return [], {'status':'unavailable','attemptedAt':now,'reason':type(exc).__name__}
+        return [], {'status':'unavailable','attemptedAt':now,'reason':type(exc).__name__,'reasonDetail':str(getattr(exc,'reason',exc))[:180]}
