@@ -68,7 +68,7 @@ function OfferCard({ o, controls: c }: { o: RetailOffer; controls: Controls }) {
     <RetailDiscount offer={o} />
     <div className="mb-4 space-y-1 text-xs leading-5 text-gray-600">
       <p>{state === 'ended' ? '종료 · ' : state === 'upcoming' ? '예정 · ' : state === 'old' ? '이전 확인 기록 · ' : ''}{periodText(o)}</p>
-      <p>공식 원문 확인 {checkedDate(o.lastSeenAt)}</p>
+      {o.retailer === 'lotte' && <p className="font-bold text-gray-800">서울 · 제타플렉스 서울역점 기준</p>}<p>공식 원문 확인 {checkedDate(o.lastSeenAt)}</p>
       <p>{prior ? `이전 관측: 판매단위당 ${money(prior.price.each)} (${prior.observation.promotion})` : o.priceKind === 'reference' ? '발표·조회 참고가격입니다. 할인·현재 판매가를 확인한 가격이 아닙니다.' : '이전 행사와 비교할 기록이 아직 없습니다.'}</p>
     </div>
     <div className="mt-auto space-y-3"><ActionButtons offer={o} controls={c} /><div className="flex flex-wrap justify-between gap-2 border-t border-gray-100 pt-3 text-sm font-bold"><Link prefetch={false} href={`/store-deals/${o.id}`} className="text-gray-800 hover:underline">조건·가격 기록 →</Link><a href={o.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-red-700 hover:underline">공식 안내 ↗</a></div></div>
@@ -157,7 +157,7 @@ export default function RetailOffers({ catalog, usingSaved }: { catalog: RetailC
       {usingSaved && <p role="status" className="mb-4 rounded-xl bg-amber-50 p-3 text-xs leading-5 text-amber-900">최근 자료를 불러오지 못해 저장된 확인 기록을 표시합니다. 아래 상품별 확인시각을 확인해 주세요.</p>}
       {!visible.length ? <div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-7"><h3 className="font-bold">이 조건으로 확인된 상품 기록이 없습니다.</h3><p className="mt-2 text-sm leading-6 text-gray-600">매장에 행사가 없다는 뜻은 아닙니다. 위 공식 안내에서 점포·기간을 확인하거나 필터를 바꿔 보세요. 가격을 확인하지 못한 상품은 채워 넣지 않습니다.</p><button type="button" className={outline + ' mt-4'} onClick={clearFilters}>전체 행사로 돌아가기</button></div> : <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{visible.slice(0,limit).map(o => <OfferCard key={o.id} o={o} controls={controls} />)}</div>}
       {visible.length > limit && <button type="button" onClick={() => setLimit(n => n + 24)} className={outline + ' mx-auto mt-5 block px-8'}>상품 더 보기 ({limit}/{visible.length})</button>}
-      <p className="mt-4 text-xs leading-5 text-gray-500">CU는 공식 1+1·2+1 목록에서 각 2페이지, 홈플러스는 공식 디지털 전단 목록과 상품 상세를 대조한 기록입니다. 이마트 행사가는 공식 뉴스룸의 행사 기간·결제 조건을 대조했습니다. 노브랜드·트레이더스는 공식 출시 발표의 참고가격만 제공합니다. 전체 매장의 행사 수가 아닙니다. 브랜드별로 확인된 가격만 내부 목록에 반영합니다. 판매처 표시 행사와 이력 기반 최저가 판정은 다릅니다.</p>
+      <p className="mt-4 text-xs leading-5 text-gray-500">CU는 공식 1+1·2+1 목록에서 각 2페이지, 홈플러스는 공식 디지털 전단 목록과 상품 상세를 대조한 기록입니다. 이마트 행사가는 공식 뉴스룸의 행사 기간·결제 조건을 대조했습니다. 노브랜드·트레이더스는 공식 출시 발표의 참고가격, 롯데마트는 제타플렉스 서울역점에서 조회한 묶음 상품 참고가격을 제공합니다. 전체 매장의 행사 수가 아닙니다. 브랜드별로 확인된 가격만 내부 목록에 반영합니다. 판매처 표시 행사와 이력 기반 최저가 판정은 다릅니다.</p>
     </section>
     <div id="my-shopping" className="scroll-mt-36"><ShoppingList offers={catalog.offers} controls={controls} /></div>
     {controls.storageError && <p role="status" className="text-sm text-amber-800">브라우저 저장을 사용할 수 없어 관심·장보기 목록은 이번 화면에서만 유지됩니다.</p>}

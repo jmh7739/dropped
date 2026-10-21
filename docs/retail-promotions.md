@@ -27,3 +27,8 @@
 
 ## Product images
 CU and Homeplus product image URLs are taken from their exact official listing entries, matched against product name, price, pack quantities, barcode and period during initial enrichment. No barcode-to-filename guessing. Subsequent collection retains official image URLs. Only approved HTTPS merchant image hosts/paths render; images load directly from the merchant, with source attribution, lazy loading and no-referrer. No files are mirrored. Missing or failed images show a fixed-height text fallback; price/history remain usable. Group press photos are not relabelled as individual product photos. Image changes do not create fake price-history revisions.
+
+## Lotte lookup restoration (2026-10-22 KST)
+The robots resource returns plain-text rules when requested as text/plain, but redirected to an HTML error with Accept:text/html. The collector now requests the correct policy media type without changing its MarketBot identity. The actual wildcard rules allow product lookup and deny compliance/lbsa paths. Existing policy-denial and authentication/rate-limit handling is unchanged. Lotte products are confirmed in two reads and scoped to Zettaplex Seoul Station store 2200. Pack parsing requires a quantity unit; dimensions such as 20*21.8CM are excluded. Prices are reference records, not verified discounts, stock or nationwide prices.
+
+GS25 /api/ remains disallowed. Costco terms section 17 still requires permission for product aggregation/bots. No competitor's scraped data, cached search prices, alternate-host access or credential workaround is used as a replacement.

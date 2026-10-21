@@ -2,7 +2,7 @@ export const RETAILERS = [
   { id: 'cu', name: 'CU', type: '편의점', color: '#652e91', url: 'https://cu.bgfretail.com/event/plus.do?category=event&depth2=1&sf=N', note: '1+1·2+1 상품과 점포별 적용 조건 확인' },
   { id: 'gs25', name: 'GS25', type: '편의점', color: '#0076bc', url: 'https://www.gsretail.com/brand/gs25', note: '공식 브랜드·행사 안내 · 상품 가격 연동은 이용 허용 확인 후 제공' },
   { id: 'emart', name: '이마트', type: '마트', color: '#9b6900', url: 'https://emartapp.emart.com/leaflet/leafletView_EL.do?trcknCode=MainLV', note: '방문할 점포를 선택한 뒤 전단·행사 확인' },
-  { id: 'lotte', name: '롯데마트', type: '마트', color: '#c80028', url: 'https://company.lottemart.com/mobiledowa/event/event_list.asp', note: '공식 이벤트의 참여 대상·기간 확인' },
+  { id: 'lotte', name: '롯데마트', type: '마트', color: '#c80028', url: 'https://company.lottemart.com/mobiledowa/event/event_list.asp', note: '제타플렉스 서울역점 상품 조회 가격 · 다른 점포 가격과 구분' },
   { id: 'costco', name: '코스트코', type: '창고형', color: '#00529b', url: 'https://www.costco.co.kr/', note: '온라인몰과 매장 행사·회원 조건을 구분해 확인' },
   { id: 'traders', name: '트레이더스', type: '창고형', color: '#387526', url: 'https://www.traders.co.kr/index.do', note: '방문 점포·회원 전용 혜택·행사 조건 확인' },
   { id: 'nobrand', name: '노브랜드', type: '마트', color: '#846600', url: 'https://store.emart.com/branch/list.do?trcknCode=header_store', note: '점포 찾기에서 노브랜드 선택 · 이마트 내 상품과 전문점 행사는 다를 수 있습니다' },
