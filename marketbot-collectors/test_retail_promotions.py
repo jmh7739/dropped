@@ -4,13 +4,21 @@ from collect_retail_promotions import PublicReader, parse_cu_list, confirm_cu, p
 from urllib.error import HTTPError
 from merge_retail_catalogs import merge
 from collect_more_retail import parse_press, parse_lotte_lookup, RULES
-from collect_retail_promotions import text, revision
+from collect_retail_promotions import text, revision, product_image
 import json
 
 CARD='''<li class="prod_list"><a href="javascript:view(270);"><div class="name"><p>농심)캔디50g</p></div><div class="price"><strong>900</strong></div><!-- plus2 example --><span class="plus1">1+1</span><img src="/product/6921211104292.jpg"></a></li>'''
 DETAIL='''<p class="tit">농심)캔디50g</p><ul class="prodTag"><li>1+1</li></ul><dd class="prodPrice"><p><span>900</span>원</p></dd>'''
 
 class RetailTests(unittest.TestCase):
+    def test_product_images_are_observed_https_urls_not_guessed_paths(self):
+        url='//tqklhszfkvzk6518638.edge.naverncp.com/product/8801234567890_1.png'
+        self.assertEqual(product_image(url,'cu'),'https:'+url)
+        self.assertIsNone(product_image('https://example.com/product/8801234567890.jpg','cu'))
+        self.assertIsNone(product_image('javascript:alert(1)','homeplus'))
+        self.assertEqual(product_image('https://image.homeplus.kr/it/127502198s0300','homeplus'),'https://image.homeplus.kr/it/127502198s0300')
+        row=parse_cu_list(CARD)[0]
+        self.assertEqual(revision(row),revision({**row,'imageUrl':'https:'+url}),'image-only changes are not price changes')
     def test_press_prices_require_exact_evidence_and_date(self):
         rule=json.loads(RULES.read_text(encoding='utf-8'))[-1]
         evidence=' '.join(rule.get('periodEvidence',[]) + rule['items'][0]['evidence'])

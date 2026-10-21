@@ -88,6 +88,12 @@ def category(name):
         return '과자·디저트'
     return '식품·기타'
 
+def product_image(value, retailer):
+    value = 'https:' + value if value.startswith('//') else value
+    pattern = (r'https://tqklhszfkvzk6518638\.edge\.naverncp\.com/product/\d{13}(?:_\d+)?\.(?:png|jpg|jpeg)' if retailer == 'cu'
+               else r'https://image\.homeplus\.kr/it/\d+[a-zA-Z0-9]*')
+    return value if re.fullmatch(pattern, value) else None
+
 def parse_cu_list(html):
     rows = []
     for block in re.findall(r'<li\b[^>]*class=["\'][^"\']*\bprod_list\b[^"\']*["\'][^>]*>([\s\S]*?)</li>', html, re.I):
@@ -103,7 +109,9 @@ def parse_cu_list(html):
         amount = int(price[1].replace(',', ''))
         if amount <= 0:
             continue
+        image = re.search(r'<img[^>]+src=["\']([^"\']+/product/[^"\']+)["\']', block, re.I)
         rows.append({'id': 'cu-' + ident[1], 'sourceId': ident[1], 'retailer': 'cu', 'kind': 'product',
+            'imageUrl':product_image(image[1], 'cu') if image else None,
             'name': text(name[1]), 'category': category(text(name[1])), 'unitPrice': amount,
             'buyQuantity': int(promo[2]), 'giftQuantity': 1, 'promotion': promo[2] + '+1',
             'barcode': barcode[1] if barcode else None, 'startDate': None, 'endDate': None,
@@ -148,6 +156,7 @@ def parse_homeplus(payload):
         if re.search(r'교차|골라|쿠폰|\d+개.*(?:구매|할인|원)', tags) and promo not in ('1+1','2+1'):
             continue
         rows.append({'id':'homeplus-'+ident,'sourceId':ident,'retailer':'homeplus','kind':'product',
+            'imageUrl':product_image(str(item.get('goodsImgUrl') or ''), 'homeplus'),
             'name':name,'category':category(name),'unitPrice':int(price),'buyQuantity':2 if promo=='2+1' else 1,
             'giftQuantity':1 if promo in ('1+1','2+1') else 0,'promotion':promo,'barcode':None,
             'startDate':start_date,'endDate':end_date,'sourceUrl':HOMEPLUS+'/lft/prd_view?id='+ident,
