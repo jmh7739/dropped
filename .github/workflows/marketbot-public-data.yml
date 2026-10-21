@@ -9,6 +9,7 @@ on:
       - marketbot-collectors/collect_public_data.py
       - marketbot-collectors/collect_retail_promotions.py
       - marketbot-collectors/test_retail_promotions.py
+      - marketbot-collectors/merge_retail_catalogs.py
       - .github/workflows/marketbot-public-data.yml
 
 permissions:
@@ -35,13 +36,19 @@ jobs:
         if: success() || failure()
         run: |
           set -euo pipefail
-          git add marketbot-data/retail-promotions.json
-          if git diff --cached --quiet; then
-            exit 0
-          fi
-          git -c user.name='MarketBot' -c user.email='marketbot@users.noreply.github.com' commit -m 'Refresh verified retailer observations'
+          cp marketbot-data/retail-promotions.json "$RUNNER_TEMP/collected-retail-promotions.json"
           for attempt in 1 2 3; do
-            git -c user.name='MarketBot' -c user.email='marketbot@users.noreply.github.com' pull --rebase origin main
+            git fetch origin main
+            # This is the job's disposable checkout, and this file is its only
+            # generated change. Keep observations before switching to latest main.
+            git restore -- marketbot-data/retail-promotions.json
+            git switch -C marketbot-retail-publish origin/main
+            python marketbot-collectors/merge_retail_catalogs.py "$RUNNER_TEMP/collected-retail-promotions.json" marketbot-data/retail-promotions.json
+            git add marketbot-data/retail-promotions.json
+            if git diff --cached --quiet; then
+              exit 0
+            fi
+            git -c user.name='MarketBot' -c user.email='marketbot@users.noreply.github.com' commit -m 'Refresh verified retailer observations'
             if git push origin HEAD:main; then
               exit 0
             fi

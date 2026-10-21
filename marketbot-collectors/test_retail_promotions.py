@@ -2,11 +2,23 @@ import unittest
 from unittest.mock import patch
 from collect_retail_promotions import PublicReader, parse_cu_list, confirm_cu, parse_lotte, merge_catalog, parse_homeplus, confirm_homeplus
 from urllib.error import HTTPError
+from merge_retail_catalogs import merge
 
 CARD='''<li class="prod_list"><a href="javascript:view(270);"><div class="name"><p>농심)캔디50g</p></div><div class="price"><strong>900</strong></div><!-- plus2 example --><span class="plus1">1+1</span><img src="/product/6921211104292.jpg"></a></li>'''
 DETAIL='''<p class="tit">농심)캔디50g</p><ul class="prodTag"><li>1+1</li></ul><dd class="prodPrice"><p><span>900</span>원</p></dd>'''
 
 class RetailTests(unittest.TestCase):
+    def test_concurrent_snapshots_keep_newer_observations_and_new_brands(self):
+        row=parse_cu_list(CARD)[0]
+        left=merge_catalog({},[row],{},'2026-10-21T01:00:00Z')
+        right=merge_catalog(left,[{**row,'unitPrice':1000}],{},'2026-10-21T07:00:00Z')
+        other={**row,'id':'cu-271','sourceId':'271'}
+        left=merge_catalog(left,[other],{},'2026-10-21T02:00:00Z')
+        combined=merge(right,left)
+        self.assertEqual(len(combined['offers']),2)
+        self.assertEqual(combined['offers'][0]['unitPrice'],1000)
+        self.assertEqual(len(combined['offers'][0]['history']),2)
+        self.assertEqual(combined['offers'][0]['firstSeenAt'],'2026-10-21T01:00:00Z')
     def test_homeplus_numeric_price_and_detail_dates_must_match(self):
         item={'goodsId':2756,'goodsNm':'행복대란 30개입','price':'5,520','origPrice':'7,890','tags':[{'tagNm':'멤버특가 30% 할인'}],'startTime':'20261015 00:00:00','endTime':'20261021 23:59:59'}
         row=parse_homeplus({'data':{'goodsList':[item]}})[0]
