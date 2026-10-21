@@ -42,13 +42,25 @@ class PublicReader:
 
     def get(self, url, body=None):
         parsed = urlparse(url)
-        if parsed.scheme != 'https' or parsed.netloc not in {'cu.bgfretail.com', 'company.lottemart.com', 'my.homeplus.co.kr'}:
+        if parsed.scheme != 'https' or parsed.netloc not in {'cu.bgfretail.com', 'company.lottemart.com', 'my.homeplus.co.kr', 'www.shinsegaegroupnewsroom.com'}:
             raise ValueError('unapproved retailer origin')
         origin = parsed.scheme + '://' + parsed.netloc
         if origin not in self.policies:
             parser = RobotFileParser(origin + '/robots.txt')
             try:
-                rules = self.raw(origin + '/robots.txt')
+                # Robots may redirect to the merchant's own missing-file page.
+                # Follow only same-origin policy redirects; never content/auth
+                # redirects, and never retry a denial or rate-limit response.
+                policy_url = origin + '/robots.txt'
+                for attempt in range(6):
+                    try:
+                        rules = self.raw(policy_url)
+                        break
+                    except HTTPError as redirect:
+                        target = urljoin(policy_url, redirect.headers.get('Location', ''))
+                        if redirect.code not in (301, 302, 303, 307, 308) or not redirect.headers.get('Location') or attempt == 5 or urlparse(target).scheme + '://' + urlparse(target).netloc != origin:
+                            raise
+                        policy_url = target
                 if rules.lstrip().startswith('<') or 'user-agent:' not in rules.lower():
                     raise ValueError('retailer policy unavailable')
                 parser.parse(rules.splitlines())
@@ -179,6 +191,8 @@ def parse_lotte(html):
 
 def revision(row):
     fields = {key: row.get(key) for key in ('name', 'unitPrice', 'buyQuantity', 'giftQuantity', 'promotion', 'startDate', 'endDate', 'conditions')}
+    if row.get('priceKind'):
+        fields['priceKind'] = row['priceKind']
     return sha256(json.dumps(fields, ensure_ascii=False, sort_keys=True).encode()).hexdigest()[:16]
 
 def merge_catalog(old, collected, statuses, now):
@@ -190,7 +204,7 @@ def merge_catalog(old, collected, statuses, now):
         history = list(previous.get('history', []))
         rev = revision(row)
         observation = {'checkedAt': now, 'revision': rev, **{key: row.get(key) for key in
-            ('name', 'barcode', 'unitPrice', 'buyQuantity', 'giftQuantity', 'promotion', 'startDate', 'endDate')}}
+            ('name', 'barcode', 'unitPrice', 'buyQuantity', 'giftQuantity', 'promotion', 'priceKind', 'startDate', 'endDate')}}
         if history and history[-1]['revision'] == rev and history[-1]['checkedAt'][:10] == day:
             history[-1] = observation
         else:
@@ -263,6 +277,10 @@ def collect(reader, old):
         statuses['homeplus'] = {'status':'verified' if len(verified)==len(products) else 'partial','checkedAt':now,'count':len(verified),'notConfirmed':len(products)-len(verified)}
     except Exception as exc:
         statuses['homeplus'] = {'status':'unavailable','attemptedAt':now,'reason':type(exc).__name__}
+    from collect_more_retail import collect_more
+    additional, source_status = collect_more(reader, text, now)
+    rows.extend(additional)
+    statuses.update(source_status)
     return merge_catalog(old, rows, statuses, now)
 
 def main():

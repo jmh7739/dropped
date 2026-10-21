@@ -1,0 +1,20 @@
+[
+  {"retailer":"emart","priceKind":"promotion","slug":"emart-and-emart-everyday-launch-special-promotion-on-food-items-for-the-autumn-table/","publishedDate":"2026-10-14","startDate":"2026-10-15","endDate":"2026-10-21","periodEvidence":["10월 15일(목)부터 21일(수)까지"],"scope":"이마트 공식 행사 발표 · 에브리데이 행사와 구분","items":[
+    {"name":"제스프리 골드키위 무한 담기 1봉","price":12980,"evidence":["제스프리 골드키위 무한 담기","1봉에 12,980원"],"priceLabel":"공식 발표 행사가 · 1봉 기준","conditions":["정해진 행사 봉투의 무한 담기 조건 적용","중량·개수를 고정 수량으로 추정하지 않습니다."]},
+    {"name":"먼저 맛보는 방어회 360g","price":41160,"evidence":["먼저 맛보는 방어회(360g)","신세계포인트 적립 시","41,160원"],"priceLabel":"신세계포인트 적립 조건","conditions":["신세계포인트 적립 시 적용되는 발표 가격","미적립 가격·재고를 확정하지 않습니다."]}
+  ]},
+  {"retailer":"emart","priceKind":"promotion","slug":"emart-cabbage-pre-order/","publishedDate":"2026-10-14","startDate":"2026-10-15","endDate":"2026-10-28","periodEvidence":["10/15(목)부터 10/28(수)","11/13(금)부터 12/12(토)"],"scope":"이마트 앱 오더픽 사전예약 · 점포 수령 행사","items":[
+    {"name":"황금절임배추 20kg 오더픽 사전예약","price":52800,"evidence":["황금절임배추(20kg)","행사카드 전액 결제시","52,800원"],"priceLabel":"행사카드 전액 결제 · 사전예약","conditions":["접수 10/15~10/28, 수령은 사전 신청한 11/13~12/12 중 날짜","행사카드 전액 결제 조건입니다. e머니 3,000점은 결제금액에서 차감하지 않았습니다.","수령 점포·카드 적용과 예약 가능 수량 확인이 필요합니다."]},
+    {"name":"중부식/남도식 김치양념 8kg 오더픽 사전예약","price":89800,"evidence":["중부식/남도식 김치양념(8kg)","89,800원"],"priceLabel":"행사카드 전액 결제 · 사전예약","conditions":["행사카드 전액 결제 조건 · 중부식/남도식 옵션 원문 확인","접수 10/15~10/28, 신청한 수령일은 11/13~12/12 범위","재고·예약 가능 수량은 별도 확인이 필요합니다."]},
+    {"name":"절임 알타리 5kg 오더픽 사전예약","price":39800,"evidence":["절임 알타리(5kg)","39,800원"],"priceLabel":"행사카드 전액 결제 · 사전예약","conditions":["행사카드 전액 결제 조건","접수 10/15~10/28, 수령은 신청한 11/13~12/12 중 날짜","예약 가능 점포와 수량을 확인하세요."]}
+  ]},
+  {"retailer":"nobrand","priceKind":"reference","slug":"no-brand-attracts-customers-with-unique-products/","publishedDate":"2026-10-16","scope":"노브랜드 공식 출시 발표 가격 · 할인 행사 아님","items":[
+    {"name":"휴대용 포켓티슈 10매×6입","price":980,"category":"생활용품","evidence":["휴대용 포켓티슈 10매×6입(980원)"],"conditions":["공식 신상품 발표의 가격이며 현재 점포 판매가가 아닐 수 있습니다."]},
+    {"name":"핸드크림 50ml×2입","price":5980,"category":"생활용품","evidence":["핸드크림 50ml×2입(5,980원)"],"conditions":["캐릭터 협업 제품의 공식 발표 가격 · 옵션과 점포 취급 확인"]},
+    {"name":"쿠션중목양말 3족","price":4980,"category":"생활용품","evidence":["쿠션중목양말 3족(4,980원)"],"conditions":["공식 출시 발표 가격 · 사이즈·캐릭터 옵션과 판매점 확인"]},
+    {"name":"N Station 고구마크림치즈롤 130g","price":2980,"evidence":["N Station 고구마크림치즈롤(130g, 2,980원)"],"conditions":["공식 신상품 발표 가격 · 현재 판매가와 취급 여부는 점포 확인"]}
+  ]},
+  {"retailer":"traders","priceKind":"reference","slug":"shinsegae-food-launches-cake-featuring-shine-muscat-grapes/","publishedDate":"2026-10-20","scope":"트레이더스 내 베이커리 공식 신제품 발표 가격","items":[
+    {"name":"샤인머스캣 한가득 케이크","price":39980,"category":"과자·디저트","evidence":["샤인머스캣 한가득 케이크(3만 9980원)","트레이더스"],"conditions":["트레이더스 내 베이커리의 발표 가격입니다. 이마트의 다른 크기 케이크 가격과 구분합니다.","할인 행사나 현재 재고·결제 가격을 확인한 것은 아닙니다."]}
+  ]}
+]

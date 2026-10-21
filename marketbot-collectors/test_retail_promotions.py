@@ -3,11 +3,41 @@ from unittest.mock import patch
 from collect_retail_promotions import PublicReader, parse_cu_list, confirm_cu, parse_lotte, merge_catalog, parse_homeplus, confirm_homeplus
 from urllib.error import HTTPError
 from merge_retail_catalogs import merge
+from collect_more_retail import parse_press, parse_lotte_lookup, RULES
+from collect_retail_promotions import text, revision
+import json
 
 CARD='''<li class="prod_list"><a href="javascript:view(270);"><div class="name"><p>농심)캔디50g</p></div><div class="price"><strong>900</strong></div><!-- plus2 example --><span class="plus1">1+1</span><img src="/product/6921211104292.jpg"></a></li>'''
 DETAIL='''<p class="tit">농심)캔디50g</p><ul class="prodTag"><li>1+1</li></ul><dd class="prodPrice"><p><span>900</span>원</p></dd>'''
 
 class RetailTests(unittest.TestCase):
+    def test_press_prices_require_exact_evidence_and_date(self):
+        rule=json.loads(RULES.read_text(encoding='utf-8'))[-1]
+        evidence=' '.join(rule.get('periodEvidence',[]) + rule['items'][0]['evidence'])
+        html=rule['publishedDate']+'<p>'+evidence+'</p>'
+        row=parse_press(html,rule,text)[0]
+        self.assertEqual(row['priceKind'],'reference')
+        self.assertIsNone(row['startDate'])
+        self.assertIsNone(row['endDate'])
+        self.assertEqual(parse_press(html.replace(rule['publishedDate'],'2000-01-01'),rule,text),[])
+        self.assertEqual(parse_press(html.replace(rule['items'][0]['evidence'][-1],'MISSING'),rule,text),[])
+    def test_lotte_requires_explicit_pack_and_matching_popup(self):
+        html='<li><div class="prod-box"><div class="prod-name">테스트 우유</div><div class="prod-count"><!--8801234567890-->200ML*3</div><div class="layer-head">테스트 우유</div><th>ㆍ가격 : </th><td>3,000 원</td></div></li>'
+        row=parse_lotte_lookup(html,text,'우유')[0]
+        self.assertIn('서울역점',row['scope'])
+        self.assertEqual(row['priceKind'],'reference')
+        self.assertEqual(parse_lotte_lookup(html.replace('200ML*3','240ML'),text,'우유'),[])
+        self.assertEqual(parse_lotte_lookup(html.replace('class="layer-head">테스트 우유','class="layer-head">다른 우유'),text,'우유'),[])
+    def test_policy_redirect_unknown_html_still_stops_collection(self):
+        reader=PublicReader()
+        redirect=HTTPError('https://company.lottemart.com/robots.txt',302,'redirect',{'Location':'/err/404.asp'},None)
+        with patch.object(reader,'raw',side_effect=[redirect,'<html>missing file</html>']) as raw:
+            with self.assertRaises(ValueError):reader.get('https://company.lottemart.com/mobiledowa/')
+            self.assertEqual(raw.call_count,2)
+        reader=PublicReader()
+        with patch.object(reader,'raw',side_effect=HTTPError('https://company.lottemart.com/robots.txt',302,'redirect',{'Location':'https://example.com/robots.txt'},None)) as raw:
+            with self.assertRaises(HTTPError):reader.get('https://company.lottemart.com/mobiledowa/')
+            self.assertEqual(raw.call_count,1)
     def test_concurrent_snapshots_keep_newer_observations_and_new_brands(self):
         row=parse_cu_list(CARD)[0]
         left=merge_catalog({},[row],{},'2026-10-21T01:00:00Z')

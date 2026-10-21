@@ -8,6 +8,8 @@ on:
     paths:
       - marketbot-collectors/collect_public_data.py
       - marketbot-collectors/collect_retail_promotions.py
+      - marketbot-collectors/collect_more_retail.py
+      - marketbot-collectors/retail_official_price_rules.json
       - marketbot-collectors/test_retail_promotions.py
       - marketbot-collectors/merge_retail_catalogs.py
       - .github/workflows/marketbot-public-data.yml
