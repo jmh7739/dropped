@@ -46,3 +46,10 @@ assert.equal(m.filterOffers(catalog.offers,{...m.EMPTY_FILTERS,period:'all',pric
 assert.equal(m.readFilters(new URLSearchParams('priceKind=reference')).priceKind,'reference');
 assert.equal(m.comparableHistory({...refs[0],history:[{...refs[0].history[0],priceKind:'promotion'}]}).length,0);
 console.log('Reference prices stay separate from discounts, cart totals and cross-kind history');
+
+const pictured=catalog.offers.filter(o=>m.retailImageUrl(o));assert.ok(pictured.length>150);
+assert.equal(m.retailImageUrl({retailer:'cu',imageUrl:'https://example.com/product/8801234567890.jpg'}),null);
+assert.equal(m.retailImageUrl({retailer:'cu',imageUrl:'https://tqklhszfkvzk6518638.edge.naverncp.com/product/8801234567890.jpg?tracking=1'}),null);
+assert.equal(m.retailImageUrl({retailer:'homeplus',imageUrl:'javascript:alert(1)'}),null);
+assert.equal(m.retailImageUrl({retailer:'nobrand',imageUrl:pictured[0].imageUrl}),null);
+console.log('Observed merchant image origins and paths validated');

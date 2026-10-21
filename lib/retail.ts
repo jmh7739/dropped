@@ -10,7 +10,15 @@ export const RETAILERS = [
 ] as const;
 export type RetailerId = typeof RETAILERS[number]['id'];
 export type Observation = { checkedAt: string; revision: string; name?: string; barcode?: string | null; unitPrice: number | null; buyQuantity: number | null; giftQuantity: number | null; promotion: string; priceKind?: 'promotion' | 'reference' | null; startDate: string | null; endDate: string | null };
-export type RetailOffer = Observation & { id: string; sourceId: string; retailer: RetailerId; kind: 'product' | 'event'; name: string; category: string; sourceUrl: string; conditions: string[]; scope: string; priceLabel?: string; firstSeenAt: string; lastSeenAt: string; history: Observation[] };
+export type RetailOffer = Observation & { id: string; sourceId: string; retailer: RetailerId; kind: 'product' | 'event'; name: string; category: string; sourceUrl: string; imageUrl?: string | null; conditions: string[]; scope: string; priceLabel?: string; firstSeenAt: string; lastSeenAt: string; history: Observation[] };
+// Only URLs actually observed in the merchant's product listing are stored.
+// Never derive a filename from a barcode, accept arbitrary hosts, or proxy it.
+export function retailImageUrl(o: Pick<RetailOffer, 'retailer' | 'imageUrl'>) {
+  if (typeof o.imageUrl !== 'string') return null;
+  const pattern = o.retailer === 'cu' ? /^https:\/\/tqklhszfkvzk6518638\.edge\.naverncp\.com\/product\/\d{13}(?:_\d+)?\.(?:png|jpg|jpeg)$/
+    : o.retailer === 'homeplus' ? /^https:\/\/image\.homeplus\.kr\/it\/\d+[a-zA-Z0-9]*$/ : null;
+  return pattern?.test(o.imageUrl) ? o.imageUrl : null;
+}
 export type RetailCatalog = { schemaVersion: 1; checkedAt: string; sources: Record<string, { status: string; checkedAt?: string; attemptedAt?: string; count?: number }>; offers: RetailOffer[] };
 export const retailer = (id: string) => RETAILERS.find(r => r.id === id)!;
 export const isPublishableRetailOffer = (o: RetailOffer) => !(o.id === 'homeplus-2645' && o.startDate === '2026-10-15' && o.endDate === '2026-10-21'); // Digital/printed original price conflict under review; preserve raw history.

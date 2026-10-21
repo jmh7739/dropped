@@ -24,3 +24,6 @@
 - Lotte store lookup was technically reachable but its robots resource redirected to an HTML missing-file page with HTTP 200. Policy is unknown; automated collection remains stopped. No Lotte product prices are published from this attempt.
 - Costco terms section 17 excludes product-list aggregation/bots. GS Retail robots forbids product API collection. Both remain official guides pending permission; no API workaround.
 - Existing six-hour collector, source states, retained history and duplicate protection remain. No external credentials or paid services were added.
+
+## Product images
+CU and Homeplus product image URLs are taken from their exact official listing entries, matched against product name, price, pack quantities, barcode and period during initial enrichment. No barcode-to-filename guessing. Subsequent collection retains official image URLs. Only approved HTTPS merchant image hosts/paths render; images load directly from the merchant, with source attribution, lazy loading and no-referrer. No files are mirrored. Missing or failed images show a fixed-height text fallback; price/history remain usable. Group press photos are not relabelled as individual product photos. Image changes do not create fake price-history revisions.

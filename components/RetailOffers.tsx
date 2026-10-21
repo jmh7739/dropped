@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import RetailProductImage from './RetailProductImage';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { RETAILERS, RETAIL_STORAGE, bundlePrice, canAddToShopping, checkedDate, emptyPreferences, filterOffers, money, offerStatus, parsePreferences, periodText, previousPrice, readFilters, retailer, type RetailCatalog, type RetailFilters, type RetailOffer, type RetailPreferences } from '@/lib/retail';
@@ -56,6 +57,7 @@ function OfferCard({ o, controls: c }: { o: RetailOffer; controls: Controls }) {
   return <article data-retail-offer={o.id} className="flex flex-col rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
     <div className="mb-3 flex flex-wrap items-center justify-between gap-2"><span style={{ color: r.color }} className="text-sm font-black">{r.name}</span><span className="rounded-lg bg-red-50 px-2.5 py-1 text-xs font-extrabold text-red-700">{o.promotion}</span></div>
     <ChangedLabel o={o} since={c.since} />
+    <RetailProductImage offer={o} />
     <h3 className="min-h-12 text-base font-extrabold leading-6 text-gray-950"><Link prefetch={false} href={`/store-deals/${o.id}`} className="hover:text-red-600 hover:underline">{o.name}</Link></h3>
     {p ? <div className="my-4 rounded-xl bg-gray-50 p-3">
       <p className="text-xs text-gray-600">{o.giftQuantity ? `${o.buyQuantity}개 결제 · 총 ${p.quantity}개 받을 때` : '상품명에 표시된 판매 단위 기준'}</p>
