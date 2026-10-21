@@ -15,13 +15,16 @@ _CONTROL_CHARS = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
 
 
 def _read_with_retry(read: Callable[[], list[dict]]) -> list[dict]:
-    """Retry only transient HTTP transport failures on idempotent reads."""
+    """Retry transient transport/gateway failures on idempotent reads only."""
     import httpx
+    from postgrest.exceptions import APIError
 
     for attempt in range(3):
         try:
             return read()
-        except httpx.TransportError:
+        except (httpx.TransportError, APIError) as error:
+            if isinstance(error, APIError) and str(error.code) not in {'502', '503', '504'}:
+                raise
             if attempt == 2:
                 raise
             time.sleep(0.5 * (2 ** attempt))
@@ -60,7 +63,7 @@ def category_id(slug: str) -> Optional[int]:
     if config.DRY_RUN:
         return None
     if not _category_cache:
-        rows = client().table("categories").select("id, slug").execute().data
+        rows = _read_with_retry(lambda: client().table("categories").select("id, slug").execute().data)
         for r in rows:
             _category_cache[r["slug"]] = r["id"]
     return _category_cache.get(slug)
@@ -101,7 +104,7 @@ def recent_prices(product_id: int) -> list[int]:
         datetime.now(timezone.utc)
         - timedelta(days=config.BASELINE_WINDOW_DAYS)
     ).isoformat()
-    rows = (
+    rows = _read_with_retry(lambda: (
         client()
         .table("price_history")
         .select("price")
@@ -109,7 +112,7 @@ def recent_prices(product_id: int) -> list[int]:
         .gte("collected_at", since)
         .execute()
         .data
-    )
+    ))
     return [r["price"] for r in rows]
 
 
@@ -129,7 +132,7 @@ def history_days(product_id: int) -> float:
     """가격 이력이 걸쳐있는 기간(일). 이력 없으면 0."""
     if config.DRY_RUN:
         return 0.0
-    rows = (
+    rows = _read_with_retry(lambda: (
         client()
         .table("price_history")
         .select("collected_at")
@@ -138,7 +141,7 @@ def history_days(product_id: int) -> float:
         .limit(1)
         .execute()
         .data
-    )
+    ))
     if not rows:
         return 0.0
     from datetime import datetime, timezone
@@ -161,7 +164,7 @@ def insert_price(product_id: int, price: int) -> None:
     # 동일 가격을 수집 주기마다 계속 저장하면 자주 실행된 날이 평균을 과도하게
     # 좌우한다. 같은 한국 날짜에는 한 번만 저장하고, 다음 날짜에 다시 실제로
     # 관측됐다면 24시간이 채 지나지 않았어도 새 관측으로 남긴다.
-    latest = (
+    latest = _read_with_retry(lambda: (
         client()
         .table("price_history")
         .select("price,collected_at")
@@ -170,7 +173,7 @@ def insert_price(product_id: int, price: int) -> None:
         .limit(1)
         .execute()
         .data
-    )
+    ))
     if latest and int(latest[0]["price"]) == price:
         from datetime import datetime, timezone
         observed = datetime.fromisoformat(str(latest[0]["collected_at"]).replace("Z", "+00:00"))
@@ -186,7 +189,7 @@ def upsert_active_deal(product_id: int, fields: dict) -> None:
     if config.DRY_RUN:
         return
     # 기존 active 딜이 있으면 갱신, 없으면 삽입
-    existing = (
+    existing = _read_with_retry(lambda: (
         client()
         .table("hot_deals")
         .select("id, current_price")
@@ -194,7 +197,7 @@ def upsert_active_deal(product_id: int, fields: dict) -> None:
         .eq("status", "active")
         .execute()
         .data
-    )
+    ))
     # updated_at을 매 플래그마다 갱신 → expire의 TTL(마지막으로 본 시각) 판정 근거.
     from datetime import datetime, timezone
     now = datetime.now(timezone.utc).isoformat()

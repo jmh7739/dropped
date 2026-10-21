@@ -1,6 +1,7 @@
 import unittest
 from unittest.mock import patch
 import httpx
+from postgrest.exceptions import APIError
 
 import db
 import run
@@ -25,6 +26,36 @@ class AffiliateQueueTests(unittest.TestCase):
 
 
 class ExpirationSafetyTests(unittest.TestCase):
+    @patch("db.time.sleep")
+    def test_gateway_read_retries_and_succeeds(self, sleep):
+        with patch("db.client") as client:
+            query = client.return_value.table.return_value.select.return_value.eq.return_value.gte.return_value
+            query.execute.side_effect = [APIError({'message':'Gateway Timeout','code':504,'hint':None,'details':None}), type('Result', (), {'data':[{'price':1234}]})()]
+            with patch("db.config.DRY_RUN", False):
+                self.assertEqual(db.recent_prices(1), [1234])
+            self.assertEqual(query.execute.call_count, 2)
+            sleep.assert_called_once()
+
+    @patch("db.time.sleep")
+    def test_persistent_gateway_error_is_not_reported_as_empty_success(self, sleep):
+        with patch('db.client') as client:
+            query=client.return_value.table.return_value.select.return_value.eq.return_value.gte.return_value
+            query.execute.side_effect=APIError({'message':'Gateway Timeout','code':'504','hint':None,'details':None})
+            with patch('db.config.DRY_RUN', False), self.assertRaises(APIError):
+                db.recent_prices(1)
+            self.assertEqual(query.execute.call_count,3)
+            self.assertEqual(sleep.call_count,2)
+
+    @patch('db.time.sleep')
+    def test_permission_errors_are_not_retried(self,sleep):
+        with patch('db.client') as client:
+            query=client.return_value.table.return_value.select.return_value.eq.return_value.gte.return_value
+            query.execute.side_effect=APIError({'message':'permission denied','code':'42501','hint':None,'details':None})
+            with patch('db.config.DRY_RUN',False), self.assertRaises(APIError):
+                db.recent_prices(1)
+            self.assertEqual(query.execute.call_count,1)
+            sleep.assert_not_called()
+
     @patch("db.time.sleep")
     def test_transient_read_failure_retries_before_expiring(self, sleep):
         attempts = iter([httpx.RemoteProtocolError("connection closed"), [{"id": 1}]])
