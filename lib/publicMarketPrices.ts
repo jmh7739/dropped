@@ -1,3 +1,4 @@
+import { marketPriceBasis } from './marketPriceBasis';
 type Row = Record<string, unknown>;
 const FEED = 'https://raw.githubusercontent.com/jmh7739/dropped/main/marketbot-data/public-feed.json';
 
@@ -16,7 +17,7 @@ export async function publicMarketPrices(): Promise<Row[] | null> {
         Date.now() - checked > 48 * 3600_000 || !Array.isArray(group?.items)) return null;
     const rows = group.items.filter(row => /^20\d{6}$/.test(String(row.exmn_ymd || '')) &&
       String(row.item_nm || '').trim() && Number(row.exmn_dd_prc) > 0 &&
-      String(row.se_nm || '').trim() && String(row.unit || '').trim());
+      String(row.se_nm || '').trim() && marketPriceBasis(row) !== null);
     return rows.length ? rows.sort((a, b) => String(b.exmn_ymd).localeCompare(String(a.exmn_ymd))) : null;
   } catch { return null; }
 }

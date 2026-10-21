@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { publicMarketPrices, referenceId } from '@/lib/publicMarketPrices';
+import { marketPriceBasis } from '@/lib/marketPriceBasis';
 
 export const metadata: Metadata = {
   title: '농산물 공공 기준가격',
@@ -12,7 +13,7 @@ function cards(rows: Record<string, unknown>[]) {
   return <div className="grid gap-3 sm:grid-cols-2">
     {rows.map((row, index) => <article data-reference-id={referenceId(row)} key={`${referenceId(row)}-${index}`} className="rounded-xl border bg-white p-4">
       <div className="flex items-center justify-between gap-3"><h2 className="font-bold">{String(row.item_nm)}</h2><span className="text-xs text-gray-500">{String(row.exmn_ymd).replace(/^(\d{4})(\d{2})(\d{2})$/, '$1.$2.$3')}</span></div>
-      <p className="mt-2 text-xl font-extrabold">{Number(row.exmn_dd_prc).toLocaleString('ko-KR')}원 <span className="text-sm font-normal text-gray-600">/ {String(row.unit)}</span></p>
+      <p className="mt-2 text-xl font-extrabold">{Number(row.exmn_dd_prc).toLocaleString('ko-KR')}원 <span className="text-sm font-normal text-gray-600">/ {marketPriceBasis(row)?.displayUnit ?? '조사 단위 확인 필요'}</span></p>
       <p className="mt-1 text-sm text-gray-600">{[row.se_nm, row.mrkt_nm, row.vrty_nm, row.grd_nm].filter(Boolean).map(String).join(' · ')}</p>
     </article>)}
   </div>;
