@@ -196,6 +196,8 @@ def main():
     OUT.parent.mkdir(exist_ok=True)
     OUT.write_text(json.dumps(result,ensure_ascii=False,separators=(',',':'))+'\n',encoding='utf-8')
     print(json.dumps({'offers':len(result['offers']), 'sources':result['sources']},ensure_ascii=False))
+    if result['sources'].get('cu', {}).get('status') == 'unavailable':
+        raise SystemExit('CU observations unavailable; retained history is not a successful refresh')
 
 if __name__ == '__main__':
     main()

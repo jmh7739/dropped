@@ -32,6 +32,7 @@ jobs:
       - name: Collect and second-check public retailer observations
         run: python marketbot-collectors/collect_retail_promotions.py
       - name: Publish observed retailer history
+        if: success() || failure()
         run: |
           set -euo pipefail
           git add marketbot-data/retail-promotions.json
