@@ -18,6 +18,8 @@ export default function PrivacyPage() {
         연락처와 연결하지 않습니다.
       </p>
 
+      <h2 className="mb-1 mt-6 text-base font-bold text-gray-900">마트·편의점 관심·장보기 기록</h2>
+      <p>관심 상품, 관심 브랜드, 장보기 묶음 수와 마지막 방문시각을 이 브라우저의 로컬 저장소에 저장합니다. 계정에 동기화하지 않으며 이 기능으로 이메일·푸시 알림을 보내지 않습니다. 브라우저의 사이트 데이터를 삭제하면 이 기록도 사라집니다. 행사 필터 링크를 공유할 때 관심·장보기 기록은 포함하지 않습니다. 공식 행사 링크에는 제휴 식별자를 추가하지 않습니다.</p>
       <h2 className="mb-1 mt-6 text-base font-bold text-gray-900">광고 및 쿠키</h2>
       <p>
         Google AdSense 소유 확인용 메타태그만 설치되어 있으며 현재 자동 광고는 실행하지
@@ -55,7 +57,7 @@ export default function PrivacyPage() {
         으로 연락해 주세요.
       </p>
 
-      <p className="mt-6 text-xs text-gray-400">최종 수정일: 2026년 9월 14일</p>
+      <p className="mt-6 text-xs text-gray-400">최종 수정일: 2026년 10월 21일</p>
     </article>
   );
 }

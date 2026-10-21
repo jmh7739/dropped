@@ -326,6 +326,7 @@ export default async function Home({
       </div>
 
       {isDefaultHome && <SavedPriceWatches />}
+      {isDefaultHome && <Link href="/store-deals" className="mb-6 flex items-center justify-between gap-4 rounded-2xl border border-orange-200 bg-orange-50 p-5"><span><span className="block text-xs font-extrabold text-red-700">새로운 장보기 코너</span><span className="mt-1 block text-lg font-extrabold text-gray-950">마트·편의점 행사, 수량별로 비교하기</span><span className="mt-1 block text-xs leading-5 text-gray-600">1+1·2+1 결제 총액 · 공식 전단 · 나만의 장보기 목록</span></span><span aria-hidden="true" className="text-xl">→</span></Link>}
 
       {isDefaultHome && (
         <section className="mb-8 rounded-2xl border border-gray-200 bg-white p-5 sm:p-6" aria-labelledby="evidence-heading">
