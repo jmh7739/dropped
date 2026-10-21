@@ -29,9 +29,13 @@ export function merchantSavings(o: RetailOffer & { merchantOriginalPrice?: numbe
 export function preserveObservedImage(o: RetailOffer, saved?: RetailOffer): RetailOffer {
   // Older in-flight collectors did not include this optional field. Preserve
   // the observed photo only for an unchanged product/pack/period/price.
-  if (o.imageUrl !== undefined || !saved || !retailImageUrl(saved)) return o;
+  if (!saved) return o;
   const keys = ['id','retailer','name','barcode','unitPrice','buyQuantity','giftQuantity','startDate','endDate','sourceUrl'] as const;
-  return keys.every(k => o[k] === saved[k]) ? { ...o, imageUrl: saved.imageUrl } : o;
+  if (!keys.every(k => o[k] === saved[k])) return o;
+  return { ...o,
+    ...(o.imageUrl === undefined && retailImageUrl(saved) ? { imageUrl: saved.imageUrl } : {}),
+    ...(o.merchantOriginalPrice === undefined && merchantSavings(saved) ? { merchantOriginalPrice: saved.merchantOriginalPrice,
+      conditions: o.conditions.filter(c => !c.includes('비교 수치에서 제외')).concat('판매처 표시 기준가·할인액은 전단 표시이며 실제 관측한 가격 이력과 구분합니다') } : {}) };
 }
 export const isPublishableRetailOffer = (o: RetailOffer) => !(o.id === 'homeplus-2645' && o.startDate === '2026-10-15' && o.endDate === '2026-10-21'); // Digital/printed original price conflict under review; preserve raw history.
 export const money = (amount: number) => new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 1 }).format(amount) + '원';

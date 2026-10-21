@@ -64,3 +64,6 @@ console.log('Merchant reference savings: 13990 - 9990 = 4000; invalid/multi-buy/
 assert.equal(m.preserveObservedImage({...chicken,imageUrl:undefined},chicken).imageUrl,chicken.imageUrl);
 assert.equal(m.preserveObservedImage({...chicken,imageUrl:undefined,name:'different'},chicken).imageUrl,undefined);
 assert.equal(m.preserveObservedImage({...chicken,imageUrl:null},chicken).imageUrl,null);
+assert.equal(m.preserveObservedImage({...chicken,merchantOriginalPrice:undefined},chicken).merchantOriginalPrice,13990);
+assert.equal(m.preserveObservedImage({...chicken,merchantOriginalPrice:null},chicken).merchantOriginalPrice,null);
+assert.equal(m.preserveObservedImage({...chicken,merchantOriginalPrice:undefined,unitPrice:8990},chicken).merchantOriginalPrice,undefined);
