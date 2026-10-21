@@ -20,6 +20,7 @@ OUT = Path(__file__).resolve().parent.parent / 'marketbot-data/retail-promotions
 UA = 'MarketBot/1.0 (+https://dropped.kr/about)'
 CU = 'https://cu.bgfretail.com'
 LOTTE = 'https://company.lottemart.com/mobiledowa/event/event_list.asp'
+HOMEPLUS = 'https://my.homeplus.co.kr'
 
 class NoRedirect(HTTPRedirectHandler):
     def redirect_request(self, req, fp, code, msg, headers, newurl):
@@ -34,14 +35,14 @@ class PublicReader:
     def raw(self, url, body=None):
         time.sleep(max(0, 0.7 - (time.monotonic() - self.last)))
         self.last = time.monotonic()
-        req = Request(url, data=body, headers={'User-Agent': UA, 'Accept': 'text/html',
+        req = Request(url, data=body, headers={'User-Agent': UA, 'Accept': 'application/json' if '/digital/getLft' in url else 'text/html',
             **({'Content-Type': 'application/x-www-form-urlencoded'} if body else {})})
         with self.opener.open(req, timeout=15) as response:
             return response.read(1_500_000).decode('utf-8-sig', errors='replace')
 
     def get(self, url, body=None):
         parsed = urlparse(url)
-        if parsed.scheme != 'https' or parsed.netloc not in {'cu.bgfretail.com', 'company.lottemart.com'}:
+        if parsed.scheme != 'https' or parsed.netloc not in {'cu.bgfretail.com', 'company.lottemart.com', 'my.homeplus.co.kr'}:
             raise ValueError('unapproved retailer origin')
         origin = parsed.scheme + '://' + parsed.netloc
         if origin not in self.policies:
@@ -52,7 +53,10 @@ class PublicReader:
                     raise ValueError('retailer policy unavailable')
                 parser.parse(rules.splitlines())
             except HTTPError as exc:
-                if exc.code != 404:
+                # RFC 9309 2.3.1.3: a missing/unavailable robots resource is
+                # different from a denied content request. Keep explicit access,
+                # proxy and rate-limit refusals closed; no UA impersonation.
+                if exc.code not in (400, 404, 410):
                     raise
                 parser.parse(['User-agent: *', 'Allow: /'])
             self.policies[origin] = parser
@@ -102,6 +106,52 @@ def confirm_cu(row, html):
     tags = re.search(r'<ul\b[^>]*class=["\']prodTag["\'][^>]*>([\s\S]*?)</ul>', html)
     return bool(name and price and tags and text(name[1]) == row['name'] and
                 int(price[1].replace(',', '')) == row['unitPrice'] and row['promotion'] in text(tags[1]))
+
+def parse_homeplus(payload):
+    rows = []
+    data = payload.get('data', {}) or {}
+    for item in data.get('goodsList', []) or []:
+        ident = str(item.get('goodsId', ''))
+        name = text(str(item.get('goodsNm', '')))
+        tags = ' · '.join(text(str(t.get('tagNm', ''))) for t in item.get('tags', []))
+        price = str(item.get('price', '')).replace(',', '')
+        start, end = str(item.get('startTime', '')), str(item.get('endTime', ''))
+        if not ident.isdigit() or not name or '\ufffd' in name or not price.isdigit() or int(price) < 1:
+            continue
+        if not re.fullmatch(r'20\d{6} \d{2}:\d{2}:\d{2}', start) or not re.fullmatch(r'20\d{6} \d{2}:\d{2}:\d{2}', end):
+            continue
+        try:
+            start_date = datetime.strptime(start, '%Y%m%d %H:%M:%S').date().isoformat()
+            end_date = datetime.strptime(end, '%Y%m%d %H:%M:%S').date().isoformat()
+        except ValueError:
+            continue
+        if start_date > end_date or re.search(r'주류|소주|맥주|와인|위스키|담배', name):
+            continue
+        promo = '1+1' if '1+1' in tags else '2+1' if '2+1' in tags else '멤버특가' if '멤버특가' in tags else '전단가'
+        # Complex multi-buy/coupon-only totals need a different, explicit contract.
+        if re.search(r'교차|골라|쿠폰|\d+개.*(?:구매|할인|원)', tags) and promo not in ('1+1','2+1'):
+            continue
+        rows.append({'id':'homeplus-'+ident,'sourceId':ident,'retailer':'homeplus','kind':'product',
+            'name':name,'category':category(name),'unitPrice':int(price),'buyQuantity':2 if promo=='2+1' else 1,
+            'giftQuantity':1 if promo in ('1+1','2+1') else 0,'promotion':promo,'barcode':None,
+            'startDate':start_date,'endDate':end_date,'sourceUrl':HOMEPLUS+'/lft/prd_view?id='+ident,
+            'conditions': ['마이홈플러스 멤버특가 표시는 회원 조건 적용' if '멤버특가' in tags else '공식 디지털 전단의 판매 단위와 행사 조건 적용',
+                '상품명에 표시된 용량·묶음·판매 단위 기준이며, 취급 점포·재고·온오프라인 적용이 다를 수 있습니다',
+                '판매처의 할인율·기존 가격은 가격 이력으로 보지 않아 비교 수치에서 제외합니다'],
+            'scope':'홈플러스 공식 디지털 전단 · 취급 점포에 한함', 'priceLabel':'회원 조건 적용' if '멤버특가' in tags else '전단 판매 단위 기준'})
+    return rows
+
+def confirm_homeplus(row, html):
+    name = re.search(r'<h2[^>]*class=["\']prd__name["\'][^>]*>([\s\S]*?)</h2>', html)
+    price = re.search(r'<span[^>]*class=["\']prd__(?:discount|price)["\'][^>]*>\s*<strong>([\d,]+)</strong>', html)
+    period = re.search(r'class=["\']prd__promotion-date["\'][^>]*>([\s\S]*?)</div>', html)
+    if not name or not price or not period or text(name[1]) != row['name'] or int(price[1].replace(',','')) != row['unitPrice']:
+        return False
+    dates = re.findall(r'(\d{1,2})\.\s*(\d{1,2})\.', text(period[1]))
+    expected = [(str(int(d[5:7])),str(int(d[8:10]))) for d in (row['startDate'],row['endDate'])]
+    if [(str(int(a)),str(int(b))) for a,b in dates] != expected:
+        return False
+    return (row['promotion'] not in ('1+1','2+1','멤버특가') or row['promotion'] in text(html[html.find('class="prd__name"')-1000:html.find('class="prd__name"')+2000]))
 
 def parse_lotte(html):
     rows = []
@@ -188,6 +238,27 @@ def collect(reader, old):
         statuses['lotte'] = {'status':'verified','checkedAt':now,'count':len(verified)}
     except Exception as exc:
         statuses['lotte'] = {'status':'unavailable','attemptedAt':now,'reason':type(exc).__name__}
+    try:
+        products = {}
+        for page in (0, 2, 3):
+            payload = json.loads(reader.get(HOMEPLUS+'/digital/getLftMainGoods', urlencode({'sortBy':'P','page':page}).encode()))
+            for row in parse_homeplus(payload):
+                products[row['id']] = row
+        if not products:
+            raise ValueError('Homeplus public digital list has no verified candidates')
+        verified = []
+        for row in products.values():
+            try:
+                if confirm_homeplus(row, reader.get(row['sourceUrl'])):
+                    verified.append(row)
+            except Exception:
+                continue
+        if not verified:
+            raise ValueError('Homeplus detail verification did not match')
+        rows += verified
+        statuses['homeplus'] = {'status':'verified' if len(verified)==len(products) else 'partial','checkedAt':now,'count':len(verified),'notConfirmed':len(products)-len(verified)}
+    except Exception as exc:
+        statuses['homeplus'] = {'status':'unavailable','attemptedAt':now,'reason':type(exc).__name__}
     return merge_catalog(old, rows, statuses, now)
 
 def main():
