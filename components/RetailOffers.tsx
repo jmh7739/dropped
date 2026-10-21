@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import RetailProductImage from './RetailProductImage';
 import RetailDiscount from './RetailDiscount';
+import {coverageNote} from '@/lib/retail-coverage';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { RETAILERS, RETAIL_STORAGE, bundlePrice, canAddToShopping, checkedDate, emptyPreferences, filterOffers, money, offerStatus, parsePreferences, periodText, previousPrice, readFilters, retailer, type RetailCatalog, type RetailFilters, type RetailOffer, type RetailPreferences } from '@/lib/retail';
@@ -145,7 +146,8 @@ export default function RetailOffers({ catalog, usingSaved }: { catalog: RetailC
         <div className="col-span-2 flex items-end gap-2 sm:col-span-1"><button type="button" className={outline + ' whitespace-nowrap'} onClick={clearFilters}>초기화</button><button type="button" className={outline + ' whitespace-nowrap'} onClick={copyLink}>링크 공유</button></div>
       </div><p className="mt-3 text-xs leading-5 text-gray-500">‘최근 확인’은 48시간 안에 공식 원문을 확인한 기록입니다. 참고가격은 발표·조회 기록이며 현재 판매가나 할인 확인이 아니므로 장보기 합계에 넣지 않습니다. 종료일이 없는 상품은 ‘7일 내 종료’에 넣지 않습니다.</p>{share && <p role="status" className="mt-2 break-all text-xs text-red-700">{share}</p>}
     </section>
-    <div aria-label="브랜드별 내부 가격 목록" className="flex flex-wrap gap-2">{RETAILERS.map(r => { const count = current.filter(o => o.kind === 'product' && o.retailer === r.id).length; return <button key={r.id} type="button" onClick={() => update({brand:r.id,type:''})} aria-pressed={filters.brand === r.id} className={outline + (filters.brand === r.id ? ' border-red-500 bg-red-50' : '')}>{r.name} <span className="ml-1 text-xs text-gray-500">{count ? `${count}종` : '확인 중'}</span></button>; })}</div>
+    <div aria-label="브랜드별 내부 가격 목록" className="flex flex-wrap gap-2">{RETAILERS.map(r => { const count = current.filter(o => o.kind === 'product' && o.retailer === r.id).length; return <button key={r.id} type="button" onClick={() => update({brand:r.id,type:''})} aria-pressed={filters.brand === r.id} className={outline + (filters.brand === r.id ? ' border-red-500 bg-red-50' : '')}>{r.name} <span className="ml-1 text-xs text-gray-500">{['nobrand','traders','lotte'].includes(r.id)?`참고 ${count}종`:r.id==='gs25'||r.id==='costco'?'미연동':count?`${count}종`:'확인 기록 없음'}</span></button>; })}</div>
+    {filters.brand&&<aside aria-label="선택 브랜드 정보 범위" className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-7 text-amber-950"><strong>{RETAILERS.find(r=>r.id===filters.brand)?.name} 정보 범위</strong><p>{coverageNote(catalog,filters.brand)}</p></aside>}
     <details aria-label="공식 매장 행사 안내" open={!!filters.brand && !current.some(o => o.retailer === filters.brand)} className="rounded-2xl border border-gray-200 bg-white p-4 sm:p-5">
       <summary className="cursor-pointer text-base font-extrabold">브랜드별 공식 안내 {guides.length}곳 <span className="ml-2 text-xs font-normal text-gray-500">전단·점포 찾기 · 관심 브랜드 저장</span></summary>
       <div className="mb-3 mt-4 text-xs text-gray-500">별표로 자주 가는 곳을 저장하세요. 브랜드를 선택하면 해당 안내가 자동으로 열립니다.</div>
@@ -158,7 +160,7 @@ export default function RetailOffers({ catalog, usingSaved }: { catalog: RetailC
       {usingSaved && <p role="status" className="mb-4 rounded-xl bg-amber-50 p-3 text-xs leading-5 text-amber-900">최근 자료를 불러오지 못해 저장된 확인 기록을 표시합니다. 아래 상품별 확인시각을 확인해 주세요.</p>}
       {!visible.length ? <div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-7"><h3 className="font-bold">이 조건으로 확인된 상품 기록이 없습니다.</h3><p className="mt-2 text-sm leading-6 text-gray-600">매장에 행사가 없다는 뜻은 아닙니다. 위 공식 안내에서 점포·기간을 확인하거나 필터를 바꿔 보세요. 가격을 확인하지 못한 상품은 채워 넣지 않습니다.</p><button type="button" className={outline + ' mt-4'} onClick={clearFilters}>전체 행사로 돌아가기</button></div> : <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{visible.slice(0,limit).map(o => <OfferCard key={o.id} o={o} controls={controls} />)}</div>}
       {visible.length > limit && <button type="button" onClick={() => setLimit(n => n + 24)} className={outline + ' mx-auto mt-5 block px-8'}>상품 더 보기 ({limit}/{visible.length})</button>}
-      <p className="mt-4 text-xs leading-5 text-gray-500">CU는 공식 1+1·2+1 목록에서 각 2페이지, 홈플러스는 공식 디지털 전단 목록과 상품 상세를 대조한 기록입니다. 이마트 행사가는 공식 뉴스룸의 행사 기간·결제 조건을 대조했습니다. 노브랜드·트레이더스는 공식 출시 발표의 참고가격, 롯데마트는 제타플렉스 서울역점에서 조회한 묶음 상품 참고가격을 제공합니다. 전체 매장의 행사 수가 아닙니다. 브랜드별로 확인된 가격만 내부 목록에 반영합니다. 판매처 표시 행사와 이력 기반 최저가 판정은 다릅니다.</p>
+      <p className="mt-4 text-xs leading-5 text-gray-500">브랜드를 선택하면 내부에 연결된 정보의 범위를 확인할 수 있습니다. 확인 상품 수는 매장의 전체 할인 상품 수와 다릅니다. 출시 참고가격·점포 조회가격·행사가와 이력 기반 최저가 판정은 각각 구분합니다.</p>
     </section>
     <div id="my-shopping" className="scroll-mt-36"><ShoppingList offers={catalog.offers} controls={controls} /></div>
     {controls.storageError && <p role="status" className="text-sm text-amber-800">브라우저 저장을 사용할 수 없어 관심·장보기 목록은 이번 화면에서만 유지됩니다.</p>}

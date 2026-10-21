@@ -19,7 +19,7 @@ export function retailImageUrl(o: Pick<RetailOffer, 'retailer' | 'imageUrl'>) {
     : o.retailer === 'homeplus' ? /^https:\/\/image\.homeplus\.kr\/it\/\d+[a-zA-Z0-9]*$/ : null;
   return pattern?.test(o.imageUrl) ? o.imageUrl : null;
 }
-export type RetailCatalog = { schemaVersion: 1; checkedAt: string; sources: Record<string, { status: string; checkedAt?: string; attemptedAt?: string; count?: number }>; offers: RetailOffer[] };
+export type RetailCatalog = { schemaVersion: 1; checkedAt: string; sources: Record<string, { status: string; checkedAt?: string; attemptedAt?: string; count?: number; coverage?:string; paginationComplete?:boolean; discovered?:number; notConfirmed?:number; reason?:string; policyCheckedAt?:string; nextEligibleAt?:string }>; offers: RetailOffer[] };
 export const retailer = (id: string) => RETAILERS.find(r => r.id === id)!;
 export function merchantSavings(o: RetailOffer & { merchantOriginalPrice?: number | null }) {
   const original = o.merchantOriginalPrice;
