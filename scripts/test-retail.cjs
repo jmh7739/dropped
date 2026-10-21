@@ -9,7 +9,7 @@ const m = moduleResult.exports;
 const now = Date.parse('2026-10-21T13:10:00Z');
 const catalog = JSON.parse(fs.readFileSync('data/retail-promotions.json', 'utf8'));
 assert.equal(m.validCatalog(catalog, Math.max(now, Date.parse(catalog.checkedAt)+1000)), true, 'only genuine validated snapshots');
-const o = catalog.offers[0];
+const o = {...catalog.offers.find(o=>o.retailer==='cu'),lastSeenAt:new Date(now).toISOString()};
 assert.deepEqual(JSON.parse(JSON.stringify(m.bundlePrice({unitPrice:1000,buyQuantity:2,giftQuantity:1}))), {total:2000,quantity:3,each:2000/3});
 assert.equal(m.bundlePrice({unitPrice:1000,buyQuantity:0,giftQuantity:1}), null);
 assert.equal(m.offerStatus({...o,lastSeenAt:'2026-10-18T00:00:00Z'},now),'old');
@@ -39,3 +39,10 @@ assert.equal(m.isPublishableRetailOffer({...o,id:'homeplus-2645',startDate:'2026
 assert.equal(m.isPublishableRetailOffer({...o,id:'homeplus-2645',startDate:'2026-10-22',endDate:'2026-10-28'}),true,'a hold is limited to the actual conflicting period');
 assert.equal(m.parsePreferences(JSON.stringify({favorites:['homeplus-2756'],cart:{'homeplus-2756':2}})).cart['homeplus-2756'],2);
 console.log('Retail quantity, dates, history identity, source validation and damaged-storage checks passed');
+const refs=catalog.offers.filter(o=>o.priceKind==='reference');
+assert.ok(refs.length>=5);
+for(const ref of refs){assert.equal(m.canAddToShopping(ref,Date.parse(catalog.checkedAt)),false);assert.equal(ref.startDate,null);assert.equal(ref.endDate,null);}
+assert.equal(m.filterOffers(catalog.offers,{...m.EMPTY_FILTERS,period:'all',priceKind:'reference'},Date.parse(catalog.checkedAt)).length,refs.length);
+assert.equal(m.readFilters(new URLSearchParams('priceKind=reference')).priceKind,'reference');
+assert.equal(m.comparableHistory({...refs[0],history:[{...refs[0].history[0],priceKind:'promotion'}]}).length,0);
+console.log('Reference prices stay separate from discounts, cart totals and cross-kind history');

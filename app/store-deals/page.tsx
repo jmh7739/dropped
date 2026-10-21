@@ -6,7 +6,7 @@ import { getRetailCatalog } from '@/lib/retailCatalog';
 export const revalidate = 1800;
 export async function generateMetadata({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }): Promise<Metadata> {
   const params = await searchParams;
-  return { title: '마트·편의점 행사 | 수량별 가격 비교와 장보기', description: 'CU 1+1·2+1과 홈플러스 전단 상품의 가격·행사기간·조건을 바로 확인하세요. 실제 관측 기록 비교, 브랜드 필터와 나만의 장보기 목록을 제공합니다.', alternates: { canonical: '/store-deals' }, ...(Object.keys(params).length ? { robots: { index: false, follow: true } } : {}) };
+  return { title: '마트·편의점 행사 | 수량별 가격 비교와 장보기', description: 'CU·홈플러스·이마트의 행사 가격·기간·조건과 노브랜드·트레이더스의 공식 발표 참고가격을 구분해 확인하세요. 실제 관측 기록 비교, 브랜드 필터와 나만의 장보기 목록을 제공합니다.', alternates: { canonical: '/store-deals' }, ...(Object.keys(params).length ? { robots: { index: false, follow: true } } : {}) };
 }
 export default async function StoreDealsPage() {
   const { catalog, usingSaved } = await getRetailCatalog();

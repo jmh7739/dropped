@@ -1,6 +1,6 @@
 export const RETAILERS = [
   { id: 'cu', name: 'CU', type: '편의점', color: '#652e91', url: 'https://cu.bgfretail.com/event/plus.do?category=event&depth2=1&sf=N', note: '1+1·2+1 상품과 점포별 적용 조건 확인' },
-  { id: 'gs25', name: 'GS25', type: '편의점', color: '#0076bc', url: 'https://gs25.gsretail.com/gscvs/ko/products/event-goods?uiel=Mobile', note: '공식 행사 상품·증정 조건 확인' },
+  { id: 'gs25', name: 'GS25', type: '편의점', color: '#0076bc', url: 'https://www.gsretail.com/brand/gs25', note: '공식 브랜드·행사 안내 · 상품 가격 연동은 이용 허용 확인 후 제공' },
   { id: 'emart', name: '이마트', type: '마트', color: '#9b6900', url: 'https://emartapp.emart.com/leaflet/leafletView_EL.do?trcknCode=MainLV', note: '방문할 점포를 선택한 뒤 전단·행사 확인' },
   { id: 'lotte', name: '롯데마트', type: '마트', color: '#c80028', url: 'https://company.lottemart.com/mobiledowa/event/event_list.asp', note: '공식 이벤트의 참여 대상·기간 확인' },
   { id: 'costco', name: '코스트코', type: '창고형', color: '#00529b', url: 'https://www.costco.co.kr/', note: '온라인몰과 매장 행사·회원 조건을 구분해 확인' },
@@ -9,7 +9,7 @@ export const RETAILERS = [
   { id: 'homeplus', name: '홈플러스', type: '마트', color: '#c52528', url: 'https://my.homeplus.co.kr/leaflet', note: '다른 매장 전단 보기에서 방문 점포 선택 · 상품별 행사일 확인' },
 ] as const;
 export type RetailerId = typeof RETAILERS[number]['id'];
-export type Observation = { checkedAt: string; revision: string; name?: string; barcode?: string | null; unitPrice: number | null; buyQuantity: number | null; giftQuantity: number | null; promotion: string; startDate: string | null; endDate: string | null };
+export type Observation = { checkedAt: string; revision: string; name?: string; barcode?: string | null; unitPrice: number | null; buyQuantity: number | null; giftQuantity: number | null; promotion: string; priceKind?: 'promotion' | 'reference' | null; startDate: string | null; endDate: string | null };
 export type RetailOffer = Observation & { id: string; sourceId: string; retailer: RetailerId; kind: 'product' | 'event'; name: string; category: string; sourceUrl: string; conditions: string[]; scope: string; priceLabel?: string; firstSeenAt: string; lastSeenAt: string; history: Observation[] };
 export type RetailCatalog = { schemaVersion: 1; checkedAt: string; sources: Record<string, { status: string; checkedAt?: string; attemptedAt?: string; count?: number }>; offers: RetailOffer[] };
 export const retailer = (id: string) => RETAILERS.find(r => r.id === id)!;
@@ -32,9 +32,10 @@ export function bundlePrice(o: Pick<Observation, 'unitPrice' | 'buyQuantity' | '
   const quantity = o.buyQuantity + o.giftQuantity;
   return { total, quantity, each: total / quantity };
 }
+export const canAddToShopping = (o: RetailOffer, now = Date.now()) => o.priceKind !== 'reference' && offerStatus(o, now) === 'current' && !!bundlePrice(o);
 // An old SKU reused for a different product must not create a false price change.
 export function comparableHistory(o: RetailOffer) {
-  return o.history.filter(h => h.name === o.name && (!o.barcode || h.barcode === o.barcode) && bundlePrice(h));
+  return o.history.filter(h => (h.priceKind ?? 'promotion') === (o.priceKind ?? 'promotion') && h.name === o.name && (!o.barcode || h.barcode === o.barcode) && bundlePrice(h));
 }
 export function previousPrice(o: RetailOffer) {
   const current = bundlePrice(o);
@@ -45,17 +46,17 @@ export function previousPrice(o: RetailOffer) {
   });
   return prior ? { observation: prior, price: bundlePrice(prior)! } : null;
 }
-export const periodText = (o: RetailOffer) => o.startDate && o.endDate ? `${o.startDate} ~ ${o.endDate}` : '종료일 원문 확인';
-export type RetailFilters = { q: string; brand: string; type: string; period: string; promo: string; category: string };
-export const EMPTY_FILTERS: RetailFilters = { q: '', brand: '', type: '', period: 'current', promo: '', category: '' };
+export const periodText = (o: RetailOffer) => o.priceKind === 'reference' ? '참고가격 · 할인 기간 미확인' : o.startDate && o.endDate ? `${o.startDate} ~ ${o.endDate}` : '종료일 원문 확인';
+export type RetailFilters = { q: string; brand: string; type: string; period: string; promo: string; category: string; priceKind: string };
+export const EMPTY_FILTERS: RetailFilters = { q: '', brand: '', type: '', period: 'current', promo: '', category: '', priceKind: '' };
 export function readFilters(params: URLSearchParams): RetailFilters {
-  return { q: (params.get('q') || '').slice(0, 80), brand: RETAILERS.some(r => r.id === params.get('brand')) ? params.get('brand')! : '', type: ['마트', '편의점', '창고형'].includes(params.get('type') || '') ? params.get('type')! : '', period: ['current', 'week', 'upcoming', 'ended', 'all'].includes(params.get('period') || '') ? params.get('period')! : 'current', promo: ['1+1', '2+1', '멤버특가', '전단가', '행사 안내'].includes(params.get('promo') || '') ? params.get('promo')! : '', category: ['음료', '생활용품', '과자·디저트', '식품·기타', '행사 안내'].includes(params.get('category') || '') ? params.get('category')! : '' };
+  return { priceKind: ['promotion','reference'].includes(params.get('priceKind') || '') ? params.get('priceKind')! : '', q: (params.get('q') || '').slice(0, 80), brand: RETAILERS.some(r => r.id === params.get('brand')) ? params.get('brand')! : '', type: ['마트', '편의점', '창고형'].includes(params.get('type') || '') ? params.get('type')! : '', period: ['current', 'week', 'upcoming', 'ended', 'all'].includes(params.get('period') || '') ? params.get('period')! : 'current', promo: ['1+1', '2+1', '멤버특가', '전단가', '공식행사가', '공식발표가', '점포조회가', '행사 안내'].includes(params.get('promo') || '') ? params.get('promo')! : '', category: ['음료', '생활용품', '과자·디저트', '식품·기타', '행사 안내'].includes(params.get('category') || '') ? params.get('category')! : '' };
 }
 export function filterOffers(offers: RetailOffer[], f: RetailFilters, now = Date.now()) {
   const day = kstDay(now), week = kstDay(now + 6 * 86400000);
   return offers.filter(o => {
     const state = offerStatus(o, now);
-    return (!f.q || o.name.toLocaleLowerCase().includes(f.q.toLocaleLowerCase())) && (!f.brand || o.retailer === f.brand) && (!f.type || retailer(o.retailer).type === f.type) && (!f.promo || o.promotion === f.promo) && (!f.category || o.category === f.category) &&
+    return (!f.priceKind || (o.priceKind ?? 'promotion') === f.priceKind) && (!f.q || o.name.toLocaleLowerCase().includes(f.q.toLocaleLowerCase())) && (!f.brand || o.retailer === f.brand) && (!f.type || retailer(o.retailer).type === f.type) && (!f.promo || o.promotion === f.promo) && (!f.category || o.category === f.category) &&
       (f.period === 'all' || f.period === 'current' && state === 'current' || f.period === 'upcoming' && state === 'upcoming' || f.period === 'ended' && state === 'ended' || f.period === 'week' && state === 'current' && !!o.endDate && o.endDate >= day && o.endDate <= week);
   });
 }
@@ -68,10 +69,10 @@ export function validCatalog(value: unknown, now = Date.now()): value is RetailC
   return c.offers.every(o => {
     try {
       const host = new URL(o.sourceUrl);
-      const allowed = o.retailer === 'cu' ? 'cu.bgfretail.com' : o.retailer === 'lotte' ? 'company.lottemart.com' : o.retailer === 'homeplus' ? 'my.homeplus.co.kr' : '';
-      if (host.protocol !== 'https:' || host.hostname !== allowed || host.username || host.password || !/^(cu|lotte|homeplus)-\d+$/.test(o.id) || !o.id.startsWith(o.retailer + '-') || ids.has(o.id)) return false;
+      const allowed = o.retailer === 'cu' ? 'cu.bgfretail.com' : o.retailer === 'lotte' ? 'company.lottemart.com' : o.retailer === 'homeplus' ? 'my.homeplus.co.kr' : ['emart','nobrand','traders'].includes(o.retailer) ? 'www.shinsegaegroupnewsroom.com' : '';
+      if (host.protocol !== 'https:' || host.hostname !== allowed || host.username || host.password || !/^(cu|lotte|homeplus|emart|nobrand|traders)-\d+$/.test(o.id) || !o.id.startsWith(o.retailer + '-') || ids.has(o.id)) return false;
       ids.add(o.id);
-      return typeof o.name === 'string' && o.name.length > 1 && o.name.length < 300 && ['product', 'event'].includes(o.kind) && typeof o.category === 'string' && typeof o.promotion === 'string' && typeof o.scope === 'string' && Array.isArray(o.conditions) && o.conditions.every(v => typeof v === 'string') && dateOnly(o.startDate) && dateOnly(o.endDate) && (!o.startDate || !o.endDate || o.startDate <= o.endDate) && [o.firstSeenAt, o.lastSeenAt].every(v => Number.isFinite(Date.parse(v)) && Date.parse(v) <= now + 60000) && (o.kind !== 'product' || !!bundlePrice(o)) && Array.isArray(o.history) && o.history.length <= 180 && o.history.every(h => Number.isFinite(Date.parse(h.checkedAt)) && Date.parse(h.checkedAt) <= now + 60000 && typeof h.revision === 'string' && typeof h.promotion === 'string' && (o.kind !== 'product' || !!bundlePrice(h)));
+      return typeof o.name === 'string' && o.name.length > 1 && o.name.length < 300 && ['product', 'event'].includes(o.kind) && typeof o.category === 'string' && typeof o.promotion === 'string' && typeof o.scope === 'string' && (o.priceKind == null || ['promotion','reference'].includes(o.priceKind)) && Array.isArray(o.conditions) && o.conditions.every(v => typeof v === 'string') && dateOnly(o.startDate) && dateOnly(o.endDate) && (!o.startDate || !o.endDate || o.startDate <= o.endDate) && [o.firstSeenAt, o.lastSeenAt].every(v => Number.isFinite(Date.parse(v)) && Date.parse(v) <= now + 60000) && (o.kind !== 'product' || !!bundlePrice(o)) && Array.isArray(o.history) && o.history.length <= 180 && o.history.every(h => Number.isFinite(Date.parse(h.checkedAt)) && Date.parse(h.checkedAt) <= now + 60000 && typeof h.revision === 'string' && typeof h.promotion === 'string' && (o.kind !== 'product' || !!bundlePrice(h)));
     } catch { return false; }
   });
 }
@@ -81,7 +82,7 @@ export const emptyPreferences = (): RetailPreferences => ({ favorites: [], brand
 export function parsePreferences(raw: string | null): RetailPreferences {
   try {
     const v = JSON.parse(raw || '{}');
-    const ids = (a: unknown) => Array.isArray(a) ? [...new Set(a.filter(x => typeof x === 'string' && /^(cu|lotte|homeplus)-\d+$/.test(x)))].slice(0, 500) as string[] : [];
-    return { favorites: ids(v.favorites), brands: Array.isArray(v.brands) ? RETAILERS.filter(r => v.brands.includes(r.id)).map(r => r.id) : [], cart: Object.fromEntries(Object.entries(v.cart || {}).filter(([id, n]) => /^(cu|lotte|homeplus)-\d+$/.test(id) && Number.isInteger(n) && Number(n) >= 1 && Number(n) <= 50).slice(0, 200)) as Record<string, number>, lastVisit: typeof v.lastVisit === 'string' && Number.isFinite(Date.parse(v.lastVisit)) && Date.parse(v.lastVisit) <= Date.now() ? v.lastVisit : null };
+    const ids = (a: unknown) => Array.isArray(a) ? [...new Set(a.filter(x => typeof x === 'string' && /^(cu|lotte|homeplus|emart|nobrand|traders)-\d+$/.test(x)))].slice(0, 500) as string[] : [];
+    return { favorites: ids(v.favorites), brands: Array.isArray(v.brands) ? RETAILERS.filter(r => v.brands.includes(r.id)).map(r => r.id) : [], cart: Object.fromEntries(Object.entries(v.cart || {}).filter(([id, n]) => /^(cu|lotte|homeplus|emart|nobrand|traders)-\d+$/.test(id) && Number.isInteger(n) && Number(n) >= 1 && Number(n) <= 50).slice(0, 200)) as Record<string, number>, lastVisit: typeof v.lastVisit === 'string' && Number.isFinite(Date.parse(v.lastVisit)) && Date.parse(v.lastVisit) <= Date.now() ? v.lastVisit : null };
   } catch { return emptyPreferences(); }
 }

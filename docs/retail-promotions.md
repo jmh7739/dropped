@@ -15,3 +15,12 @@
 - 관심 상품·브랜드·장보기는 localStorage, 방문 중 비교 기준은 sessionStorage를 사용한다. 다른 저장 키를 지우지 않으며 자동 알림·계정 동기화는 없다.
 - 검증: `python -m unittest discover -s marketbot-collectors -p test_retail_promotions.py` (수집 저장소), `node scripts/test-retail.cjs`, `npm test`, `npx tsc --noEmit`, `npm run build`.
 - 모바일/PC Playwright 실제 UI 검수와 결과 스크린샷은 작업공간 `.codex-audit/retail-20261021`에 보존한다. 실기기 검수와 구분한다.
+
+
+## 2026-10-21 remaining retailer connections
+
+- Official Shinsegae Group Newsroom: Emart 5 campaign prices; NoBrand 4 and Traders 1 launch reference prices. Two matching original reads and reviewed exact price/date evidence are required. Newly found articles are not automatically approved by AI.
+- Reference prices have no invented campaign dates, are visibly labelled and excluded from shopping totals. Comparison history never mixes reference prices and promotions.
+- Lotte store lookup was technically reachable but its robots resource redirected to an HTML missing-file page with HTTP 200. Policy is unknown; automated collection remains stopped. No Lotte product prices are published from this attempt.
+- Costco terms section 17 excludes product-list aggregation/bots. GS Retail robots forbids product API collection. Both remain official guides pending permission; no API workaround.
+- Existing six-hour collector, source states, retained history and duplicate protection remain. No external credentials or paid services were added.
