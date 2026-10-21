@@ -3,7 +3,13 @@ name: MarketBot approved public data snapshots
 on:
   schedule:
     - cron: '40 0,6,12,18 * * *'
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      retailer:
+        description: 'Limit a manual verification to one source; scheduled runs remain all'
+        type: choice
+        options: [all, lotte]
+        default: all
   push:
     paths:
       - marketbot-collectors/collect_public_data.py
@@ -33,7 +39,7 @@ jobs:
       - name: Verify retailer parsers and safety rules
         run: python -m unittest discover -s marketbot-collectors -p test_retail_promotions.py
       - name: Collect and second-check public retailer observations
-        run: python marketbot-collectors/collect_retail_promotions.py
+        run: python marketbot-collectors/collect_retail_promotions.py --retailer "${{ inputs.retailer || 'all' }}"
       - name: Publish observed retailer history
         if: success() || failure()
         run: |
@@ -59,6 +65,7 @@ jobs:
           echo 'Could not publish retailer observations after three attempts' >&2
           exit 1
   collect:
+    if: github.event_name != 'workflow_dispatch' || inputs.retailer != 'lotte'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:

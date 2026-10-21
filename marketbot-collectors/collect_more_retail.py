@@ -79,6 +79,11 @@ def collect_more(reader, clean, now):
                            'count':existing+len(verified),'referenceOnly':rule['priceKind']=='reference'}
         except Exception as exc:
             statuses[key]={'status':'partial' if existing else 'unavailable','attemptedAt':now,'count':existing,'reason':type(exc).__name__}
+    additional, state = collect_lotte(reader, clean, now)
+    rows.extend(additional); statuses['lotte'] = state
+    return rows,statuses
+
+def collect_lotte(reader, clean, now):
     try:
         verified={}
         for keyword in ('우유','라면','휴지'):
@@ -87,8 +92,6 @@ def collect_more(reader, clean, now):
             second={r['id']:r for r in parse_lotte_lookup(reader.get(LOTTE_SEARCH,body),clean,keyword)}
             for row in first:
                 if second.get(row['id'])==row:verified[row['id']]=row
-        rows.extend(verified.values())
-        statuses['lotte']={'status':'verified' if verified else 'unavailable','checkedAt':now,'count':len(verified),'referenceOnly':True,'scope':'store_2200'}
+        return list(verified.values()), {'status':'verified' if verified else 'unavailable','checkedAt':now,'count':len(verified),'referenceOnly':True,'scope':'store_2200'}
     except Exception as exc:
-        statuses['lotte']={'status':'unavailable','attemptedAt':now,'reason':type(exc).__name__}
-    return rows,statuses
+        return [], {'status':'unavailable','attemptedAt':now,'reason':type(exc).__name__}

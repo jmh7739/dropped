@@ -301,12 +301,20 @@ def collect(reader, old):
 
 def main():
     old = json.loads(OUT.read_text(encoding='utf-8')) if OUT.exists() else {}
-    result = collect(PublicReader(), old)
+    import argparse
+    parser=argparse.ArgumentParser();parser.add_argument('--retailer',choices=['all','lotte'],default='all');args=parser.parse_args()
+    if args.retailer == 'lotte':
+        from collect_more_retail import collect_lotte
+        now=datetime.now(timezone.utc).isoformat();rows,status=collect_lotte(PublicReader(),text,now)
+        result=merge_catalog(old,rows,{'lotte':status},now)
+    else:
+        result = collect(PublicReader(), old)
     OUT.parent.mkdir(exist_ok=True)
     OUT.write_text(json.dumps(result,ensure_ascii=False,separators=(',',':'))+'\n',encoding='utf-8')
     print(json.dumps({'offers':len(result['offers']), 'sources':result['sources']},ensure_ascii=False))
-    if result['sources'].get('cu', {}).get('status') == 'unavailable':
-        raise SystemExit('CU observations unavailable; retained history is not a successful refresh')
+    source='lotte' if args.retailer=='lotte' else 'cu'
+    if result['sources'].get(source, {}).get('status') == 'unavailable':
+        raise SystemExit(source+' observations unavailable; retained history is not a successful refresh')
 
 if __name__ == '__main__':
     main()
