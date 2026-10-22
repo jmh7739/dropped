@@ -12,6 +12,49 @@ CARD='''<li class="prod_list"><a href="javascript:view(270);"><div class="name">
 DETAIL='''<p class="tit">농심)캔디50g</p><ul class="prodTag"><li>1+1</li></ul><dd class="prodPrice"><p><span>900</span>원</p></dd>'''
 
 class RetailTests(unittest.TestCase):
+    def test_cu_budget_saves_partial_and_resumes_unverified_details(self):
+        from datetime import datetime, timezone, timedelta
+        now = (datetime.now(timezone.utc) + timedelta(minutes=1)).isoformat()
+        class Reader:
+            def __init__(self): self.details = []
+            def get(self, url, body=None):
+                if body: return CARD + CARD.replace('view(270)', 'view(271)')
+                self.details.append(url)
+                return DETAIL
+        first = Reader()
+        with patch('collect_retail_promotions.time.monotonic', side_effect=[0, 0, 2]):
+            rows, state = collect_cu(first, {}, now, budget_seconds=1)
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(state['status'], 'partial')
+        self.assertEqual(state['stopReason'], 'time_budget')
+        self.assertEqual(state['detailDeferredCount'], 1)
+        self.assertEqual(state['notConfirmed'], 1)
+        self.assertEqual(len(first.details), 1)
+        saved = merge_catalog({}, rows, {'cu': state}, now)
+        second = Reader()
+        with patch('collect_retail_promotions.time.monotonic', return_value=0):
+            resumed, status = collect_cu(second, saved, now, budget_seconds=1)
+        self.assertEqual(len(resumed), 2)
+        self.assertEqual(status['status'], 'verified')
+        self.assertEqual(status['detailReuseCount'], 1)
+        self.assertEqual(len(second.details), 1)
+        self.assertNotEqual(first.details, second.details)
+
+    def test_cu_expired_detail_is_not_reused_or_made_fresh_when_budget_ends(self):
+        row = parse_cu_list(CARD)[0]
+        saved = merge_catalog({}, [row], {}, '2026-10-20T00:00:00Z')
+        class Reader:
+            def get(self, url, body=None):
+                if body: return CARD
+                raise AssertionError('No detail request after budget')
+        with patch('collect_retail_promotions.time.monotonic', side_effect=[0, 2]):
+            rows, state = collect_cu(Reader(), saved, '2026-10-22T00:00:00Z', budget_seconds=1)
+        self.assertEqual(rows, [])
+        self.assertEqual(state['status'], 'partial')
+        self.assertEqual(state['detailReuseCount'], 0)
+        merged = merge_catalog(saved, rows, {'cu': state}, '2026-10-22T00:00:00Z')
+        self.assertEqual(merged['offers'][0]['lastSeenAt'], '2026-10-20T00:00:00Z')
+
     def test_homeplus_follows_reported_page_numbers_including_zero_alias(self):
         from urllib.parse import parse_qs
         class Reader:

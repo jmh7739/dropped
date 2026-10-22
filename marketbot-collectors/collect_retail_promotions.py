@@ -267,8 +267,9 @@ def merge_catalog(old, collected, statuses, now):
     return {'schemaVersion': 1, 'checkedAt': now, 'sources': {**old.get('sources', {}), **statuses},
             'offers': sorted(offers.values(), key=lambda row: row['id'])}
 
-def collect_cu(reader, old, now):
+def collect_cu(reader, old, now, budget_seconds=900):
     candidates, pages, complete, mismatches = {}, {}, True, 0
+    deadline = time.monotonic() + budget_seconds
     try:
         for condition in ('23', '24'):
             seen = set()
@@ -296,16 +297,31 @@ def collect_cu(reader, old, now):
                 complete = False  # Safety stop, explicitly partial; never report all pages collected.
         if not candidates: raise ValueError('CU official list has no stable verified candidates')
         previous = {r['id']:r for r in old.get('offers',[]) if r.get('retailer')=='cu'}
-        verified, reused, consecutive_errors = [], 0, 0
+        verified, reused, consecutive_errors, deferred = [], 0, 0, 0
         fields = ('name','unitPrice','buyQuantity','giftQuantity','promotion','barcode')
-        for index,row in enumerate(candidates.values()):
+        def prior_detail(row):
+            prior = previous.get(row['id'], {})
+            detail_time = prior.get('detailVerifiedAt') or prior.get('lastSeenAt')
             try:
-                prior = previous.get(row['id'],{})
-                detail_time = prior.get('detailVerifiedAt') or prior.get('lastSeenAt')
                 age = (datetime.fromisoformat(now.replace('Z','+00:00'))-datetime.fromisoformat(detail_time.replace('Z','+00:00'))).total_seconds() if detail_time else -1
-                if 0 <= age < 86400 and all(prior.get(k)==row.get(k) for k in fields):
+            except (TypeError, ValueError):
+                age = -1
+            reusable = 0 <= age < 86400 and all(prior.get(k)==row.get(k) for k in fields)
+            return detail_time, age, reusable
+        # Reuse only unchanged, recently detail-verified rows. Then prioritize
+        # unverified/oldest details, so saved partial work advances next run.
+        ordered = sorted(candidates.values(), key=lambda row:
+            (0 if prior_detail(row)[2] else 1,
+             -prior_detail(row)[1] if prior_detail(row)[1] >= 0 else float('-inf')))
+        for index,row in enumerate(ordered):
+            try:
+                detail_time, age, reusable = prior_detail(row)
+                if reusable:
                     row['detailVerifiedAt'] = detail_time
                     reused += 1
+                elif time.monotonic() >= deadline:
+                    deferred += 1
+                    continue
                 elif confirm_cu(row,reader.get(row['sourceUrl'])):
                     row['detailVerifiedAt'] = datetime.now(timezone.utc).isoformat()
                 else: continue
@@ -320,6 +336,7 @@ def collect_cu(reader, old, now):
         state={'status':'verified' if complete and not mismatches and len(verified)==len(candidates) else 'partial',
                'checkedAt':now,'count':len(verified),'discovered':len(candidates),'notConfirmed':len(candidates)-len(verified),
                'listPages':pages,'paginationComplete':complete,'unstableRows':mismatches,'detailReuseCount':reused,
+               'detailDeferredCount':deferred,'stopReason':'time_budget' if deferred else None,
                'scope':'official_1plus1_2plus1','coverage':'all_available_list_pages' if complete else 'incomplete_list_pages',
                'periodPrecision':'not_provided'}
         return verified,state
