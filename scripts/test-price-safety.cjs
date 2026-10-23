@@ -61,6 +61,20 @@ async function main() {
   assert.equal(reconciled.checkedAt, newer);
   assert.equal(reconciled.isLowestEver, false, 'an earlier low must not remain a current-low badge');
   assert.equal(reconciled.discountVsList, 25, 'list discount must follow the reconciled price');
+  const leanListing = rowToDeal({ deal_id: 10, product_id: 100, platform: 'cps', title: 'Test product',
+    current_price: 100, status: 'active', checked_at: newer, detected_at: earlier }, [
+    { price: 120, collectedAt: new Date(Date.now() - 2 * 86400000).toISOString() },
+    { price: 100, collectedAt: newer },
+  ]);
+  assert.equal(leanListing.historyPointCount, 2, 'listing history should supply observed-day evidence without a view aggregate');
+  assert.equal(leanListing.trackedDays, 1, 'listing history should supply tracking duration without a view aggregate');
+  const failedQuery = { select() { return this; }, not() { return this; }, is() { return this; }, eq() { return this; }, then(resolve) { return Promise.resolve({ data: null, error: { code: '57014' } }).then(resolve); } };
+  const { getDeals: getFailedDeals, getCuratedDeals: getFailedCurated } = load('lib/deals.ts', {
+    './supabase': { supabase: { from: () => failedQuery } }, './types': {}, './dropMetrics': {}, './priceHistory': {},
+    './format': { listDiscountRate }, './unitPrice': { deriveUnitPrice }, './priceReport': { priceStats },
+  });
+  await assert.rejects(getFailedDeals(), /Deal listing unavailable: 57014/, 'a timed-out listing must not become zero deals');
+  await assert.rejects(getFailedCurated(), /Curated deal listing unavailable: 57014/, 'a timed-out curated listing must not become zero deals');
   const newerView = rowToDeal({ deal_id: 2, product_id: 11166, platform: 'aliexpress', title: 'POLVCDG X9',
     current_price: 31000, avg30_price: 33000, discount_vs_avg: 6, is_lowest_ever: false,
     status: 'active', checked_at: newer, detected_at: earlier }, [

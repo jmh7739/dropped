@@ -152,7 +152,7 @@ export const getRecentlyTrackedProducts = cache(async function getRecentlyTracke
     .select(selection)
     .order("created_at", { ascending: false })
     .limit(safeLimit);
-  if (error || !recent?.length) return [];
+  if (error || !recent) throw new Error(`Product catalog unavailable: ${error?.code ?? "empty response"}`);
   // A product can have been discovered days ago and only receive its first
   // verified MarketBot price today. Include tracked affiliate products even
   // when their original creation date falls outside the recent rows.
@@ -162,6 +162,7 @@ export const getRecentlyTrackedProducts = cache(async function getRecentlyTracke
     supabase.from("products").select(selection).eq("platform", "cps")
       .like("external_product_id", "pp_%").order("created_at", { ascending: false }).limit(300),
   ]);
+  if (major.error || popular.error) throw new Error(`Product catalog unavailable: ${major.error?.code ?? popular.error?.code}`);
   // Surface products whose price was freshly verified even if the product was
   // originally created long before the newest 300 affiliate rows.
   const activeIds = new Set<number>();
@@ -170,15 +171,17 @@ export const getRecentlyTrackedProducts = cache(async function getRecentlyTracke
     const { data: history, error: historyError } = await supabase.from("price_history")
       .select("product_id").gte("collected_at", activeSince)
       .order("collected_at", { ascending: false }).range(offset, offset + 999);
-    if (historyError || !history?.length) break;
+    if (historyError) throw new Error(`Recent product history unavailable: ${historyError.code}`);
+    if (!history?.length) break;
     for (const item of history) activeIds.add(item.product_id);
     if (history.length < 1000) break;
   }
   const activeAffiliate: any[] = [];
   const activeList = [...activeIds];
   for (let offset = 0; offset < activeList.length; offset += 100) {
-    const { data } = await supabase.from("products").select(selection)
+    const { data, error: affiliateError } = await supabase.from("products").select(selection)
       .eq("platform", "cps").in("id", activeList.slice(offset, offset + 100));
+    if (affiliateError) throw new Error(`Active affiliate products unavailable: ${affiliateError.code}`);
     if (data) activeAffiliate.push(...data);
   }
   const prods = [...new Map([...(recent as any[]), ...((major.data ?? []) as any[]),

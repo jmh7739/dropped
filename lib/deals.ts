@@ -6,6 +6,10 @@ import { listDiscountRate } from "./format";
 import { deriveUnitPrice } from "./unitPrice";
 import { priceStats } from "./priceReport";
 
+// The listing reads price history separately. Asking the view for its aggregate
+// columns repeats an all-history lateral aggregate for every active product.
+const DEAL_LIST_COLUMNS = "deal_id,current_price,list_price,baseline_price,discount_vs_avg,discount_vs_list,is_lowest_ever,is_price_error,status,detected_at,ended_at,product_id,platform,mall_name,shipping_fee,title,image_url,affiliate_url,product_url,category_slug,category_name,like_count,click_count,unit_price,checked_at";
+
 export type SortKey =
   | "discount" // 하락률 높은순 (기본)
   | "popular" // 인기순 (클릭·좋아요) = '추천'
@@ -35,7 +39,7 @@ export function rowToDeal(row: any, history: PricePoint[]): Deal {
   const useObservation = lastObservation && Number.isFinite(observationAt)
     && (!Number.isFinite(rowCheckedAt) || observationAt >= rowCheckedAt);
   const currentPrice = Number(useObservation ? lastObservation.price : row.current_price ?? 0);
-  const stats = useObservation ? priceStats(history, currentPrice) : null;
+  const stats = history.length ? priceStats(history, currentPrice) : null;
   return {
     id: row.deal_id,
     productId: row.product_id,
@@ -69,9 +73,9 @@ export function rowToDeal(row: any, history: PricePoint[]): Deal {
     // 과장을 피하려고 화면에서는 완료된 일수만 보수적으로 표시한다.
     trackedDays: row.tracked_days != null
       ? Math.max(1, Number(row.tracked_days) - 1)
-      : null,
+      : stats?.trackedDays ?? null,
     historyPointCount:
-      row.history_points != null ? Number(row.history_points) : null,
+      row.history_points != null ? Number(row.history_points) : stats?.observedDays ?? null,
     history,
     likeCount: Number(row.like_count ?? 0),
     clickCount: Number(row.click_count ?? 0),
@@ -309,7 +313,7 @@ export async function getDeals(opts: GetDealsOpts = {}): Promise<Deal[]> {
 
   let query = supabase
     .from("v_active_deals")
-    .select("*")
+    .select(DEAL_LIST_COLUMNS)
     .not("baseline_price", "is", null) // 급락딜만(추천딜=baseline null은 제외)
     .eq("status", "active");
   if (category) query = query.eq("category_slug", category);
@@ -318,13 +322,10 @@ export async function getDeals(opts: GetDealsOpts = {}): Promise<Deal[]> {
   if (scope === "domestic") query = query.neq("platform", "aliexpress");
   if (scope === "overseas") query = query.eq("platform", "aliexpress");
   const { data, error } = await query;
-  if (error || !data) {
-    console.error("getDeals error:", error?.message);
-    return [];
-  }
+  if (error || !data) throw new Error(`Deal listing unavailable: ${error?.code ?? "empty response"}`);
   // DB 상태가 active여도 수집기가 멈추면 품절·종료 상품이 계속 남을 수 있다.
   // 최근 72시간 안에 판매 페이지가 다시 확인된 상품만 목록에 노출한다.
-  const history = await readPriceHistory(data.map(row => Number(row.product_id)), new Date(Date.now() - 31 * 86400000).toISOString());
+  const history = await readPriceHistory(data.map(row => Number(row.product_id)), new Date(Date.now() - 90 * 86400000).toISOString());
   let deals = data.map((row) => rowToDeal(row, history.get(Number(row.product_id)) ?? [])).filter((deal) => recentlyChecked(deal));
   // 가격 상태 필터는 종료딜엔 의미없음 → 활성만 대상으로 거른다.
   if (priceStatus)
@@ -343,15 +344,12 @@ export async function getCuratedDeals(
   if (!supabase) return [];
   let query = supabase
     .from("v_active_deals")
-    .select("*")
+    .select(DEAL_LIST_COLUMNS)
     .is("baseline_price", null)
     .eq("status", "active");
   if (category) query = query.eq("category_slug", category);
   const { data, error } = await query;
-  if (error || !data) {
-    console.error("getCuratedDeals error:", error?.message);
-    return [];
-  }
+  if (error || !data) throw new Error(`Curated deal listing unavailable: ${error?.code ?? "empty response"}`);
   const deals = dedupSimilar(
     data.filter(isTrustworthyCuratedPrice).map((row) => rowToDeal(row, [])).filter((deal) => recentlyChecked(deal)),
     sort,

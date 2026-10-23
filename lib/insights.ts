@@ -1,5 +1,6 @@
 import { cache } from "react";
 import { getDeals } from "./deals";
+import type { Deal } from "./types";
 import { getProductReport, ProductReport } from "./products";
 import { priceStats, PriceStats } from "./priceReport";
 
@@ -12,11 +13,11 @@ export type PriceInsight = {
 
 const MAX_AGE_MS = 24 * 3600 * 1000;
 
-export const getPriceInsights = cache(async (): Promise<PriceInsight[]> => {
-  const deals = await getDeals();
+export const getPriceInsights = cache(async (deals?: Deal[]): Promise<PriceInsight[]> => {
+  const sourceDeals = deals ?? await getDeals();
   // 고정 ID 목록은 실제 검증 상품이 바뀌면 사례 페이지를 비워 버린다.
   // 현재 공개 중인 딜에서 화면에 밝힌 기준을 그대로 적용해 사례를 고른다.
-  const eligibleIds = deals.filter((deal) => {
+  const eligibleIds = sourceDeals.filter((deal) => {
     const checkedAt = deal?.checkedAt ? new Date(deal.checkedAt).getTime() : 0;
     return Boolean(deal && deal.status === "active" && !deal.isPriceError &&
       (deal.trackedDays ?? 0) >= 14 && (deal.historyPointCount ?? 0) >= 20 &&
