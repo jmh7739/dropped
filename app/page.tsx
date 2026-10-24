@@ -1,3 +1,4 @@
+import { compareObservedAverage } from '@/lib/price-comparison';
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -339,7 +340,7 @@ export default async function Home({
           </p>
           {insights.length > 0 ? (
             <div className="mt-5 grid gap-3 md:grid-cols-3">
-              {insights.slice(0, 3).map(({ product, stats, averageGapPercent }) => (
+              {insights.slice(0, 3).map(({ product, stats }) => (
                 <article key={product.id} className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
                   <Link href={`/price/${product.id}`} className="group block h-full p-3.5 transition hover:bg-gray-50 sm:p-4">
                     <div className="flex gap-3.5">
@@ -357,7 +358,7 @@ export default async function Home({
                     </div>
                     <div className="mt-3 grid grid-cols-2 gap-2 border-t border-gray-100 pt-3 text-xs leading-5">
                       <div><span className="block text-gray-500">{stats.trackedDays >= 30 ? "최근 30일 평균" : `추적 ${stats.trackedDays}일 평균`}</span><strong className="text-sm text-gray-900">{formatWon(stats.avg30!)}</strong></div>
-                      <div><span className="block text-gray-500">평균 대비</span><strong className="text-sm text-emerald-700">{averageGapPercent > 0 ? `${averageGapPercent}% 낮음` : "하락 아님"}</strong></div>
+                      <div><span className="block text-gray-500">평균 대비</span><strong className={`text-sm ${stats.current < stats.avg30! ? "text-emerald-700" : "text-gray-900"}`}>{compareObservedAverage(stats.current, stats.avg30!).text}</strong></div>
                       <div><span className="block text-gray-500">추적 최저가</span><strong className="text-sm text-gray-900">{formatWon(stats.minAll)}</strong></div>
                       <div><span className="block text-gray-500">관측 기록</span><strong className="text-sm text-gray-900">{stats.points}회</strong></div>
                     </div>
