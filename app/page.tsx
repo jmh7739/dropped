@@ -317,7 +317,7 @@ export default async function Home({
             진짜 가격이 떨어진 상품을 찾습니다
           </h1>
           <p className="mt-2 text-sm leading-6 text-gray-600">
-            표시 할인율만 믿지 않고 평균가·최저가·가격 이력을 비교해 지금 싼 상품을 먼저 보여드립니다.
+            최근 관측 가격을 평소 가격·추적 최저가와 비교합니다. 마트·편의점 행사는 별도로 확인할 수 있어요.
           </p>
         </header>
       )}
@@ -328,10 +328,11 @@ export default async function Home({
       </div>
 
       {isDefaultHome && <SavedPriceWatches />}
-      {isDefaultHome && <Link href="/store-deals" className="mb-6 flex items-center justify-between gap-4 rounded-2xl border border-orange-200 bg-orange-50 p-5"><span><span className="block text-xs font-extrabold text-red-700">새로운 장보기 코너</span><span className="mt-1 block text-lg font-extrabold text-gray-950">마트·편의점 행사, 수량별로 비교하기</span><span className="mt-1 block text-xs leading-5 text-gray-600">1+1·2+1 결제 총액 · 공식 전단 · 나만의 장보기 목록</span></span><span aria-hidden="true" className="text-xl">→</span></Link>}
+      {isDefaultHome && <nav aria-label="어떤 가격을 찾으세요?" className="mb-6 grid gap-2 sm:grid-cols-3">{[['#observed-deals','가격 내려간 상품','관측 이력이 있는 상품 비교'],['/store-deals','마트·편의점 행사','기간·회원·1+1 조건 확인'],['/unit-price','묶음 가격 비교','100g·1개당 가격 계산']].map(([href,title,copy])=><Link key={href} href={href} className="flex min-h-20 flex-col justify-center rounded-xl border border-gray-200 bg-white px-4 py-3 hover:border-red-300"><strong className="text-sm text-gray-950">{title} →</strong><span className="mt-1 text-xs leading-5 text-gray-600">{copy}</span></Link>)}</nav>}
+
 
       {isDefaultHome && (
-        <section className="mb-8 rounded-2xl border border-gray-200 bg-white p-5 sm:p-6" aria-labelledby="evidence-heading">
+        <details className="mb-6 rounded-2xl border border-gray-200 bg-white p-4 sm:p-5"><summary className="cursor-pointer text-sm font-bold text-gray-900">가격이 싸다고 판단한 근거·실제 사례 보기</summary><section aria-labelledby="evidence-heading" className="mt-4">
           <p className="text-xs font-extrabold text-brand">직접 수집한 가격 기록</p>
           <h2 id="evidence-heading" className="mt-1 text-xl font-extrabold text-gray-950">오늘의 가격 판단 근거</h2>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-gray-700">
@@ -372,11 +373,11 @@ export default async function Home({
             <Link href="/insights" className="text-brand hover:underline">실제 가격 추적 사례 전체 →</Link>
             <Link href="/guides/price-drop-failures" className="text-gray-700 hover:underline">가격 판단이 틀릴 수 있는 경우 →</Link>
           </div>
-        </section>
+        </section></details>
       )}
 
       {isDefaultHome && (
-        <section className="mb-8">
+        <section id="observed-deals" className="mb-8 scroll-mt-32">
           <div className="mb-3 space-y-2">
             <h2 className="text-lg font-extrabold text-gray-900">🔥 자동 관측 이력에서 내려간 상품</h2>
             <p className="text-xs leading-5 text-gray-500">평균가·최저가와 비교할 수 있는 상품만 표시합니다. 원본 판매처의 옵션·재고·결제가는 구매 전에 다시 확인해야 합니다.</p>
