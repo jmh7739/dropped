@@ -141,7 +141,7 @@ export default function DealCard({
               )}
               {saving > 0 && (
                 <span className="text-[11px] font-semibold text-blue-600">
-                  {formatWon(saving)} 할인
+                  {deal.isCurated ? `판매처 기준 ${formatWon(saving)} 할인` : `${deal.avg30Price ? '30일 평균' : '기준 관측가'}보다 ${formatWon(saving)} 낮음`}
                 </span>
               )}
               {deal.unitPrice && (
@@ -236,7 +236,7 @@ export default function DealCard({
               </span>
               {saving > 0 && (
                 <span className="text-[11px] font-semibold text-blue-600">
-                  {formatWon(saving)} 할인
+                  {deal.isCurated ? `판매처 기준 ${formatWon(saving)} 할인` : `${deal.avg30Price ? '30일 평균' : '기준 관측가'}보다 ${formatWon(saving)} 낮음`}
                 </span>
               )}
             </div>

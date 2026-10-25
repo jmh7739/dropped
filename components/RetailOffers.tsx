@@ -43,9 +43,10 @@ type Controls = ReturnType<typeof useRetailPreferences>;
 const outline = 'rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-bold hover:border-red-300 focus-visible:outline-red-500 disabled:opacity-40';
 function ActionButtons({ offer: o, controls: c }: { offer: RetailOffer; controls: Controls }) {
   const saved = c.prefs.favorites.includes(o.id);
+  const reference = o.priceKind === 'reference';
   return <div className="flex flex-wrap gap-2">
-    <button type="button" className={outline} aria-pressed={saved} aria-label={`${o.name} 관심 ${saved ? '해제' : '저장'}`} disabled={!c.ready} onClick={() => c.favorite(o.id)}>{saved ? '♥ 저장됨' : '♡ 관심 저장'}</button>
-    {o.kind === 'product' && <button type="button" className={outline} disabled={!c.ready || !canAddToShopping(o)} onClick={() => c.cart(o.id)}>{c.prefs.cart[o.id] ? `장보기 ${c.prefs.cart[o.id]}묶음 +` : '+ 장보기'}</button>}
+    <button type="button" className={outline} aria-pressed={saved} aria-label={`${o.name} 관심 ${saved ? '해제' : '저장'}`} disabled={!c.ready} onClick={() => c.favorite(o.id)}>{saved ? '♥ 저장됨' : reference ? '♡ 참고가격 비교에 저장' : '♡ 관심 저장'}</button>
+    {o.kind === 'product' && canAddToShopping(o) && <button type="button" className={outline} disabled={!c.ready || !canAddToShopping(o)} onClick={() => c.cart(o.id)}>{c.prefs.cart[o.id] ? `장보기 ${c.prefs.cart[o.id]}묶음 +` : '+ 장보기'}</button>}
   </div>;
 }
 function ChangedLabel({ o, since }: { o: RetailOffer; since: string | null }) {
