@@ -10,5 +10,5 @@ export async function generateMetadata({ searchParams }: { searchParams: Promise
 }
 export default async function StoreDealsPage() {
   const { catalog, usingSaved } = await getRetailCatalog();
-  return <Suspense fallback={<p className="rounded-xl border p-6" role="status">행사 필터를 준비하고 있습니다.</p>}><RetailOffers catalog={catalog} usingSaved={usingSaved} /></Suspense>;
+  return <Suspense fallback={<p className="rounded-xl border p-6" role="status">행사 필터를 준비하고 있습니다.</p>}><RetailOffers catalogJson={JSON.stringify(catalog)} usingSaved={usingSaved} /></Suspense>;
 }

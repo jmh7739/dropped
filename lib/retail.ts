@@ -38,10 +38,12 @@ export function preserveObservedImage(o: RetailOffer, saved?: RetailOffer): Reta
       conditions: o.conditions.filter(c => !c.includes('비교 수치에서 제외')).concat('판매처 표시 기준가·할인액은 전단 표시이며 실제 관측한 가격 이력과 구분합니다') } : {}) };
 }
 export const isPublishableRetailOffer = (o: RetailOffer) => !(o.id === 'homeplus-2645' && o.startDate === '2026-10-15' && o.endDate === '2026-10-21'); // Digital/printed original price conflict under review; preserve raw history.
-export const money = (amount: number) => new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 1 }).format(amount) + '원';
+const priceFormatter = new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 1 });
+const checkedFormatter = new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false });
+export const money = (amount: number) => priceFormatter.format(amount) + '원';
 export const kstDay = (time: number = Date.now()) => new Date(time + 9 * 3600000).toISOString().slice(0, 10);
 export function checkedDate(time: string) {
-  return Number.isFinite(Date.parse(time)) ? new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(time)) + ' KST' : '확인시각 없음';
+  return Number.isFinite(Date.parse(time)) ? checkedFormatter.format(new Date(time)) + ' KST' : '확인시각 없음';
 }
 export function offerStatus(o: RetailOffer, now = Date.now()): 'current' | 'upcoming' | 'ended' | 'old' {
   const day = kstDay(now);

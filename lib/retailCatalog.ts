@@ -5,7 +5,8 @@ const FEED = 'https://raw.githubusercontent.com/jmh7739/dropped/main/marketbot-d
 const storedSnapshot: unknown = snapshot;
 const publishable = (c: RetailCatalog): RetailCatalog => {
   const savedOffers = validCatalog(storedSnapshot) ? storedSnapshot.offers : [];
-  return { ...c, offers: c.offers.filter(isPublishableRetailOffer).map(o => preserveObservedImage(o, savedOffers.find(saved => saved.id === o.id))) };
+  const byId = new Map(savedOffers.map(o => [o.id, o]));
+  return { ...c, offers: c.offers.filter(isPublishableRetailOffer).map(o => preserveObservedImage(o, byId.get(o.id))) };
 };
 export async function getRetailCatalog(): Promise<{ catalog: RetailCatalog; usingSaved: boolean }> {
   try {
