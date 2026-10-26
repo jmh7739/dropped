@@ -1,12 +1,13 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 
 export default function SearchBar({ initial = "" }: { initial?: string }) {
   const router = useRouter();
   const [q, setQ] = useState(initial);
   const [pending, startTransition] = useTransition();
+  useEffect(() => { setQ(initial); }, [initial]);
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
