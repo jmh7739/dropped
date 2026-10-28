@@ -1,4 +1,6 @@
 import type { MetadataRoute } from "next";
+import { getRetailCatalog } from '@/lib/retailCatalog';
+import { isDiscoverableRetailOffer } from '@/lib/retail';
 import { getDeals } from "@/lib/deals";
 import { SITE_URL } from "@/lib/site";
 import { CATEGORIES } from "@/lib/types";
@@ -123,5 +125,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.8,
     }));
 
-  return [...staticRoutes, ...dealRoutes, ...insightRoutes];
+  const retailRoutes: MetadataRoute.Sitemap = await getRetailCatalog().then(({catalog}) =>
+    [...new Map(catalog.offers.filter(o => isDiscoverableRetailOffer(o)).map(o => [o.id, o])).values()]
+      .sort((a, b) => b.lastSeenAt.localeCompare(a.lastSeenAt)).slice(0, 120)
+      .map(o => ({url: `${SITE_URL}/store-deals/${encodeURIComponent(o.id)}`, lastModified: o.lastSeenAt, changeFrequency: 'daily' as const, priority: 0.7}))
+  ).catch(() => []); // Keep existing discovery routes available if a feed fails.
+  return [...staticRoutes, ...dealRoutes, ...insightRoutes, ...retailRoutes];
 }

@@ -1,0 +1,9 @@
+import Link from 'next/link';
+import {getRetailCatalog} from '@/lib/retailCatalog';
+import {bundlePrice, canAddToShopping, checkedDate, money, periodText, retailer} from '@/lib/retail';
+export default async function RetailHighlights() {
+ const {catalog}=await getRetailCatalog();
+ const seen=new Set<string>();
+ const offers=catalog.offers.filter(o=>o.kind==='product'&&canAddToShopping(o)).sort((a,b)=>b.lastSeenAt.localeCompare(a.lastSeenAt)).filter(o=>{if(seen.has(o.retailer))return false;seen.add(o.retailer);return true;}).slice(0,3);
+ return <section aria-labelledby="domestic-shopping-title" className="mb-6 rounded-2xl border border-red-100 bg-red-50/40 p-4 sm:p-6"><div className="flex flex-wrap items-center justify-between gap-2"><h2 id="domestic-shopping-title" className="text-lg font-black">오늘 장보기 전에 확인할 행사</h2><Link href="/store-deals" className="text-sm font-bold text-red-700">마트·편의점 전체 →</Link></div><p className="mt-2 text-sm text-gray-600">확인한 행사 수량의 총액입니다. 회원·점포·재고 조건은 상세에서 확인하세요.</p><div className="mt-4 grid gap-3 sm:grid-cols-3">{offers.map(o=>{const p=bundlePrice(o)!;return <Link key={o.id} href={'/store-deals/'+o.id} className="rounded-xl border bg-white p-4"><span className="text-xs font-bold text-red-700">{retailer(o.retailer).name} · {o.promotion}</span><h3 className="mt-2 font-bold">{o.name}</h3><p className="mt-2 text-lg font-black">{money(p.total)} <span className="text-xs font-normal">{p.quantity}판매단위 총액</span></p><p className="text-xs text-gray-600">판매단위당 {money(p.each)} · {periodText(o)}</p><p className="mt-2 text-xs text-gray-500">{o.scope} · 확인 {checkedDate(o.lastSeenAt)}</p></Link>})}</div>{!offers.length&&<p className="mt-3 text-sm">최근 확인한 행사 가격을 준비 중입니다. <Link href="/store-deals" className="underline">브랜드별 확인 범위와 이전 기록 보기</Link></p>}</section>;
+}

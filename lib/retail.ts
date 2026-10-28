@@ -112,3 +112,21 @@ export function parsePreferences(raw: string | null): RetailPreferences {
     return { favorites: ids(v.favorites), brands: Array.isArray(v.brands) ? RETAILERS.filter(r => v.brands.includes(r.id)).map(r => r.id) : [], cart: Object.fromEntries(Object.entries(v.cart || {}).filter(([id, n]) => /^(cu|lotte|homeplus|emart|nobrand|traders)-\d+$/.test(id) && Number.isInteger(n) && Number(n) >= 1 && Number(n) <= 50).slice(0, 200)) as Record<string, number>, lastVisit: typeof v.lastVisit === 'string' && Number.isFinite(Date.parse(v.lastVisit)) && Date.parse(v.lastVisit) <= Date.now() ? v.lastVisit : null };
   } catch { return emptyPreferences(); }
 }
+
+/** Editorial discovery rule, not a Google minimum-content requirement. */
+export function isDiscoverableRetailOffer(o: RetailOffer, now = Date.now()) {
+  if (!isPublishableRetailOffer(o) || o.kind !== 'product' || o.priceKind === 'reference' || offerStatus(o, now) !== 'current' || !bundlePrice(o)) return false;
+  if (!o.name.trim() || !o.scope.trim() || !o.conditions.some(c => c.trim()) || !Number.isFinite(Date.parse(o.lastSeenAt))) return false;
+  try {
+    const u = new URL(o.sourceUrl);
+    const allowed: Partial<Record<RetailerId, string[]>> = {
+      cu: ['cu.bgfretail.com'], homeplus: ['my.homeplus.co.kr'],
+      emart: ['emartapp.emart.com', 'www.shinsegaegroupnewsroom.com'],
+      nobrand: ['www.shinsegaegroupnewsroom.com'], traders: ['www.shinsegaegroupnewsroom.com'],
+    };
+    if (u.protocol !== 'https:' || u.username || u.password || !allowed[o.retailer]?.includes(u.hostname)) return false;
+  } catch { return false; }
+  // A dated promotion or a comparable price change gives the detail a useful
+  // decision beyond a single listing. Unknown end dates are never invented.
+  return Boolean(o.startDate && o.endDate && /^\d{4}-\d{2}-\d{2}$/.test(o.startDate) && /^\d{4}-\d{2}-\d{2}$/.test(o.endDate) && o.startDate <= o.endDate) || Boolean(previousPrice(o));
+}

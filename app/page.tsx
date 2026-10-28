@@ -1,3 +1,5 @@
+import { Suspense } from 'react';
+import RetailHighlights from '@/components/RetailHighlights';
 import { compareObservedAverage } from '@/lib/price-comparison';
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -328,7 +330,7 @@ export default async function Home({
       </div>
 
       {isDefaultHome && <SavedPriceWatches />}
-      {isDefaultHome && <nav aria-label="어떤 가격을 찾으세요?" className="mb-6 grid gap-2 sm:grid-cols-3">{[['#observed-deals','가격 내려간 상품','관측 이력이 있는 상품 비교'],['/store-deals','마트·편의점 행사','기간·회원·1+1 조건 확인'],['/unit-price','묶음 가격 비교','100g·1개당 가격 계산']].map(([href,title,copy])=><Link key={href} href={href} className="flex min-h-20 flex-col justify-center rounded-xl border border-gray-200 bg-white px-4 py-3 hover:border-red-300"><strong className="text-sm text-gray-950">{title} →</strong><span className="mt-1 text-xs leading-5 text-gray-600">{copy}</span></Link>)}</nav>}
+      {isDefaultHome && <nav aria-label="어떤 가격을 찾으세요?" className="mb-6 grid gap-2 sm:grid-cols-3">{[['/store-deals','마트·편의점 행사','기간·회원·1+1 조건 확인'],['#observed-deals','가격 내려간 상품','관측 이력이 있는 상품 비교'],['/unit-price','묶음 가격 비교','100g·1개당 가격 계산']].map(([href,title,copy])=><Link key={href} href={href} className="flex min-h-20 flex-col justify-center rounded-xl border border-gray-200 bg-white px-4 py-3 hover:border-red-300"><strong className="text-sm text-gray-950">{title} →</strong><span className="mt-1 text-xs leading-5 text-gray-600">{copy}</span></Link>)}</nav>}{isDefaultHome && <Suspense fallback={<p className="mb-4 text-sm text-gray-600">마트 행사 확인 중… <Link href="/store-deals">행사 목록 열기</Link></p>}><RetailHighlights /></Suspense>}
 
 
       {isDefaultHome && (
