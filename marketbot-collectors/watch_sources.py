@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from hashlib import sha256
 from http.client import RemoteDisconnected
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import quote, urlparse
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 from urllib.robotparser import RobotFileParser
@@ -32,6 +32,9 @@ CORE = {
 
 
 def get(url, timeout=10):
+    # urllib requires an ASCII request target. Preserve URL separators and
+    # existing percent escapes so official Korean paths keep their meaning.
+    url = quote(url, safe=":/?#[]@!$&'()*+,;=%")
     req = Request(url, headers={'User-Agent': USER_AGENT, 'Accept': 'text/html,application/json'})
     try:
         with urlopen(req, timeout=timeout) as response:

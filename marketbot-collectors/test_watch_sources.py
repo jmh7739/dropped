@@ -12,6 +12,15 @@ from watch_sources import content_for, content_version
 
 
 class TransientRetryTests(unittest.TestCase):
+    def test_korean_path_is_encoded_without_changing_existing_escapes(self):
+        url = 'https://official.example/restaurants/떡볶이/KOP1?q=%EC%84%9C%EC%9A%B8&year=2026'
+        response = unittest.mock.MagicMock()
+        response.__enter__.return_value.read.return_value = b'official'
+        with patch.object(watch_sources, 'urlopen', return_value=response) as opened:
+            self.assertEqual(watch_sources.get(url), b'official')
+        target = opened.call_args.args[0].full_url
+        self.assertEqual(target, 'https://official.example/restaurants/%EB%96%A1%EB%B3%B6%EC%9D%B4/KOP1?q=%EC%84%9C%EC%9A%B8&year=2026')
+
     def test_remote_disconnect_gets_one_same_url_retry(self):
         url = 'https://official.example/guide'
         with patch.object(watch_sources, 'urlopen', side_effect=RemoteDisconnected()), \
