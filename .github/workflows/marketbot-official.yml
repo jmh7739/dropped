@@ -7,6 +7,8 @@ on:
   push:
     paths:
       - marketbot-collectors/collect_official.py
+      - marketbot-collectors/merge_official_snapshots.py
+      - marketbot-collectors/test_merge_official_snapshots.py
       - .github/workflows/marketbot-official.yml
 
 permissions:
@@ -25,25 +27,31 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - run: python -m unittest discover -s marketbot-collectors -p test_merge_official_snapshots.py
       - run: python marketbot-collectors/collect_official.py
       - name: Publish changed source snapshots
         run: |
-          git add marketbot-data/
-          if ! git diff --cached --quiet; then
+          set -euo pipefail
+          cp -R marketbot-data "$RUNNER_TEMP/official-observations"
+          for attempt in 1 2 3; do
+            git fetch origin main
+            # This Actions checkout is disposable. Reapply only owned files
+            # to latest main, comparing per-source verification timestamps.
+            git reset --hard origin/main
+            python marketbot-collectors/merge_official_snapshots.py \
+              "$RUNNER_TEMP/official-observations" marketbot-data
+            git add marketbot-data/checked-at.json marketbot-data/seoul-culture.xml marketbot-data/qnet-*.html
+            if git diff --cached --quiet; then
+              exit 0
+            fi
             git -c user.name='MarketBot' -c user.email='marketbot@users.noreply.github.com' commit -m 'Refresh official source snapshots'
-            for attempt in 1 2 3; do
-              git fetch origin main
-              git rebase origin/main
-              if git push origin HEAD:main; then
-                break
-              fi
-              if test "$attempt" -eq 3; then
-                echo 'Could not publish official snapshots after three attempts' >&2
-                exit 1
-              fi
-              sleep "$((attempt * 3))"
-            done
-          fi
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+            sleep "$((attempt * 3))"
+          done
+          echo 'Could not publish official snapshots after three attempts' >&2
+          exit 1
       - name: Publish new travel news
         run: curl --fail --show-error --silent --retry 2 --max-time 40 --request POST https://tripmkt.kr/api/updates/refresh
       - name: Refresh jobs and official exam dates
