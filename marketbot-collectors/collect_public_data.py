@@ -34,7 +34,7 @@ def request(path, params, key_name='serviceKey'):
         except HTTPError as exc:
             if exc.code not in (429, 500, 502, 503, 504) or attempt == 2:
                 raise
-        except URLError:
+        except (URLError, TimeoutError):
             if attempt == 2:
                 raise
         time.sleep(1 + attempt * 2)

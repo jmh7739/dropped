@@ -56,7 +56,8 @@ class PublicDataTests(unittest.TestCase):
         with patch.object(collector, 'request', side_effect=fake_request):
             result = collector.tourism()
         self.assertEqual([row['kind'] for row in result],
-                         ['travel_event', 'travel_place', 'travel_place'])
+                         ['travel_event', 'travel_place', 'travel_place',
+                          'travel_place', 'travel_place', 'travel_place'])
         self.assertEqual(result[0]['contentid'], '123')
 
     def test_disclosures_exclude_old_reference_dates(self):
@@ -70,6 +71,16 @@ class PublicDataTests(unittest.TestCase):
         with patch.object(collector, 'request', side_effect=fake_request):
             result = collector.disclosures([{'crno': '123'}])
         self.assertEqual([row['basDt'] for row in result], [recent])
+
+    def test_request_retries_transient_timeout(self):
+        from unittest.mock import MagicMock
+        response = MagicMock()
+        response.__enter__.return_value.read.return_value = b'{}'
+        with patch.object(collector, 'urlopen', side_effect=[TimeoutError(), response]) as open_url, \
+                patch.object(collector.time, 'sleep'):
+            result = collector.request('example/path', {})
+        self.assertEqual(result, b'{}')
+        self.assertEqual(open_url.call_count, 2)
 
 
 if __name__ == '__main__':
