@@ -70,7 +70,7 @@ async function main() {
   assert.equal(leanListing.trackedDays, 1, 'listing history should supply tracking duration without a view aggregate');
   const failedQuery = { select() { return this; }, not() { return this; }, is() { return this; }, eq() { return this; }, then(resolve) { return Promise.resolve({ data: null, error: { code: '57014' } }).then(resolve); } };
   const { getDeals: getFailedDeals, getCuratedDeals: getFailedCurated } = load('lib/deals.ts', {
-    './supabase': { supabase: { from: () => failedQuery } }, './types': {}, './dropMetrics': {}, './priceHistory': {},
+    './ttlCache': { withTtlCache: (_key, _ttl, load) => load() }, './supabase': { supabase: { from: () => failedQuery } }, './types': {}, './dropMetrics': {}, './priceHistory': {},
     './format': { listDiscountRate }, './unitPrice': { deriveUnitPrice }, './priceReport': { priceStats },
   });
   await assert.rejects(getFailedDeals(), /Deal listing unavailable: 57014/, 'a timed-out listing must not become zero deals');
