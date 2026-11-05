@@ -90,9 +90,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }
   const candidates = [...candidateIds].filter((id) => Number.isSafeInteger(id) && id > 0);
   const indexableProducts = new Map<number, string>();
-  for (let offset = 0; offset < candidates.length; offset += 100) {
+  const batches: number[][] = [];
+  for (let offset = 0; offset < candidates.length; offset += 100) batches.push(candidates.slice(offset, offset + 100));
+  let nextBatch = 0;
+  await Promise.all(Array.from({ length: 4 }, async () => { while (nextBatch < batches.length) {
+    const batch = batches[nextBatch++];
     try {
-      const histories = await readPriceHistory(candidates.slice(offset, offset + 100), new Date(Date.now() - 90 * 86400000).toISOString());
+      const histories = await readPriceHistory(batch, new Date(Date.now() - 90 * 86400000).toISOString());
       for (const [id, history] of histories) {
         const latest = history.at(-1);
         if (!latest) continue;
@@ -105,7 +109,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     } catch (error) {
       console.error("sitemap price histories unavailable:", error);
     }
-  }
+  } }));
   const dealRoutes: MetadataRoute.Sitemap = [...indexableProducts]
     .map(([id, lastModified]) => ({
       url: `${SITE_URL}/price/${id}`,

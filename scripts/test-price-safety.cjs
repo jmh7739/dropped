@@ -45,7 +45,7 @@ async function main() {
   assert.equal(isFreshPriceObservation('2026-10-11T12:00:00Z', fixedNow), false);
   assert.equal(stalePriceVerdict().title, '가격 재확인 필요');
   const { rowToDeal } = load('lib/deals.ts', {
-    './supabase': { supabase: null }, './types': {}, './dropMetrics': {}, './priceHistory': {},
+    './supabase': { supabase: null }, './types': {}, './dropMetrics': {}, './priceHistory': {}, './ttlCache': { withTtlCache: (_key, _ttl, load) => load() },
     './format': { listDiscountRate }, './unitPrice': { deriveUnitPrice },
     './priceReport': { priceStats }, react: { cache: fn => fn },
   });

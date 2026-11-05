@@ -1,4 +1,5 @@
 import { supabase } from "./supabase";
+import { withTtlCache } from "./ttlCache";
 import { Deal, PricePoint, HOT_LIKE_THRESHOLD } from "./types";
 import { headlineDropRate, hotDealScore, dropScore } from "./dropMetrics";
 import { readPriceHistory } from "./priceHistory";
@@ -305,6 +306,16 @@ export interface GetDealsOpts {
 
 /** 홈/카테고리 리스트용 딜 목록 (그래프 이력은 상세에서만 로드) */
 export async function getDeals(opts: GetDealsOpts = {}): Promise<Deal[]> {
+  // Search terms are unbounded, so only the fixed listing filters are cached.
+  if (opts.q?.trim()) return loadDeals(opts);
+  const { category, sort, hotOnly, priceStatus, scope } = opts;
+  const key = `deals:${JSON.stringify([category, sort, hotOnly, priceStatus, scope])}`;
+  return [...await withTtlCache(key, DEAL_LIST_TTL_MS, () => loadDeals(opts))];
+}
+
+const DEAL_LIST_TTL_MS = 60_000;
+
+async function loadDeals(opts: GetDealsOpts): Promise<Deal[]> {
   const { category, sort = "discount", hotOnly = false, q, priceStatus, scope } = opts;
   const term = q?.trim().toLowerCase();
 
