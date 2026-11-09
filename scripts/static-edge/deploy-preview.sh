@@ -33,6 +33,8 @@ test "$(curl -sS -m 60 -o /tmp/dropped-preview-home.html -w '%{http_code}' "http
 grep -q 'dropped.kr' /tmp/dropped-preview-home.html
 
 SITE_HOST=dropped.kr PARAM_LIMITS='{"/store-deals":1}' node scripts/static-edge/prerender.mjs "http://127.0.0.1:$PORT" 3000
+HTML_COUNT=$(find dist/client/__static -maxdepth 1 -name '*.html' | wc -l)
+test "$HTML_COUNT" -ge 400 || { echo "Only $HTML_COUNT HTML pages rendered; refusing to deploy" >&2; exit 1; }
 cleanup
 DEV_PID=
 npx --no-install wrangler deploy --config dist/server/edge-wrangler.json
