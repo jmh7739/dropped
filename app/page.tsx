@@ -329,6 +329,12 @@ export default async function Home({
         {!q && <p className="mt-2 text-center text-xs font-medium text-gray-500">가격 이력으로 확인한 하락과 판매처 표시 할인을 구분해 보여줍니다.</p>}
       </div>
 
+      {isDefaultHome && Date.now() < Date.parse("2026-11-13T00:00:00+09:00") && (
+        <Link href="/events/1111" className="mb-5 flex items-center justify-between gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 hover:border-red-300">
+          <span><strong className="text-sm text-gray-950">11월 11일 쇼핑 행사 특가 모음</strong><span className="mt-0.5 block text-xs text-gray-600">11번가·알리익스프레스 상품을 가격 이력과 함께 확인</span></span>
+          <span className="text-sm font-bold text-brand">보기 →</span>
+        </Link>
+      )}
       {isDefaultHome && <SavedPriceWatches />}
       {isDefaultHome && <nav aria-label="어떤 가격을 찾으세요?" className="mb-6 grid gap-2 sm:grid-cols-3">{[['/store-deals','마트·편의점 행사','기간·회원·1+1 조건 확인'],['#observed-deals','가격 내려간 상품','관측 이력이 있는 상품 비교'],['/unit-price','묶음 가격 비교','100g·1개당 가격 계산']].map(([href,title,copy])=><Link key={href} href={href} className="flex min-h-20 flex-col justify-center rounded-xl border border-gray-200 bg-white px-4 py-3 hover:border-red-300"><strong className="text-sm text-gray-950">{title} →</strong><span className="mt-1 text-xs leading-5 text-gray-600">{copy}</span></Link>)}</nav>}{isDefaultHome && <Suspense fallback={<p className="mb-4 text-sm text-gray-600">마트 행사 확인 중… <Link href="/store-deals">행사 목록 열기</Link></p>}><RetailHighlights /></Suspense>}
 

@@ -15,27 +15,39 @@ async function storedName(path, params) {
   return `/__static/${hex}${extensionFor(path)}`;
 }
 
+// The workers.dev address is a preview copy of the real domain; keep it out of search results.
+function markPreview(url, response) {
+  if (!url.hostname.endsWith(".workers.dev")) return response;
+  const headers = new Headers(response.headers);
+  headers.set("X-Robots-Tag", "noindex, nofollow");
+  return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
+}
+
+async function serve(request, env, ctx, url) {
+  if (url.pathname.startsWith("/__static/")) return new Response("Not found", { status: 404 });
+  if ((request.method !== "GET" && request.method !== "HEAD") || DYNAMIC.test(url.pathname)) {
+    return app.fetch(request, env, ctx);
+  }
+
+  let path = url.pathname.replace(/\.rsc$/, "");
+  if (path === "/index") path = "/";
+  if (path.length > 1) path = path.replace(/\/$/, "");
+  const params = new URLSearchParams(url.search);
+  params.delete("_rsc");
+
+  const stored = await env.ASSETS.fetch(new URL(await storedName(path, params), url.origin));
+  if (!stored.ok) return app.fetch(request, env, ctx);
+
+  // A client navigation that receives HTML falls back to a full page load.
+  const headers = new Headers(stored.headers);
+  headers.set("Cache-Control", "public, max-age=300");
+  headers.set("X-Dropped-Static", "1");
+  return new Response(stored.body, { status: 200, headers });
+}
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
-    if (url.pathname.startsWith("/__static/")) return new Response("Not found", { status: 404 });
-    if ((request.method !== "GET" && request.method !== "HEAD") || DYNAMIC.test(url.pathname)) {
-      return app.fetch(request, env, ctx);
-    }
-
-    let path = url.pathname.replace(/\.rsc$/, "");
-    if (path === "/index") path = "/";
-    if (path.length > 1) path = path.replace(/\/$/, "");
-    const params = new URLSearchParams(url.search);
-    params.delete("_rsc");
-
-    const stored = await env.ASSETS.fetch(new URL(await storedName(path, params), url.origin));
-    if (!stored.ok) return app.fetch(request, env, ctx);
-
-    // A client navigation that receives HTML falls back to a full page load.
-    const headers = new Headers(stored.headers);
-    headers.set("Cache-Control", "public, max-age=300");
-    headers.set("X-Dropped-Static", "1");
-    return new Response(stored.body, { status: 200, headers });
+    return markPreview(url, await serve(request, env, ctx, url));
   },
 };
