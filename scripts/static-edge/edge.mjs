@@ -3,6 +3,10 @@
 import app from "./index.js";
 
 const DYNAMIC = /^\/(api|go|_next)(\/|$)/;
+// Retail pages can refresh within the Workers Free subrequest budget. The
+// Supabase-heavy homepage needs a scheduled static rebuild instead.
+const LIVE_CONTENT = /^\/store-deals(?:\/.*)?$/;
+const LIVE_CACHE_SECONDS = 300;
 
 const extensionFor = (path) => (/\.(xml|txt)$/.exec(path)?.[0] ?? ".html");
 
@@ -23,6 +27,23 @@ function markPreview(url, response) {
   return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
 }
 
+function staticResponse(stored, refreshing = false) {
+  const headers = new Headers(stored.headers);
+  headers.set("Cache-Control", refreshing ? "no-store" : "public, max-age=300");
+  headers.set("X-Dropped-Static", "1");
+  if (refreshing) headers.set("X-Dropped-Refreshing", "1");
+  return new Response(stored.body, { status: 200, headers });
+}
+
+async function refreshLive(request, env, ctx) {
+  const fresh = await app.fetch(request, env, ctx);
+  if (!fresh.ok || !fresh.headers.get("content-type")?.includes("text/html") || fresh.headers.has("set-cookie")) return;
+  const headers = new Headers(fresh.headers);
+  headers.set("Cache-Control", `public, max-age=${LIVE_CACHE_SECONDS}`);
+  headers.set("X-Dropped-Live", "1");
+  await caches.default.put(request, new Response(fresh.body, { status: fresh.status, headers }));
+}
+
 async function serve(request, env, ctx, url) {
   if (url.pathname.startsWith("/__static/")) return new Response("Not found", { status: 404 });
   if ((request.method !== "GET" && request.method !== "HEAD") || DYNAMIC.test(url.pathname)) {
@@ -36,13 +57,21 @@ async function serve(request, env, ctx, url) {
   params.delete("_rsc");
 
   const stored = await env.ASSETS.fetch(new URL(await storedName(path, params), url.origin));
+  // Serve the existing copy immediately on a cold cache, then refresh it in
+  // the background. This avoids a slow first view during a price-feed refresh.
+  // Each cache entry expires after five minutes; a failed refresh leaves the
+  // dated stored copy visible instead of presenting a failed fetch as current.
+  if (request.method === "GET" && LIVE_CONTENT.test(path) && stored.ok &&
+      !request.headers.has("RSC") && !url.searchParams.has("_rsc")) {
+    const cached = await caches.default.match(request);
+    if (cached) return cached;
+    ctx.waitUntil(refreshLive(request, env, ctx).catch((error) => console.error("live page refresh failed", path, error)));
+    return staticResponse(stored, true);
+  }
   if (!stored.ok) return app.fetch(request, env, ctx);
 
   // A client navigation that receives HTML falls back to a full page load.
-  const headers = new Headers(stored.headers);
-  headers.set("Cache-Control", "public, max-age=300");
-  headers.set("X-Dropped-Static", "1");
-  return new Response(stored.body, { status: 200, headers });
+  return staticResponse(stored);
 }
 
 export default {

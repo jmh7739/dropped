@@ -105,7 +105,7 @@ fs.copyFileSync("scripts/static-edge/edge.mjs", "dist/server/edge.mjs");
 fs.writeFileSync("dist/server/edge-wrangler.json", JSON.stringify({
   ...config,
   main: "edge.mjs",
-  assets: { ...config.assets, html_handling: "none", run_worker_first: ["/*", "!/_next/*"] },
+  assets: { binding: "ASSETS", ...config.assets, html_handling: "none", run_worker_first: ["/*", "!/_next/*"] },
 }, null, 1));
 
 const rows = [...results.values()];
