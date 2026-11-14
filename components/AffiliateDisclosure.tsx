@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { COUPANG_PARTNERS_NOTICE, GENERAL_AFFILIATE_NOTICE } from "@/lib/affiliate";
 
 const SERVICE_LINKS = [
   { href: "/", label: "핫딜" },
@@ -62,17 +63,18 @@ export default function AffiliateDisclosure() {
 
         </div>
 
-        <div className="mt-9 border-t border-gray-800 pt-6 text-xs leading-relaxed text-gray-400">
-          <p>
-            이 사이트는 제휴마케팅 활동을 통해 일정액의 수수료를 지급받을 수 있습니다.
-            가격·할인 정보는 수집 시점 기준이며, 구매 전 판매 페이지에서 최종 가격을 확인해 주세요.
+        <div className="mt-9 border-t border-gray-800 pt-6 text-[13px] leading-relaxed text-gray-300">
+          <p className="text-sm font-bold text-gray-200">{COUPANG_PARTNERS_NOTICE}</p>
+          <p className="mt-1">
+            {GENERAL_AFFILIATE_NOTICE} 가격·할인 정보는 수집 시점 기준이며, 구매 전 판매 페이지에서 최종 가격을 확인해 주세요.
           </p>
           <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p>© {new Date().getFullYear()} 떨어졌다</p>
             <nav aria-label="정책 및 정보" className="flex flex-wrap gap-x-4 gap-y-2">
               <Link href="/privacy" className="transition-colors hover:text-gray-300">개인정보처리방침</Link>
               <Link href="/terms" className="transition-colors hover:text-gray-300">이용안내·면책</Link>
-              <a href="mailto:aimarket7329@gmail.com" className="transition-colors hover:text-gray-300">문의</a>
+              <Link href="/about" className="transition-colors hover:text-gray-300">사이트 소개</Link>
+              <Link href="/contact" className="transition-colors hover:text-gray-300">문의하기</Link>
               <a href="/feed.xml" className="transition-colors hover:text-gray-300">RSS</a>
             </nav>
           </div>

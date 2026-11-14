@@ -37,13 +37,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${SITE_URL}/store-deals`, changeFrequency: 'daily', priority: 0.8 },
     { url: `${SITE_URL}/store-deals/calendar`, changeFrequency: 'daily', priority: 0.7 },
     { url: `${SITE_URL}/about`, changeFrequency: "monthly", priority: 0.5 },
+    { url: `${SITE_URL}/contact`, changeFrequency: "yearly", priority: 0.3 },
     { url: `${SITE_URL}/privacy`, changeFrequency: "yearly", priority: 0.2 },
     { url: `${SITE_URL}/terms`, changeFrequency: "yearly", priority: 0.2 },
-    { url: `${SITE_URL}/guides`, changeFrequency: "monthly", priority: 0.6 },
-    { url: `${SITE_URL}/unit-price`, changeFrequency: "monthly", priority: 0.75 },
-    { url: `${SITE_URL}/events/1111`, changeFrequency: "daily", priority: 0.8 },
-    ...GUIDES.map((guide) => ({ url: `${SITE_URL}/guides/${guide.slug}`, changeFrequency: "monthly" as const, priority: 0.6 })),
-    ...(insights.length >= 3 ? [{ url: `${SITE_URL}/insights`, changeFrequency: "daily" as const, priority: 0.8 }] : []),
+    { url: `${SITE_URL}/guides`, changeFrequency: "weekly", priority: 0.95 },
+    { url: `${SITE_URL}/unit-price`, changeFrequency: "monthly", priority: 0.85 },
+    { url: `${SITE_URL}/events/1111`, changeFrequency: "weekly", priority: 0.5 },
+    ...GUIDES.map((guide) => ({ url: `${SITE_URL}/guides/${guide.slug}`, changeFrequency: "monthly" as const, priority: 0.9 })),
+    ...(insights.length >= 3 ? [{ url: `${SITE_URL}/insights`, changeFrequency: "daily" as const, priority: 0.9 }] : []),
     ...(hasDomestic ? [{ url: `${SITE_URL}/deals/domestic`, changeFrequency: "hourly" as const, priority: 0.8 }] : []),
     ...(hasGlobal ? [{ url: `${SITE_URL}/deals/global`, changeFrequency: "hourly" as const, priority: 0.8 }] : []),
     ...(hasLowest ? [{ url: `${SITE_URL}/lowest-price`, changeFrequency: "hourly" as const, priority: 0.9 }] : []),
@@ -51,7 +52,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...CATEGORIES.filter((c) => c.dealType === "shopping" && (categoryCounts.get(c.slug) ?? 0) >= 3).map((c) => ({
       url: `${SITE_URL}/category/${c.slug}`,
       changeFrequency: "hourly" as const,
-      priority: 0.7,
+      priority: 0.85,
     })),
   ];
 
@@ -116,7 +117,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       url: `${SITE_URL}/price/${id}`,
       lastModified,
       changeFrequency: "daily" as const,
-      priority: 0.8,
+      // Product price pages are numerous template pages: keep them indexable but
+      // below guides, categories and analysis hubs.
+      priority: 0.4,
     }));
 
   // Insight reports use the same product-history data as /price/[id]. Include
@@ -127,13 +130,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       url: `${SITE_URL}/price/${product.id}`,
       lastModified: product.lastCheckedAt ?? undefined,
       changeFrequency: "daily" as const,
-      priority: 0.8,
+      // Product price pages are numerous template pages: keep them indexable but
+      // below guides, categories and analysis hubs.
+      priority: 0.4,
     }));
 
   const retailRoutes: MetadataRoute.Sitemap = await getRetailCatalog().then(({catalog}) =>
     [...new Map(catalog.offers.filter(o => isDiscoverableRetailOffer(o)).map(o => [o.id, o])).values()]
       .sort((a, b) => b.lastSeenAt.localeCompare(a.lastSeenAt)).slice(0, 120)
-      .map(o => ({url: `${SITE_URL}/store-deals/${encodeURIComponent(o.id)}`, lastModified: o.lastSeenAt, changeFrequency: 'daily' as const, priority: 0.7}))
+      .map(o => ({url: `${SITE_URL}/store-deals/${encodeURIComponent(o.id)}`, lastModified: o.lastSeenAt, changeFrequency: 'daily' as const, priority: 0.5}))
   ).catch(() => []); // Keep existing discovery routes available if a feed fails.
-  return [...staticRoutes, ...dealRoutes, ...insightRoutes, ...retailRoutes];
+  const ordered = [...staticRoutes].sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0));
+  return [...ordered, ...insightRoutes, ...dealRoutes, ...retailRoutes];
 }

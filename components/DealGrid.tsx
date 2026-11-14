@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Deal } from "@/lib/types";
 import DealCard from "./DealCard";
+import CoupangPartnersNotice from "./CoupangPartnersNotice";
 
 type View = "gallery" | "list";
 
@@ -20,7 +21,7 @@ export default function DealGrid({ deals }: { deals: Deal[] }) {
   }
 
   const btn = (v: View, label: string) =>
-    `rounded-md px-2 py-1 text-sm transition ${
+    `min-h-11 rounded-md px-3 py-2 text-sm transition ${
       view === v
         ? "bg-brand text-white"
         : "border border-gray-200 bg-white text-gray-500 hover:bg-gray-50"
@@ -28,6 +29,7 @@ export default function DealGrid({ deals }: { deals: Deal[] }) {
 
   return (
     <div>
+      <CoupangPartnersNotice className="mb-3" showGeneral={false} />
       <div className="mb-3 flex justify-end gap-1.5">
         <button
           onClick={() => choose("gallery")}

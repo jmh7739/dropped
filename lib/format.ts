@@ -25,6 +25,18 @@ export function listDiscountRate(listPrice: number | null | undefined, currentPr
 }
 
 /** "3시간 전", "2일 전" 같은 상대 시간 */
+/** 관측 시각을 한국 시간 절대값으로 표시 (서버·클라이언트 결과가 같도록 시간대 고정) */
+export function observedAtLabel(iso: string | null | undefined): string | null {
+  if (!iso) return null;
+  const t = new Date(iso);
+  if (Number.isNaN(t.getTime())) return null;
+  const parts = new Intl.DateTimeFormat("ko-KR", {
+    timeZone: "Asia/Seoul", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false,
+  }).formatToParts(t);
+  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
+  return `${get("month")}/${get("day")} ${get("hour")}:${get("minute")} 확인`;
+}
+
 export function timeAgo(iso: string): string {
   const then = new Date(iso).getTime();
   const diff = Date.now() - then;

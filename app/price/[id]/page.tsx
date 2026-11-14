@@ -3,7 +3,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { getProductReport } from "@/lib/products";
 import { getRelatedDeals } from "@/lib/deals";
-import { formatWon, timeAgo } from "@/lib/format";
+import { formatWon, timeAgo, observedAtLabel } from "@/lib/format";
 import { priceStats, buyVerdict, isFreshPriceObservation, stalePriceVerdict } from "@/lib/priceReport";
 import { PLATFORM_LABEL, Platform } from "@/lib/types";
 import { dropScore } from "@/lib/dropMetrics";
@@ -18,7 +18,9 @@ import DealCard from "@/components/DealCard";
 import Breadcrumb from "@/components/Breadcrumb";
 import { ShippingBadge } from "@/components/DiscountBadge";
 import { SITE_URL as SITE } from "@/lib/site";
-import { productDisplayTitle } from "@/lib/productTitle";
+import { productDisplayTitle, leadWithProductName } from "@/lib/productTitle";
+import { purchaseSummary } from "@/lib/purchaseSummary";
+import CoupangPartnersNotice from "@/components/CoupangPartnersNotice";
 
 export const revalidate = 300;
 
@@ -38,7 +40,7 @@ export async function generateMetadata({
   const lastCheck = r.lastCheckedAt ? new Date(r.lastCheckedAt).getTime() : 0;
   const indexable = Boolean(stats?.enoughData && lastCheck > 0 && Date.now() - lastCheck <= 14 * 86400000);
   const period = stats ? `추적 ${stats.trackedDays}일 · ${stats.points}회 가격 확인 · 서로 다른 날짜 ${stats.observedDays}일` : "가격 이력 수집 중";
-  const displayTitle = productDisplayTitle(r.title);
+  const displayTitle = productDisplayTitle(leadWithProductName(r.title));
   return {
     title: stats?.enoughData ? `${displayTitle} 가격 추이` : `${displayTitle} 마지막 확인 가격`,
     description: r.currentPrice == null
@@ -131,6 +133,11 @@ export default async function ProductPricePage({
   } : null;
 
   const categoryHref = `/category/${r.categorySlug}`;
+  const headingTitle = leadWithProductName(r.title);
+  const summary = stats && currentPrice != null
+    ? purchaseSummary({ current: currentPrice, stats, platform: r.platform, shippingFee: r.shippingFee, lastCheckedAt: r.lastCheckedAt, fresh: freshObservation })
+    : null;
+  const observed = observedAtLabel(r.lastCheckedAt);
 
   return (
     <div>
@@ -145,7 +152,7 @@ export default async function ProductPricePage({
         items={[
           { label: "홈", href: "/" },
           { label: r.categoryName, href: categoryHref },
-          { label: r.title.length > 50 ? `${r.title.slice(0, 47)}…` : r.title },
+          { label: productDisplayTitle(headingTitle, 40) },
         ]}
       />
 
@@ -159,7 +166,7 @@ export default async function ProductPricePage({
         </div>
 
         <div className="flex flex-col">
-          <div className="mb-2 flex items-center gap-1.5 text-xs text-gray-400">
+          <div className="mb-2 flex items-center gap-1.5 text-xs text-gray-600">
             <span className="rounded bg-gray-100 px-1.5 py-0.5 text-gray-600">
               {mall(r)}
             </span>
@@ -168,7 +175,13 @@ export default async function ProductPricePage({
             </Link>
           </div>
 
-          <h1 className="break-words text-lg font-bold leading-snug" title={r.title}>{productDisplayTitle(r.title)}</h1>
+          <h1 className="line-clamp-2 break-words text-lg font-bold leading-snug" title={r.title}>{headingTitle}</h1>
+          {headingTitle !== r.title.replace(/\s+/g, " ").trim() || r.title.length > 60 ? (
+            <details className="mt-1 text-[13px] text-gray-600">
+              <summary className="cursor-pointer font-semibold">판매처 원래 상품명 보기</summary>
+              <p className="mt-1 break-words">{r.title}</p>
+            </details>
+          ) : null}
           {currentPrice == null ? (
             <div className="mt-3 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-medium text-blue-900">
               요즘 뜨는 상품으로 새로 등록됐습니다. 가격 이력 수집을 준비하고 있습니다.
@@ -201,23 +214,26 @@ export default async function ProductPricePage({
 
           <div className="mt-4 rounded-xl bg-gray-50 p-4">
             {currentPrice != null && r.listPrice > 0 && r.listPrice > currentPrice && (
-              <div className="text-sm text-gray-400 line-through">
+              <div className="text-sm text-gray-600 line-through">
                 정가 {formatWon(r.listPrice)}
               </div>
             )}
             {currentPrice == null ? (
               <div className="mt-1 text-lg font-extrabold text-gray-600">가격 수집 준비 중</div>
             ) : (
-              <div className="mt-1 text-3xl font-extrabold text-brand">{formatWon(currentPrice)}</div>
+              <div className="mt-1 flex flex-wrap items-baseline gap-x-2">
+                <span className="text-3xl font-extrabold text-brand">{formatWon(currentPrice)}</span>
+                {observed && <span className="text-[13px] font-semibold text-gray-600">{observed}</span>}
+              </div>
             )}
             {currentPrice != null && (
               <p className="mt-1 text-xs text-gray-500">마지막 수집 시점의 가격 · 실시간 판매가가 아닙니다</p>
             )}
             {r.unitPrice && (
-              <div className="mt-0.5 text-sm text-gray-400">{r.unitPrice}</div>
+              <div className="mt-0.5 text-sm text-gray-600">{r.unitPrice}</div>
             )}
             {r.lastCheckedAt && (
-              <div className="mt-2 text-xs text-gray-400" suppressHydrationWarning>
+              <div className="mt-2 text-xs text-gray-600" suppressHydrationWarning>
                 마지막 자동 관측: {timeAgo(r.lastCheckedAt)}
               </div>
             )}
@@ -244,13 +260,36 @@ export default async function ProductPricePage({
               </BuyButton>
             </div>
           </div>
-          <p className="mt-2 text-center text-[11px] text-gray-400">
+          <CoupangPartnersNotice className="mt-2" />
+          <p className="mt-2 text-center text-[13px] text-gray-600">
             제휴 링크입니다. 표시 가격은 선택 옵션·배송지·배송비·쿠폰 적용에 따라 최종 결제금액과 다를 수 있습니다. 구매 전에 판매 페이지에서 옵션과 총액을 확인하세요.
           </p>
           <PriceWatch productId={r.id} currentPrice={currentPrice}
             lowestPrice={stats?.min90 ?? stats?.minAll ?? null} checkedAt={r.lastCheckedAt} trackedDays={stats?.trackedDays ?? null} />
         </div>
       </div>
+
+      {summary && (
+        <section aria-labelledby="purchase-summary" className="mt-8 rounded-xl border border-gray-200 bg-white p-5">
+          <h2 id="purchase-summary" className="text-base font-bold text-gray-900">구매 판단 요약</h2>
+          <p className="mt-2 text-base font-semibold leading-7 text-gray-900">{summary.headline}</p>
+          {summary.paragraphs.map((text) => (
+            <p key={text} className="mt-2 text-[15px] leading-7 text-gray-700">{text}</p>
+          ))}
+          <h3 className="mt-4 text-sm font-bold text-gray-900">사기 전에 확인할 것</h3>
+          <ul className="mt-2 list-disc space-y-1.5 pl-5 text-[15px] leading-7 text-gray-700">
+            {summary.checklist.map((item) => <li key={item}>{item}</li>)}
+          </ul>
+          {r.platform === "aliexpress" && (
+            <p className="mt-2 text-[13px] text-gray-600">
+              통관·관부가세 기준은 <a href="https://unipass.customs.go.kr" target="_blank" rel="noopener noreferrer" className="font-semibold text-brand underline">관세청 유니패스</a>에서 확인할 수 있습니다.
+            </p>
+          )}
+          <p className="mt-3 text-[13px] text-gray-600">
+            확인 시각: {summary.checkedLabel ?? "기록 없음"} · 이 요약은 떨어졌다가 수집한 가격 기록으로 자동 계산했으며, 판매 페이지의 현재 가격과 다를 수 있습니다.
+          </p>
+        </section>
+      )}
 
       {stats?.enoughData && verdict && (
         <section className="mt-8">

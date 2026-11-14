@@ -43,11 +43,14 @@ export default function BuyButton({
       className={
         className ??
         (compact
-          ? "block rounded-lg bg-brand py-1.5 text-center text-xs font-bold text-white transition hover:bg-brand-dark"
+          ? "block min-h-11 rounded-lg bg-brand px-2 py-1.5 text-center text-[13px] font-bold text-white transition hover:bg-brand-dark"
           : "block rounded-xl bg-brand py-3.5 text-center text-base font-bold text-white transition hover:bg-brand-dark")
       }
     >
       {children}
+      <span className={compact ? "mt-0.5 block text-[12px] font-semibold opacity-90" : "ml-1.5 text-sm font-semibold opacity-90"}>
+        {compact ? "제휴 링크" : "(제휴 링크)"}
+      </span>
     </a>
   );
 }

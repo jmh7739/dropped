@@ -153,6 +153,26 @@ async function main() {
     then(resolve){return Promise.resolve(resolve({data:null,error:{code:'network_failure'}}))},
   }}}}});
   await assert.rejects(failing.readPriceHistory([1]),/unavailable/);
+  const { leadWithProductName } = load('lib/productTitle.ts');
+  assert.equal(leadWithProductName('2026 New Hot Sale Wireless Earphones TWS'), 'Wireless Earphones TWS · 2026 New Hot Sale');
+  assert.equal(leadWithProductName('삼성 갤럭시 버즈'), '삼성 갤럭시 버즈');
+  const { COUPANG_PARTNERS_NOTICE } = load('lib/affiliate.ts');
+  assert.equal(COUPANG_PARTNERS_NOTICE, '이 포스팅은 쿠팡 파트너스 활동의 일환으로, 이에 따른 일정액의 수수료를 제공받습니다.');
+  for (const file of ['components/DealGrid.tsx', 'components/GoldboxBanner.tsx', 'app/price/[id]/page.tsx', 'app/page.tsx']) {
+    assert.match(fs.readFileSync(file, 'utf8'), /CoupangPartnersNotice/, `${file} must show the Coupang Partners notice near affiliate links`);
+  }
+  const { purchaseSummary } = load('lib/purchaseSummary.ts');
+  const sumStats = { current: 9000, avg30: 10000, min90: 9000, minAll: 9000, points: 40, observedDays: 20, trackedDays: 20,
+    percentile: 0, isLowest: true, lowestLabel: '추적 20일 최저가', enoughData: true };
+  const summary = purchaseSummary({ current: 9000, stats: sumStats, platform: 'aliexpress', shippingFee: 3000,
+    lastCheckedAt: '2026-11-14T00:30:00Z', fresh: true });
+  assert.ok(summary.paragraphs[0].includes("10%(1,000원) 낮습니다"));
+  assert.match(summary.headline, /가장 낮은/);
+  assert.ok(summary.checklist.some((line) => line.includes('12,000원')), 'shipping total must be shown');
+  assert.ok(summary.checklist.some((line) => line.includes('해외직구')));
+  assert.equal(summary.checkedLabel, '2026년 11월 14일 09:30 (한국 시간)');
+  const stale = purchaseSummary({ current: 9000, stats: sumStats, platform: 'coupang', shippingFee: null, lastCheckedAt: null, fresh: false });
+  assert.match(stale.headline, /48시간/);
   console.log('PASS: latest deal price reconciliation, invalid/future prices, actual tracking duration, honest minimum labels, multi-page latest prices, failed fetch');
 }
 main().catch(error=>{console.error(error);process.exitCode=1;});

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Deal, mallLabel } from "@/lib/types";
-import { formatWon, headlineDiscount, displayTitle, brandFrom, listDiscountRate } from "@/lib/format";
+import { formatWon, observedAtLabel, headlineDiscount, displayTitle, brandFrom, listDiscountRate } from "@/lib/format";
 import { averagePeriodLabel, dropScore, lowestPeriodLabel, trackingStage } from "@/lib/dropMetrics";
 import { dealVerdict } from "@/lib/priceReport";
 import { PriceErrorBadge, ShippingBadge } from "./DiscountBadge";
@@ -26,6 +26,10 @@ export default function DealCard({
   const scoreReady = (trackedDays ?? 0) >= 14 && (deal.historyPointCount ?? 0) >= 20;
   const stage = trackingStage(trackedDays, deal.historyPointCount);
   const brand = brandFrom(deal.title);
+  const observed = observedAtLabel(deal.checkedAt ?? deal.detectedAt);
+  const observedLine = observed ? (
+    <span className="block text-[13px] text-gray-600" data-observed-at>{observed}</span>
+  ) : null;
   const scoreIcon =
     score.tone === "hot" || score.tone === "good"
       ? "🟢"
@@ -52,7 +56,7 @@ export default function DealCard({
   const displayRate = isCurated ? curatedDisc : rate;
   const curatedBadge =
     curatedDisc > 0 ? (
-      <span className="rounded-md bg-blue-600 px-2 py-1 text-[11px] font-extrabold text-white shadow-sm">
+      <span className="rounded-md bg-blue-600 px-2 py-1 text-[12px] font-extrabold text-white shadow-sm">
         🆕 새로 발견 · 정가 -{curatedDisc}%
       </span>
     ) : null;
@@ -64,13 +68,13 @@ export default function DealCard({
     : deal.avg30Price ?? 0;
 
   const trackingChip = !isCurated ? (
-    <span className={`rounded border px-1.5 py-0.5 text-[10px] font-bold ${stage.className}`}>
+    <span className={`rounded border px-1.5 py-0.5 text-[12px] font-bold ${stage.className}`}>
       {stage.icon} {trackedDays ? `${trackedDays}일 추적` : "추적 시작"}
     </span>
   ) : null;
 
   const trustChip = (
-    <span className={`rounded border px-1.5 py-0.5 text-[10px] font-extrabold ${
+    <span className={`rounded border px-1.5 py-0.5 text-[12px] font-extrabold ${
       !isCurated && scoreReady
         ? "border-emerald-300 bg-emerald-50 text-emerald-900"
         : isCurated
@@ -113,9 +117,9 @@ export default function DealCard({
             />
           </div>
           <div className="min-w-0 flex-1">
-            <div className="mb-0.5 flex flex-wrap items-center gap-1.5 text-[11px] text-gray-400">
+            <div className="mb-0.5 flex flex-wrap items-center gap-1.5 text-[12px] text-gray-600">
               {isCurated ? curatedBadge : scoreReady ? (
-                <span className={`inline-flex items-center rounded-md px-2 py-1 text-[11px] font-extrabold shadow-sm ${scoreCls}`}>
+                <span className={`inline-flex items-center rounded-md px-2 py-1 text-[12px] font-extrabold shadow-sm ${scoreCls}`}>
                   {scoreIcon} {score.label}
                 </span>
               ) : null}
@@ -135,21 +139,22 @@ export default function DealCard({
                 {formatWon(deal.currentPrice)}
               </span>
               {strikePrice > deal.currentPrice && (
-                <span className="text-[11px] text-gray-400 line-through">
+                <span className="text-[13px] text-gray-600 line-through">
                   {formatWon(strikePrice)}
                 </span>
               )}
               {saving > 0 && (
-                <span className="text-[11px] font-semibold text-blue-600">
+                <span className="text-[13px] font-semibold text-blue-700">
                   {deal.isCurated ? `판매처 기준 ${formatWon(saving)} 할인` : `${deal.avg30Price ? averagePeriodLabel(trackedDays) : '기준 관측가'}보다 ${formatWon(saving)} 낮음`}
                 </span>
               )}
               {deal.unitPrice && (
-                <span className="text-[11px] text-gray-400">· {deal.unitPrice}</span>
+                <span className="text-[13px] text-gray-600">· {deal.unitPrice}</span>
               )}
             </div>
+            {observedLine}
             {!isCurated && scoreReady && score.score !== null && verdict && (
-              <div className="mt-1 flex flex-wrap items-center gap-x-2 text-[11px]">
+              <div className="mt-1 flex flex-wrap items-center gap-x-2 text-[12px]">
                 <span className="text-gray-500">
                   {deal.isLowestEver ? lowestPeriodLabel(trackedDays) : averagePeriodLabel(trackedDays)}
                 </span>
@@ -206,7 +211,7 @@ export default function DealCard({
           )}
           <div className="absolute left-2 top-2 flex flex-col items-start gap-1">
             {isCurated ? curatedBadge : scoreReady ? (
-              <span className={`inline-flex items-center rounded-md px-2 py-1 text-[11px] font-extrabold shadow-sm ${scoreCls}`}>
+              <span className={`inline-flex items-center rounded-md px-2 py-1 text-[12px] font-extrabold shadow-sm ${scoreCls}`}>
                 {scoreIcon} {score.label}
               </span>
             ) : null}
@@ -215,7 +220,7 @@ export default function DealCard({
         </div>
 
         <div className="flex flex-1 flex-col gap-1 p-3 pb-2">
-          <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-gray-400">
+          <div className="flex flex-wrap items-center gap-1.5 text-[12px] text-gray-600">
             <span className="rounded bg-gray-100 px-1.5 py-0.5 font-medium text-gray-600">
               {mallLabel(deal)}
             </span>
@@ -235,25 +240,26 @@ export default function DealCard({
                 {formatWon(deal.currentPrice)}
               </span>
               {saving > 0 && (
-                <span className="text-[11px] font-semibold text-blue-600">
+                <span className="text-[13px] font-semibold text-blue-700">
                   {deal.isCurated ? `판매처 기준 ${formatWon(saving)} 할인` : `${deal.avg30Price ? averagePeriodLabel(trackedDays) : '기준 관측가'}보다 ${formatWon(saving)} 낮음`}
                 </span>
               )}
             </div>
+            {observedLine}
             {deal.unitPrice && (
-              <div className="text-[11px] text-gray-400">{deal.unitPrice}</div>
+              <div className="text-[13px] text-gray-600">{deal.unitPrice}</div>
             )}
             {strikePrice > deal.currentPrice && (
-              <div className="mt-0.5 text-[11px] text-gray-500">
+              <div className="mt-0.5 text-[13px] text-gray-600">
                 {isCurated ? "정가" : averagePeriodLabel(trackedDays)} {formatWon(strikePrice)}
                 {displayRate > 0 && <span className="ml-1 font-bold text-blue-600">↓{displayRate}%</span>}
               </div>
             )}
             {!isCurated && deal.isLowestEver && (
-              <div className="mt-0.5 text-[11px] font-bold text-amber-700">🏆 {lowestPeriodLabel(trackedDays)}</div>
+              <div className="mt-0.5 text-[13px] font-bold text-amber-800">🏆 {lowestPeriodLabel(trackedDays)}</div>
             )}
             {!isCurated && scoreReady && score.score !== null && verdict && (
-              <div className="mt-1.5 flex items-center gap-1 text-[11px]">
+              <div className="mt-1.5 flex items-center gap-1 text-[12px]">
                 <span className="rounded bg-gray-900 px-1.5 py-0.5 font-extrabold text-white">
                   DROP {score.score}
                 </span>
