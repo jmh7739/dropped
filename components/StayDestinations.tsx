@@ -32,7 +32,7 @@ export default function StayDestinations({ region }: { region?: string }) {
             <span className="text-base font-extrabold text-gray-900">
               {r.region}
             </span>
-            <span className="text-[11px] text-gray-400">
+            <span className="text-[12px] text-gray-600">
               도시 {r.cities.length}곳
             </span>
           </Link>
@@ -59,7 +59,7 @@ export default function StayDestinations({ region }: { region?: string }) {
       </div>
 
       {!cur || cur.cities.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-gray-300 bg-white p-10 text-center text-gray-400">
+        <div className="rounded-xl border border-dashed border-gray-300 bg-white p-10 text-center text-gray-600">
           이 지역은 준비 중이에요.
         </div>
       ) : (
@@ -77,7 +77,7 @@ export default function StayDestinations({ region }: { region?: string }) {
                 <span className="block truncate text-sm font-extrabold text-gray-900">
                   {c.name}
                 </span>
-                <span className="text-[11px] font-bold text-brand">
+                <span className="text-[12px] font-bold text-brand">
                   호텔 보기 →
                 </span>
               </span>

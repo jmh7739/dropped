@@ -60,7 +60,7 @@ export default async function AuctionView({
       </div>
 
       {items.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-gray-300 bg-white p-12 text-center text-gray-400">
+        <div className="rounded-xl border border-dashed border-gray-300 bg-white p-12 text-center text-gray-600">
           아직 감지된 경매 물건이 없습니다.
         </div>
       ) : (
@@ -78,7 +78,7 @@ export default async function AuctionView({
                 rel="nofollow noopener noreferrer"
                 className="flex flex-col gap-2 rounded-xl border border-gray-200 bg-white p-4 transition hover:shadow-md"
               >
-                <div className="flex items-center gap-1.5 text-[11px]">
+                <div className="flex items-center gap-1.5 text-[12px]">
                   <span
                     className={`rounded px-1.5 py-0.5 font-bold ${
                       a.assetType === "부동산"
@@ -89,7 +89,7 @@ export default async function AuctionView({
                     {a.assetType}
                   </span>
                   {a.failCount > 0 && (
-                    <span className="text-gray-400">유찰 {a.failCount}회</span>
+                    <span className="text-gray-600">유찰 {a.failCount}회</span>
                   )}
                   {drop !== null && (
                     <span className="ml-auto rounded bg-brand px-1.5 py-0.5 font-bold text-white">
@@ -102,11 +102,11 @@ export default async function AuctionView({
                   {a.title}
                 </div>
                 {a.location && (
-                  <div className="text-xs text-gray-400">{a.location}</div>
+                  <div className="text-xs text-gray-600">{a.location}</div>
                 )}
 
                 <div className="mt-1">
-                  <div className="text-xs text-gray-400 line-through">
+                  <div className="text-xs text-gray-600 line-through">
                     감정가 {formatWon(a.appraisalPrice)}
                   </div>
                   <div className="text-lg font-extrabold text-brand">
@@ -116,7 +116,7 @@ export default async function AuctionView({
 
                 {/* 입찰 기간: 언제부터 언제까지 */}
                 {(a.bidStartDate || a.bidEndDate || a.bidDate) && (
-                  <div className="mt-2 rounded-md bg-red-50 px-2 py-1 text-[11px] font-semibold leading-tight text-red-600">
+                  <div className="mt-2 rounded-md bg-red-50 px-2 py-1 text-[12px] font-semibold leading-tight text-red-600">
                     🗓 입찰{" "}
                     {a.bidStartDate && a.bidEndDate
                       ? `${a.bidStartDate} ~ ${a.bidEndDate}`
@@ -124,7 +124,7 @@ export default async function AuctionView({
                   </div>
                 )}
 
-                <div className="mt-auto flex flex-wrap items-center gap-x-2 gap-y-1 pt-1 text-[11px] text-gray-400">
+                <div className="mt-auto flex flex-wrap items-center gap-x-2 gap-y-1 pt-1 text-[12px] text-gray-600">
                   <span>{a.caseNo}</span>
                   {a.collectedAt && (
                     <span suppressHydrationWarning>· 등록 {timeAgo(a.collectedAt)}</span>
@@ -136,7 +136,7 @@ export default async function AuctionView({
         </div>
       )}
 
-      <p className="mt-3 text-[11px] text-gray-400">
+      <p className="mt-3 text-[12px] text-gray-600">
         경매 정보는 참고용이며, 실제 권리관계·입찰은 법원경매정보에서 반드시
         확인하세요. 본 카테고리는 제휴 수익이 없는 정보 제공 목적입니다.
       </p>

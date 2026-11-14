@@ -39,7 +39,7 @@ export default function TermsPage() {
         으로 연락해 주세요.
       </p>
 
-      <p className="mt-6 text-xs text-gray-400">시행일: 2026년 9월 2일</p>
+      <p className="mt-6 text-xs text-gray-600">시행일: 2026년 9월 2일</p>
     </article>
   );
 }

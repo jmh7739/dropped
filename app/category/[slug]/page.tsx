@@ -179,12 +179,12 @@ export default async function CategoryPage({
       <div className="mb-1 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <h1 className="flex items-baseline text-xl font-extrabold">
           <span>{psLabel ?? cat.name}</span>
-          <span className="ml-2 text-sm font-normal text-gray-400">
+          <span className="ml-2 text-sm font-normal text-gray-600">
             {fetched.length}개
           </span>
         </h1>
       </div>
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-xs text-gray-400">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-xs text-gray-600">
         <p>수집한 가격 이력과 현재 가격을 함께 확인하세요</p>
         {lastUpdate && (
           <p className="flex items-center gap-1.5 whitespace-nowrap" suppressHydrationWarning>
@@ -195,7 +195,7 @@ export default async function CategoryPage({
       </div>
 
       {deals.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-gray-300 bg-white p-12 text-center text-gray-400">
+        <div className="rounded-xl border border-dashed border-gray-300 bg-white p-12 text-center text-gray-600">
           아직 이 카테고리에 감지된 특가가 없습니다.
         </div>
       ) : (

@@ -24,13 +24,13 @@ function RegionIcon({
 }
 
 const EMPTY = (
-  <div className="rounded-xl border border-dashed border-gray-300 bg-white p-12 text-center text-gray-400">
+  <div className="rounded-xl border border-dashed border-gray-300 bg-white p-12 text-center text-gray-600">
     아직 감지된 항공권 특가가 없습니다.
   </div>
 );
 
 const DISCLAIMER = (
-  <p className="mt-4 text-[11px] text-gray-400">
+  <p className="mt-4 text-[12px] text-gray-600">
     표시 가격은 제휴사가 최근 조회한 예상 요금(며칠 전 시세일 수 있음)이라
     실제와 다를 수 있어요. 정확한 가격·좌석은 예약 페이지에서 확인하세요.
   </p>
@@ -121,7 +121,7 @@ export default async function FlightsView({
                   <span>{r.origin}</span>
                   <span className="text-brand">✈</span>
                   <span>{r.destination}</span>
-                  <span className="ml-1 text-[11px] font-normal text-gray-400">
+                  <span className="ml-1 text-[12px] font-normal text-gray-600">
                     날짜 {r.dateCount}개
                   </span>
                 </div>
@@ -129,7 +129,7 @@ export default async function FlightsView({
                   <span className="text-lg font-extrabold text-brand">
                     {r.minPrice != null ? formatWon(r.minPrice) : "가격 문의"}
                   </span>
-                  <span className="ml-0.5 text-xs text-gray-400">부터</span>
+                  <span className="ml-0.5 text-xs text-gray-600">부터</span>
                 </div>
               </Link>
             ))}
@@ -156,14 +156,14 @@ export default async function FlightsView({
             <span className="text-base font-extrabold text-gray-900">
               {r.region}
             </span>
-            <span className="text-[11px] text-gray-400">
+            <span className="text-[12px] text-gray-600">
               노선 {r.routeCount}개
             </span>
             <span className="mt-1 text-sm">
               <span className="font-extrabold text-brand">
                 {r.minPrice != null ? formatWon(r.minPrice) : "-"}
               </span>
-              <span className="text-xs text-gray-400"> 부터</span>
+              <span className="text-xs text-gray-600"> 부터</span>
             </span>
           </Link>
         ))}

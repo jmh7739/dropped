@@ -10,7 +10,7 @@ const PAGE_SIZE = 10;
 function RankBadge({ rank }: { rank: number }) {
   return (
     <span
-      className={`flex h-5 w-5 shrink-0 items-center justify-center rounded text-[11px] font-extrabold tabular-nums ${
+      className={`flex h-5 w-5 shrink-0 items-center justify-center rounded text-[12px] font-extrabold tabular-nums ${
         rank <= 3 ? "bg-red-500 text-white" : "bg-gray-200 text-gray-700"
       }`}
     >
@@ -22,14 +22,14 @@ function RankBadge({ rank }: { rank: number }) {
 /** 상승/하강/유지/NEW 표시. */
 function Movement({ trend }: { trend: RealtimeTrend }) {
   if (trend.status === "NEW")
-    return <span className="text-[11px] font-extrabold text-brand">NEW</span>;
+    return <span className="text-[12px] font-extrabold text-brand">NEW</span>;
   if (trend.status === "up")
-    return <span className="text-[11px] font-bold text-red-700">▲{trend.rankChange}</span>;
+    return <span className="text-[12px] font-bold text-red-700">▲{trend.rankChange}</span>;
   if (trend.status === "down")
-    return <span className="text-[11px] font-bold text-blue-700">▼{Math.abs(trend.rankChange || 0)}</span>;
+    return <span className="text-[12px] font-bold text-blue-700">▼{Math.abs(trend.rankChange || 0)}</span>;
   if (trend.previousRank == null)
-    return <span className="text-[10px] font-bold text-gray-500">비교 없음</span>;
-  return <span className="text-[10px] font-bold text-gray-600">변동 없음</span>;
+    return <span className="text-[12px] font-bold text-gray-500">비교 없음</span>;
+  return <span className="text-[12px] font-bold text-gray-600">변동 없음</span>;
 }
 
 /** 순위/키워드/증감 한 줄. asLink=true면 제휴 검색으로 이동(펼친 목록에서만). */
@@ -50,7 +50,7 @@ function TrendRow({ trend, asLink }: { trend: RealtimeTrend; asLink?: boolean })
         className="flex min-w-0 items-center gap-2 hover:text-brand"
       >
         {inner}
-        <span className="shrink-0 text-[10px] text-gray-500">제휴 검색 ↗</span>
+        <span className="shrink-0 text-[12px] text-gray-500">제휴 검색 ↗</span>
       </a>
     );
   }
@@ -61,7 +61,7 @@ function TrendRow({ trend, asLink }: { trend: RealtimeTrend; asLink?: boolean })
         className="flex min-w-0 items-center gap-2 hover:text-brand"
       >
         {inner}
-        <span className="shrink-0 text-[10px] text-gray-500">사이트 검색 →</span>
+        <span className="shrink-0 text-[12px] text-gray-500">사이트 검색 →</span>
       </Link>
     );
   }
@@ -142,8 +142,8 @@ export default function RealtimeTrendTicker({
           />
           <div className="absolute right-0 top-full z-40 mt-1 w-full min-w-[280px] rounded-xl border border-gray-200 bg-white p-2 shadow-xl">
             <div className="flex items-center justify-between px-1.5 pb-1.5">
-              <span className="text-[11px] font-extrabold text-gray-700">실시간 급상승 검색어</span>
-              <span className="text-[10px] text-gray-400" suppressHydrationWarning>
+              <span className="text-[12px] font-extrabold text-gray-700">실시간 급상승 검색어</span>
+              <span className="text-[12px] text-gray-600" suppressHydrationWarning>
                 {updatedLabel ? `${updatedLabel} 갱신` : "매시간 갱신"}
               </span>
             </div>
@@ -173,7 +173,7 @@ export default function RealtimeTrendTicker({
                 ))}
               </div>
             )}
-            <p className="mt-1.5 border-t border-gray-100 px-2 pt-1.5 text-[10px] leading-4 text-gray-400">
+            <p className="mt-1.5 border-t border-gray-100 px-2 pt-1.5 text-[12px] leading-4 text-gray-600">
               순위 변동은 전날 같은 시간대와 비교 · ▲ 상승 · ▼ 하락 · NEW 새 진입
             </p>
           </div>

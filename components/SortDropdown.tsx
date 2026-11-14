@@ -45,7 +45,7 @@ export default function SortDropdown({
         ))}
       </select>
       <svg
-        className="pointer-events-none absolute right-2.5 h-3.5 w-3.5 text-gray-400"
+        className="pointer-events-none absolute right-2.5 h-3.5 w-3.5 text-gray-600"
         viewBox="0 0 20 20"
         fill="currentColor"
         aria-hidden="true"

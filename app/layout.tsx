@@ -62,8 +62,9 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-screen flex flex-col">
+        <a href="#main-content" className="skip-link">본문 바로가기</a>
         <Header />
-        <main className="flex-1 w-full max-w-6xl mx-auto px-4 py-6">
+        <main id="main-content" tabIndex={-1} className="flex-1 w-full max-w-6xl mx-auto px-4 py-6">
           {children}
         </main>
         <AffiliateDisclosure />

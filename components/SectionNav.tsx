@@ -30,13 +30,13 @@ export default function SectionNav() {
           key={section.key}
           href={section.href}
           aria-current={active === section.key ? "page" : undefined}
-          className={`shrink-0 rounded-full px-4 py-1.5 text-sm font-extrabold transition ${
+          className={`inline-flex min-h-11 shrink-0 items-center rounded-full px-4 py-1.5 text-sm font-extrabold transition ${
             active === section.key
               ? "bg-brand text-white shadow-sm"
               : "border border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50"
           }`}
         >
-          {section.key === "hotdeal" ? "🔥 " : section.key === 'retail' ? '🛒 ' : section.key === "tracking" ? "📊 " : "✈️ "}{section.label}
+          <span aria-hidden="true">{section.key === "hotdeal" ? "🔥 " : section.key === 'retail' ? '🛒 ' : section.key === "tracking" ? "📊 " : "✈️ "}</span>{section.label}
         </Link>
       ))}
     </nav>

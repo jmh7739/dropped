@@ -110,7 +110,7 @@ export default function PriceReport({
         </table>
       </div>
 
-      <p className="text-[11px] text-gray-400">
+      <p className="text-[12px] text-gray-600">
         📊 가격 추적 {stats.trackedDays}일 · {stats.observedDays}일의 일별 대표가격 기준.
         {stats.avg30 && ` 현재보다 낮았던 관측 기록은 ${stats.percentile}%입니다(같은 가격 제외).`}
       </p>

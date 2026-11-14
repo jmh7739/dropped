@@ -51,13 +51,13 @@ export default function ProductSearchResults({
                 className="h-full w-full object-contain transition group-hover:scale-105"
               />
               <span
-                className={`absolute left-2 top-2 rounded-full border px-2 py-0.5 text-[11px] font-extrabold shadow-sm ${r.verdictCls}`}
+                className={`absolute left-2 top-2 rounded-full border px-2 py-0.5 text-[12px] font-extrabold shadow-sm ${r.verdictCls}`}
               >
                 {r.verdictIcon} {r.verdictTitle}
               </span>
             </div>
             <div className="flex flex-1 flex-col gap-1 p-3">
-              <span className="text-[10px] text-gray-400">
+              <span className="text-[12px] text-gray-600">
                 {r.mallName ??
                   PLATFORM_LABEL[r.platform as Platform] ??
                   r.categoryName}
@@ -70,13 +70,13 @@ export default function ProductSearchResults({
                   <span className="text-gray-500">마지막 확인가</span>
                   <span className="text-base font-extrabold text-brand">{formatWon(r.currentPrice)}</span>
                 </div>
-                <div className="text-right text-[11px] font-semibold text-gray-500" suppressHydrationWarning>확인 {timeAgo(r.lastCheckedAt)}</div>
-                {r.unitPrice && <div className="text-right text-[11px] font-semibold text-gray-500">{r.unitPrice}</div>}
+                <div className="text-right text-[12px] font-semibold text-gray-500" suppressHydrationWarning>확인 {timeAgo(r.lastCheckedAt)}</div>
+                {r.unitPrice && <div className="text-right text-[12px] font-semibold text-gray-500">{r.unitPrice}</div>}
                 {r.averagePrice != null && <div className="flex justify-between gap-2 text-gray-500"><span>{r.averageLabel}</span><strong className="text-gray-700">{formatWon(r.averagePrice)}</strong></div>}
                 <div className="flex justify-between gap-2 text-gray-500"><span>{r.lowestLabel}</span><strong className="text-gray-700">{formatWon(r.lowestPrice)}</strong></div>
                 <div className="flex justify-between gap-2 pt-1 font-bold">
                   <span className={r.rate > 0 ? "text-blue-600" : "text-gray-500"}>{r.averagePrice && r.averagePrice > 0 ? `평균 대비 ${Math.abs((r.currentPrice - r.averagePrice) / r.averagePrice * 100).toFixed(1)}% ${r.currentPrice < r.averagePrice ? '낮음' : r.currentPrice > r.averagePrice ? '높음' : '차이'}` : '평균 비교 기록 부족'}</span>
-                  <span className="text-gray-400 group-hover:text-brand">가격 그래프 →</span>
+                  <span className="text-gray-600 group-hover:text-brand">가격 그래프 →</span>
                 </div>
               </div>
             </div>

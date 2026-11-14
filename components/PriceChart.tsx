@@ -36,7 +36,7 @@ export default function PriceChart({
 
   if (chartHistory.length < 2) {
     return (
-      <div className="rounded-lg border border-gray-200 bg-gray-50 p-6 text-center text-sm text-gray-400">
+      <div className="rounded-lg border border-gray-200 bg-gray-50 p-6 text-center text-sm text-gray-600">
         선택한 기간의 가격 이력이 부족합니다. <button type="button" onClick={() => setRange("all")} className="underline">전체 기간 보기</button>
       </div>
     );
@@ -146,7 +146,7 @@ export default function PriceChart({
           <span className="text-green-600">●</span> 기간 내 최저 {formatWon(min)}
         </span>
         <span>
-          <span className="text-gray-400">┈</span> 표시 구간 평균 {formatWon(avg)}
+          <span className="text-gray-600">┈</span> 표시 구간 평균 {formatWon(avg)}
         </span>
         <span>
           <span className="text-brand">●</span> 마지막 날짜 대표가격 {formatWon(chartHistory[lastIdx].price)}

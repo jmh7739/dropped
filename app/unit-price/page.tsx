@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 };
 
 export default function UnitPricePage() {
-  return <main className="mx-auto max-w-3xl space-y-7 px-4 py-8 text-gray-800">
+  return <div className="mx-auto max-w-3xl space-y-7 px-4 py-8 text-gray-800">
     <nav className="text-sm"><Link href="/" className="text-brand underline">가격 추적 상품</Link> / 단위가격 비교</nav>
     <header>
       <h1 className="text-3xl font-extrabold text-gray-950">묶음상품, 100g·1개당 가격으로 비교하세요</h1>
@@ -29,5 +29,5 @@ export default function UnitPricePage() {
       <Link href="/guides/food-unit-price" className="rounded-lg border px-4 py-3 text-brand">식품 묶음상품 비교 방법</Link>
       <Link href="/tracking" className="rounded-lg border px-4 py-3 text-brand">실제 가격 이력 상품 보기</Link>
     </nav>
-  </main>;
+  </div>;
 }

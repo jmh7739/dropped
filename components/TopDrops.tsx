@@ -51,7 +51,7 @@ export default function TopDrops({
               href={`/price/${d.productId}`}
               className="group relative flex w-36 flex-shrink-0 flex-col overflow-hidden rounded-xl border border-gray-200 bg-white transition hover:shadow-md"
             >
-              <span className="absolute left-1.5 top-1.5 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-gray-900/55 text-[11px] font-bold text-white">
+              <span className="absolute left-1.5 top-1.5 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-gray-900/55 text-[12px] font-bold text-white">
                 {i + 1}
               </span>
               <div className="relative aspect-square overflow-hidden bg-gray-100">
@@ -63,20 +63,20 @@ export default function TopDrops({
                 <span className="absolute right-1.5 top-1.5">
                   {d.isCurated ? (
                     curatedDisc > 0 && (
-                      <span className="rounded-md bg-brand px-1.5 py-0.5 text-[11px] font-extrabold text-white shadow-sm">
+                      <span className="rounded-md bg-brand px-1.5 py-0.5 text-[12px] font-extrabold text-white shadow-sm">
                         정가 -{curatedDisc}%
                       </span>
                     )
                   ) : (
-                    <span className={`rounded-md px-1.5 py-0.5 text-[10px] font-extrabold ${scoreCls}`}>
+                    <span className={`rounded-md px-1.5 py-0.5 text-[12px] font-extrabold ${scoreCls}`}>
                       {scoreIcon} {score.label}
                     </span>
                   )}
                 </span>
               </div>
               <div className="flex flex-1 flex-col gap-0.5 p-2.5">
-                <span className="text-[10px] text-gray-400">{mallLabel(d)}</span>
-                <span className="text-[10px] font-medium text-gray-500">
+                <span className="text-[12px] text-gray-600">{mallLabel(d)}</span>
+                <span className="text-[12px] font-medium text-gray-500">
                   {d.isCurated ? "가격 이력 수집 중" : `${stage.icon} ${d.trackedDays ? `추적 ${d.trackedDays}일` : "추적 시작"}`}
                 </span>
                 <h3 className="line-clamp-2 text-xs font-medium text-gray-800">

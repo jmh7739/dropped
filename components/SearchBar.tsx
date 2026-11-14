@@ -25,7 +25,7 @@ export default function SearchBar({ initial = "" }: { initial?: string }) {
         aria-label="상품 검색"
         className="w-full rounded-lg border border-gray-200 bg-white py-2 pl-9 pr-16 text-sm outline-none focus:border-brand"
       />
-      <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+      <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-600">
         🔍
       </span>
       <button type="submit" disabled={pending} className="absolute right-1.5 top-1/2 min-h-8 -translate-y-1/2 rounded-md px-2 text-xs font-bold text-brand disabled:text-gray-400">

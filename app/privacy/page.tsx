@@ -30,6 +30,14 @@ export default function PrivacyPage() {
         </a>
         를 확인해 주세요.
       </p>
+      <p className="mt-2">
+        Google은 광고 쿠키를 사용해 이용자의 이 사이트 및 다른 사이트 방문 기록을 바탕으로 광고를 게재할 수 있습니다.
+        맞춤 광고를 원하지 않으면{" "}
+        <a href="https://adssettings.google.com" target="_blank" rel="noopener noreferrer" className="font-semibold text-brand hover:underline">Google 광고 설정</a>
+        에서 끌 수 있고,{" "}
+        <a href="https://www.aboutads.info" target="_blank" rel="noopener noreferrer" className="font-semibold text-brand hover:underline">www.aboutads.info</a>
+        에서 제3자 광고 사업자의 맞춤 광고 쿠키 사용을 거부할 수 있습니다. 브라우저 설정에서 쿠키를 삭제하거나 차단할 수도 있습니다.
+      </p>
 
       <h2 className="mb-1 mt-6 text-base font-bold text-gray-900">제3자 사이트</h2>
       <p>
@@ -57,7 +65,7 @@ export default function PrivacyPage() {
         으로 연락해 주세요.
       </p>
 
-      <p className="mt-6 text-xs text-gray-400">최종 수정일: 2026년 10월 21일</p>
+      <p className="mt-6 text-xs text-gray-600">최종 수정일: 2026년 10월 21일</p>
     </article>
   );
 }

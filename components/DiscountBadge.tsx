@@ -15,7 +15,7 @@ export function StatusBadge({
   const { label, cls } = dealStatus(rate, isLowestEver, trackedDays, basis);
   return (
     <span
-      className={`inline-flex items-center rounded-md px-2 py-1 text-[11px] font-extrabold shadow-sm ${cls}`}
+      className={`inline-flex items-center rounded-md px-2 py-1 text-[12px] font-extrabold shadow-sm ${cls}`}
     >
       {label}
     </span>
@@ -31,7 +31,7 @@ export function DiscountBadge({
 }) {
   return (
     <span className="inline-flex items-center gap-0.5 rounded-md bg-brand px-1.5 py-0.5 text-xs font-bold text-white">
-      <span className="text-[10px]">🔻</span>
+      <span className="text-[12px]">🔻</span>
       {basis} 대비 {formatPercent(rate)}
     </span>
   );
@@ -41,7 +41,7 @@ export function DiscountBadge({
 export function ProvisionalBadge() {
   return (
     <span
-      className="inline-flex items-center gap-0.5 rounded border border-gray-200 bg-gray-50 px-1.5 py-0.5 text-[10px] font-semibold text-gray-500"
+      className="inline-flex items-center gap-0.5 rounded border border-gray-200 bg-gray-50 px-1.5 py-0.5 text-[12px] font-semibold text-gray-500"
       title="아직 평소 판매가 이력이 없어 정가 기준으로만 표시한 잠정 특가입니다. 자동 관측 이력이 쌓여도 원본 판매처의 옵션·재고·결제가는 별도 확인이 필요합니다."
     >
       🕒 정가기준·이력축적중
@@ -61,13 +61,13 @@ export function ShippingBadge({ fee }: { fee: number | null }) {
   if (fee === null) return null;
   if (fee === 0) {
     return (
-      <span className="inline-flex items-center rounded bg-green-100 px-1.5 py-0.5 text-[11px] font-bold text-green-700">
+      <span className="inline-flex items-center rounded bg-green-100 px-1.5 py-0.5 text-[12px] font-bold text-green-700">
         무료배송
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center rounded bg-gray-100 px-1.5 py-0.5 text-[11px] text-gray-500">
+    <span className="inline-flex items-center rounded bg-gray-100 px-1.5 py-0.5 text-[12px] text-gray-500">
       배송 {formatWon(fee)}
     </span>
   );

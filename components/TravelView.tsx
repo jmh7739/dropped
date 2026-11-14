@@ -51,7 +51,7 @@ function PartnerGrid({ partners }: { partners: Partner[] }) {
         >
           <span className="text-2xl">{p.icon}</span>
           <span className="text-sm font-extrabold text-gray-900">{p.name}</span>
-          <span className="text-[11px] text-gray-400">{p.desc}</span>
+          <span className="text-[12px] text-gray-600">{p.desc}</span>
           <span className="mt-1 text-xs font-bold text-brand">보러가기 →</span>
         </a>
       ))}

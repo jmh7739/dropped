@@ -80,19 +80,19 @@ export default async function CuratedSection({
           />
         </div>
       </div>
-      <p className="mb-3 text-xs text-gray-400">
+      <p className="mb-3 text-xs text-gray-600">
         국내몰에서 지금 잘 팔리는 할인 상품 (원가 대비)
       </p>
 
       {deals.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-gray-300 bg-white p-8 text-center text-sm text-gray-400">
+        <div className="rounded-xl border border-dashed border-gray-300 bg-white p-8 text-center text-sm text-gray-600">
           이 카테고리엔 핫딜이 없어요.
         </div>
       ) : (
         <DealGrid deals={deals} />
       )}
 
-      <p className="mt-2 text-[11px] text-gray-400">
+      <p className="mt-2 text-[12px] text-gray-600">
         구매 전 판매 페이지에서 최종 가격을 확인하세요.
       </p>
     </section>

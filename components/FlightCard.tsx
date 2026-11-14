@@ -36,7 +36,7 @@ export default function FlightCard({ flight }: { flight: FlightDeal }) {
         rel="nofollow noopener noreferrer"
         className="flex flex-col gap-2 p-4"
       >
-      <div className="flex items-center gap-1.5 pr-9 text-[11px]">
+      <div className="flex items-center gap-1.5 pr-9 text-[12px]">
         <span
           className={`rounded px-1.5 py-0.5 font-bold ${
             flight.isDomestic
@@ -87,18 +87,18 @@ export default function FlightCard({ flight }: { flight: FlightDeal }) {
       <div className="mt-1 flex items-end justify-between">
         <div>
           {disc >= 8 && flight.baselinePrice && (
-            <div className="text-[11px] text-gray-400 line-through">
+            <div className="text-[12px] text-gray-600 line-through">
               평소 {formatWon(flight.baselinePrice)}
             </div>
           )}
           <span className="text-xl font-extrabold text-brand">
             {flight.price ? formatWon(flight.price) : "가격 문의"}
           </span>
-          <span className="ml-1 text-[11px] text-gray-400">
+          <span className="ml-1 text-[12px] text-gray-600">
             {roundTrip ? "왕복 예상가~" : "편도 예상가~"}
           </span>
         </div>
-        <span className="text-[11px] text-gray-400" suppressHydrationWarning>
+        <span className="text-[12px] text-gray-600" suppressHydrationWarning>
           {flight.postedAt ? `${timeAgo(flight.postedAt)} 시세` : flight.source}
         </span>
       </div>

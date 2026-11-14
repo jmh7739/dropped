@@ -5,9 +5,9 @@ import SectionNav from "./SectionNav";
 import { getRealtimeTrends } from "@/lib/trends";
 
 const DETAIL_NAV = [
-  { href: "/price-drop", label: "🔥 가격급락" },
-  { href: "/lowest-price", label: "🏆 추적 최저가" },
-  { href: "/market-prices", label: "🌾 농산물 기준가격" },
+  { href: "/price-drop", icon: "🔥", label: "가격급락" },
+  { href: "/lowest-price", icon: "🏆", label: "추적 최저가" },
+  { href: "/market-prices", icon: "🌾", label: "농산물 기준가격" },
 ];
 
 export default async function Header() {
@@ -30,15 +30,15 @@ export default async function Header() {
         <div className="mx-auto flex min-h-12 max-w-6xl items-center gap-3 overflow-x-auto px-4 py-2">
           <Suspense fallback={
             <nav className="flex shrink-0 items-center gap-1.5 whitespace-nowrap" aria-label="주요 섹션">
-              <Link href="/" className="rounded-full bg-brand px-4 py-1.5 text-sm font-extrabold text-white shadow-sm">🔥 핫딜</Link>
-              <Link href="/store-deals" className="rounded-full border border-gray-200 bg-white px-4 py-1.5 text-sm font-extrabold text-gray-700">🛒 마트·편의점</Link>
-              <Link href="/tracking" className="rounded-full border border-gray-200 bg-white px-4 py-1.5 text-sm font-extrabold text-gray-700">🛍️ 전체상품</Link>
-              <Link href="/?category=flight" className="rounded-full border border-gray-200 bg-white px-4 py-1.5 text-sm font-extrabold text-gray-700">✈️ 여행딜</Link>
+              <Link href="/" className="inline-flex min-h-11 items-center rounded-full bg-brand px-4 py-1.5 text-sm font-extrabold text-white shadow-sm"><span aria-hidden="true">🔥 </span>핫딜</Link>
+              <Link href="/store-deals" className="inline-flex min-h-11 items-center rounded-full border border-gray-200 bg-white px-4 py-1.5 text-sm font-extrabold text-gray-700"><span aria-hidden="true">🛒 </span>마트·편의점</Link>
+              <Link href="/tracking" className="inline-flex min-h-11 items-center rounded-full border border-gray-200 bg-white px-4 py-1.5 text-sm font-extrabold text-gray-700"><span aria-hidden="true">🛍️ </span>전체상품</Link>
+              <Link href="/?category=flight" className="inline-flex min-h-11 items-center rounded-full border border-gray-200 bg-white px-4 py-1.5 text-sm font-extrabold text-gray-700"><span aria-hidden="true">✈️ </span>여행딜</Link>
             </nav>
           }>
             <SectionNav />
           </Suspense>
-          <Link href="/guides" className="ml-auto shrink-0 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-sm font-bold text-gray-700 hover:border-brand/40 hover:text-brand">
+          <Link href="/guides" className="ml-auto inline-flex min-h-11 shrink-0 items-center rounded-full border border-gray-200 bg-white px-3 py-1.5 text-sm font-bold text-gray-700 hover:border-brand/40 hover:text-brand">
             가이드
           </Link>
           <nav className="hidden items-center gap-1 border-l border-gray-200 pl-3 text-sm md:flex">
@@ -48,7 +48,7 @@ export default async function Header() {
               href={n.href}
               className="rounded-md px-2.5 py-1.5 font-medium text-gray-600 hover:bg-gray-100"
             >
-              {n.label}
+              <span aria-hidden="true">{n.icon} </span>{n.label}
             </Link>
           ))}
           </nav>

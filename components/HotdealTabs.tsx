@@ -28,7 +28,7 @@ export default function HotdealTabs({
           }`}
         >
           <span className="text-sm font-extrabold">{t.label}</span>
-          <span className={`text-[11px] ${sec === t.key ? "text-white/80" : "text-gray-400"}`}>
+          <span className={`text-[12px] ${sec === t.key ? "text-white/80" : "text-gray-600"}`}>
             {t.desc}
           </span>
         </Link>
