@@ -77,6 +77,11 @@ async function serve(request, env, ctx, url) {
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+    // One address per page for search engines and AdSense: www goes to the main domain.
+    if (url.hostname.startsWith("www.")) {
+      url.hostname = url.hostname.slice(4);
+      return Response.redirect(url.toString(), 301);
+    }
     return markPreview(url, await serve(request, env, ctx, url));
   },
 };
