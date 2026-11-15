@@ -8,7 +8,7 @@
     "build:next": "next build",
     "start": "next start",
     "lint": "tsc --noEmit",
-    "test": "node scripts/test-price-safety.cjs",
+    "test": "node scripts/test-price-safety.cjs && node scripts/test-review-fixes.cjs",
     "test:trend": "node --test dropped-trend-bot/test/*.test.js",
     "trend:realtime": "node dropped-trend-bot/src/worker.js realtime",
     "trend:products": "node dropped-trend-bot/src/worker.js products",

@@ -25,11 +25,16 @@ export default function SafeImage({
   alt,
   className,
   priority = false,
+  width = 400,
+  height = 400,
 }: {
   src: string;
   alt: string;
   className?: string;
   priority?: boolean;
+  /** 레이아웃 이동 방지용 고유 크기(상품 사진은 대부분 정사각형). 표시 크기는 className이 정한다. */
+  width?: number;
+  height?: number;
 }) {
   const resolvedSrc = directImageUrl(src);
   const [failed, setFailed] = useState(!resolvedSrc);
@@ -54,6 +59,8 @@ export default function SafeImage({
     <img
       src={resolvedSrc}
       alt={alt}
+      width={width}
+      height={height}
       loading={priority ? "eager" : "lazy"}
       fetchPriority={priority ? "high" : "auto"}
       decoding="async"

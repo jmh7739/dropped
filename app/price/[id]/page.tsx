@@ -5,7 +5,7 @@ import type { Metadata } from "next";
 import { getProductReport } from "@/lib/products";
 import { getRelatedDeals } from "@/lib/deals";
 import { formatWon, timeAgo, observedAtLabel } from "@/lib/format";
-import { priceStats, buyVerdict, isFreshPriceObservation, stalePriceVerdict } from "@/lib/priceReport";
+import { priceStats, buyVerdict, isFreshPriceObservation, stalePriceVerdict, dailyPricePoints } from "@/lib/priceReport";
 import { PLATFORM_LABEL, Platform } from "@/lib/types";
 import { dropScore } from "@/lib/dropMetrics";
 import PriceChart from "@/components/PriceChart";
@@ -333,7 +333,8 @@ export default async function ProductPricePage({
       {r.history.length >= 3 && (stats?.trackedDays ?? 0) >= 2 && <section className="mt-8">
         <h2 className="mb-2 text-base font-bold">📉 가격 변동 그래프</h2>
         <div className="rounded-xl border border-gray-200 bg-white p-4">
-          <PriceChart history={r.history} referenceTime={Date.now()} />
+          {/* 하루 대표가격만 넘겨 페이지에 실리는 데이터를 줄인다(차트도 같은 기준으로 계산). */}
+          <PriceChart history={dailyPricePoints(r.history)} referenceTime={Date.now()} />
         </div>
       </section>}
 
