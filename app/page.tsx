@@ -323,7 +323,7 @@ export default async function Home({
 
   return (
     <div>
-      {isDefaultHome && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ '@context': 'https://schema.org', '@type': 'WebSite', name: 'Dropped', url: 'https://dropped.kr/', inLanguage: 'ko-KR', description: '관측한 가격 이력과 공식 행사 정보를 비교하는 서비스' }).replace(/</g, '\\u003c') }} />}
+      {isDefaultHome && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ '@context': 'https://schema.org', '@type': 'WebSite', name: 'Dropped', url: 'https://dropped.kr/', publisher: { '@type': 'Organization', name: 'Dropped', url: 'https://dropped.kr/' }, inLanguage: 'ko-KR', description: '관측한 가격 이력과 공식 행사 정보를 비교하는 서비스' }).replace(/</g, '\\u003c') }} />}
       {demoBanner}
 
       {isDefaultHome && (
