@@ -2,6 +2,7 @@ import { supabase } from "./supabase";
 import { PricePoint } from "./types";
 import { priceStats, buyVerdict, isFreshPriceObservation, stalePriceVerdict, VerdictTier } from "./priceReport";
 import { readPriceHistory } from "./priceHistory";
+import { getSnapshotIndex, getSnapshotProduct, toPricePoints } from "./priceSnapshot";
 import { cache } from "react";
 import { averagePeriodLabel, lowestPeriodLabel } from "./dropMetrics";
 import { deriveUnitPrice } from "./unitPrice";
@@ -55,12 +56,34 @@ export interface ProductReport {
   hasActiveDeal: boolean;
   likeCount: number;
   lastCheckedAt: string | null;
+  /** DB를 읽지 못해 정적 사본으로 보여 줄 때 그 사본의 기준 시각. */
+  snapshotAt: string | null;
 }
 
 export const getProductReport = cache(async function getProductReport(
   id: number
 ): Promise<ProductReport | null> {
-  if (!supabase || !Number.isFinite(id)) return null;
+  if (!Number.isSafeInteger(id) || id <= 0) return null;
+
+  // 정적 사본이 있으면 상품 정보·이력은 사본에서, 그 뒤의 새 가격만 DB에서 읽는다.
+  const [snap, index] = await Promise.all([getSnapshotProduct(id), getSnapshotIndex()]);
+  if (snap) {
+    const read = await readPriceHistory([id]);
+    const history = read.get(id) ?? toPricePoints(snap.history);
+    const lastHistory = history[history.length - 1];
+    return {
+      id: snap.id, platform: snap.platform, title: snap.title, imageUrl: snap.imageUrl,
+      productUrl: snap.productUrl, affiliateUrl: snap.affiliateUrl, listPrice: snap.listPrice,
+      mallName: snap.mallName, shippingFee: snap.shippingFee,
+      unitPrice: deriveUnitPrice(snap.title, Number(lastHistory?.price ?? snap.listPrice ?? 0), snap.unitPrice),
+      categorySlug: snap.categorySlug, categoryName: snap.categoryName,
+      currentPrice: lastHistory?.price ?? null, history,
+      hasActiveDeal: snap.hasActiveDeal, likeCount: snap.likeCount,
+      lastCheckedAt: lastHistory?.collectedAt ?? null,
+      snapshotAt: read.snapshotOnly ? index?.generatedAt ?? null : null,
+    };
+  }
+  if (!supabase) return null;
 
   const { data: p, error } = await supabase
     .from("products")
@@ -68,7 +91,7 @@ export const getProductReport = cache(async function getProductReport(
     .eq("id", id)
     .single();
   // "No row" means the product really does not exist (404). Any other database
-  // failure must not be shown as a missing page; let the error fallback render.
+  // failure must not be shown as a missing page.
   if (error && error.code !== "PGRST116") throw new Error(`Product report unavailable: ${error.code ?? error.message}`);
   if (error || !p) return null;
 
@@ -106,6 +129,7 @@ export const getProductReport = cache(async function getProductReport(
     hasActiveDeal: (hd?.length ?? 0) > 0,
     likeCount: stats?.like_count ?? 0,
     lastCheckedAt: lastHistory?.collectedAt ?? null,
+    snapshotAt: null,
   };
 });
 

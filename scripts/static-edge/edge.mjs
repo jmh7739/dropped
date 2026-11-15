@@ -44,8 +44,22 @@ async function refreshLive(request, env, ctx) {
   await caches.default.put(request, new Response(fresh.body, { status: fresh.status, headers }));
 }
 
+// A known product whose price record cannot be read right now answers 503 with
+// Retry-After, so search engines keep the address and come back later.
+async function priceStatus(path, response) {
+  if (!path.startsWith("/price/") || response.status !== 200 || !response.headers.get("content-type")?.includes("text/html")) return response;
+  const text = await response.text();
+  const headers = new Headers(response.headers);
+  if (!text.includes("data-price-unavailable")) return new Response(text, { status: response.status, headers });
+  headers.set("Retry-After", "3600");
+  headers.set("Cache-Control", "no-store");
+  return new Response(text, { status: 503, headers });
+}
+
 async function serve(request, env, ctx, url) {
   if (url.pathname.startsWith("/__static/")) return new Response("Not found", { status: 404 });
+  // The price snapshot is a plain static file; pages and the next build read it.
+  if (url.pathname.startsWith("/snapshot/")) return env.ASSETS.fetch(request);
   if ((request.method !== "GET" && request.method !== "HEAD") || DYNAMIC.test(url.pathname)) {
     return app.fetch(request, env, ctx);
   }
@@ -68,7 +82,7 @@ async function serve(request, env, ctx, url) {
     ctx.waitUntil(refreshLive(request, env, ctx).catch((error) => console.error("live page refresh failed", path, error)));
     return staticResponse(stored, true);
   }
-  if (!stored.ok) return app.fetch(request, env, ctx);
+  if (!stored.ok) return priceStatus(path, await app.fetch(request, env, ctx));
 
   // A client navigation that receives HTML falls back to a full page load.
   return staticResponse(stored);

@@ -62,6 +62,11 @@ const render = async (key, timeoutMs) => {
       results.set(key, { key, status: 0, bytes: body.length, error: "incomplete body" });
       return;
     }
+    // A known product without a readable record is answered live with 503; never store it.
+    if (res.status === 200 && isHtml && text.includes('data-price-unavailable')) {
+      results.set(key, { key, status: 503, bytes: body.length });
+      return;
+    }
     // A data section that failed under load renders the error fallback (marked
     // data-render-error). Keep that copy only as a last resort and retry later.
     if (res.status === 200 && isHtml && text.includes('data-render-error')) {
@@ -122,7 +127,7 @@ fs.copyFileSync("scripts/static-edge/edge.mjs", "dist/server/edge.mjs");
 fs.writeFileSync("dist/server/edge-wrangler.json", JSON.stringify({
   ...config,
   main: "edge.mjs",
-  assets: { binding: "ASSETS", ...config.assets, html_handling: "none", run_worker_first: ["/*", "!/_next/*"] },
+  assets: { binding: "ASSETS", ...config.assets, html_handling: "none", run_worker_first: ["/*", "!/_next/*", "!/snapshot/*"] },
 }, null, 1));
 
 const rows = [...results.values()];

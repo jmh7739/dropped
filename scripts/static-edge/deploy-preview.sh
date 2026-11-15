@@ -17,6 +17,8 @@ for name in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID NEXT_PUBLIC_SUPABASE_URL 
 done
 
 npm run -s build
+# Price snapshot: previous copy from the live site plus only the new database rows.
+node scripts/static-edge/price-snapshot.mjs dist/client/snapshot
 node -e '
 const fs = require("fs");
 const names = ["NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_ANON_KEY", "SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY", "NEXT_PUBLIC_SITE_URL"];
@@ -34,7 +36,10 @@ grep -q 'dropped.kr' /tmp/dropped-preview-home.html
 
 SITE_HOST=dropped.kr PARAM_LIMITS='{"/store-deals":1}' node scripts/static-edge/prerender.mjs "http://127.0.0.1:$PORT" 3000
 HTML_COUNT=$(find dist/client/__static -maxdepth 1 -name '*.html' | wc -l)
-test "$HTML_COUNT" -ge 400 || { echo "Only $HTML_COUNT HTML pages rendered; refusing to deploy" >&2; exit 1; }
+# Price pages without a readable record are answered live with 503 and are not stored,
+# so the minimum covers the editorial and store pages that never depend on the database.
+test "$HTML_COUNT" -ge 150 || { echo "Only $HTML_COUNT HTML pages rendered; refusing to deploy" >&2; exit 1; }
+grep -q '"/"' dist/prerender-report.json || { echo "Home page was not rendered; refusing to deploy" >&2; exit 1; }
 cleanup
 DEV_PID=
 npx --no-install wrangler deploy --config dist/server/edge-wrangler.json

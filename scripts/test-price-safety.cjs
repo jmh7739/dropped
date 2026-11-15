@@ -13,6 +13,8 @@ function load(file, dependencies = {}) {
   return result.exports;
 }
 
+const noSnapshot = { getSnapshotIndex: async () => null, getSnapshotProduct: async () => null, toPricePoints: () => [] };
+
 async function main() {
   const { deriveUnitPrice } = load('lib/unitPrice.ts');
     for (const [title, price, expected] of [
@@ -143,12 +145,12 @@ async function main() {
       order(){return this},gte(){return this},range(a,b){start=a;end=b;return this},
       then(resolve){pages.push(start);return Promise.resolve(resolve({data:rows.slice(start,end+1),error:null}))} };
   }};
-  const {readPriceHistory}=load('lib/priceHistory.ts',{'./supabase':{supabase:fake}});
+  const {readPriceHistory}=load('lib/priceHistory.ts',{'./supabase':{supabase:fake},'./priceSnapshot':noSnapshot});
   const grouped=await readPriceHistory([1,2]);
   assert.equal(grouped.get(1).length+grouped.get(2).length,2005);
   assert.equal(grouped.get(1).at(-1).price,2104,'latest price must survive API pagination');
   assert.deepEqual(pages,[0,1000,2000]);
-  const failing = load('lib/priceHistory.ts',{'./supabase':{supabase:{from(){return {
+  const failing = load('lib/priceHistory.ts',{'./priceSnapshot':noSnapshot,'./supabase':{supabase:{from(){return {
     select(){return this},gt(){return this},lte(){return this},in(){return this},order(){return this},range(){return this},
     then(resolve){return Promise.resolve(resolve({data:null,error:{code:'network_failure'}}))},
   }}}}});

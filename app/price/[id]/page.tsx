@@ -24,6 +24,8 @@ import { purchaseSummary } from "@/lib/purchaseSummary";
 import CoupangPartnersNotice from "@/components/CoupangPartnersNotice";
 import { affiliatePrograms } from "@/lib/affiliate";
 import { analyzePriceHistory } from "@/lib/priceAnalysis";
+import { getSnapshotIndex, isKnownProduct, formatSnapshotTime } from "@/lib/priceSnapshot";
+import PriceUnavailable from "@/components/PriceUnavailable";
 
 export const revalidate = 300;
 
@@ -38,7 +40,13 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const id = Number((await params).id);
   const r = await getProductReport(id).catch(() => undefined);
-  if (r === undefined) return withOg({ title: "상품 가격 기록", robots: { index: false, follow: true }, alternates: { canonical: `${SITE}/price/${id}` } });
+  if (r === undefined) {
+    // 응답은 503(Retry-After)이므로 색인을 막지 않고 주소만 고정한다.
+    const known = isKnownProduct(await getSnapshotIndex(), id);
+    return known
+      ? withOg({ title: `상품 #${id} 가격 기록 (갱신 지연)`, description: "가격 기록 갱신이 잠시 지연되고 있습니다.", alternates: { canonical: `${SITE}/price/${id}` } })
+      : withOg({ title: "상품을 찾을 수 없음", robots: { index: false, follow: false } });
+  }
   if (!r) return withOg({ title: "상품을 찾을 수 없음", robots: { index: false, follow: false } });
   const canonical = `${SITE}/price/${r.id}`;
   const stats = r.currentPrice == null ? null : priceStats(r.history, r.currentPrice);
@@ -66,12 +74,19 @@ export default async function ProductPricePage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const r = await getProductReport(Number((await params).id));
+  const id = Number((await params).id);
+  let r: Awaited<ReturnType<typeof getProductReport>>;
+  try {
+    r = await getProductReport(id);
+  } catch (error) {
+    console.error("price page unavailable", id, error);
+    // 과거에 공개한 상품이면 503(엣지가 상태를 바꿈), 처음 보는 번호면 404.
+    if (isKnownProduct(await getSnapshotIndex(), id)) return <PriceUnavailable id={id} />;
+    notFound();
+  }
   if (!r) notFound();
 
-  const [relatedDeals] = await Promise.all([
-    getRelatedDeals(r.categorySlug, r.id, 6, r.title),
-  ]);
+  const relatedDeals = await getRelatedDeals(r.categorySlug, r.id, 6, r.title).catch(() => []);
 
   const currentPrice = r.currentPrice;
   const stats = currentPrice == null ? null : priceStats(r.history, currentPrice);
@@ -237,6 +252,7 @@ export default async function ProductPricePage({
               <div className="mt-1 flex flex-wrap items-baseline gap-x-2">
                 <span className="text-3xl font-extrabold text-brand">{formatWon(currentPrice)}</span>
                 {observed && <span className="text-sm font-semibold text-gray-600">{observed}</span>}
+                {r.snapshotAt && <span className="block text-sm text-gray-600">기준 시각 {formatSnapshotTime(r.snapshotAt)} · 가격 데이터 갱신이 잠시 지연되어 저장된 기록으로 보여 드립니다.</span>}
               </div>
             )}
             {currentPrice != null && (

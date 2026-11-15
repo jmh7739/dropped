@@ -62,3 +62,20 @@ test('retail details and calendar also refresh', async () => {
     await Promise.all(f.jobs);
   }
 });
+
+test('known price page without a readable record answers 503 with Retry-After', async () => {
+  const source = readFileSync(new URL('./edge.mjs', import.meta.url), 'utf8')
+    .replace('import app from "./index.js";', '')
+    .replace('export default {', 'globalThis.edge = {');
+  const app = { fetch: async (req) => new Response(new URL(req.url).pathname === '/price/5'
+    ? '<html><div data-price-unavailable="1">지연</div></html>' : '<html>ok</html>', { headers: { 'Content-Type': 'text/html' } }) };
+  const context = { app, caches: { default: { match: async () => undefined, put: async () => {} } }, crypto: webcrypto, Response, Request, Headers, URL, URLSearchParams, TextEncoder, console };
+  runInNewContext(source, context);
+  const env = { ASSETS: { fetch: async () => new Response('missing', { status: 404 }) } };
+  const ctx = { waitUntil: () => {} };
+  const res = await context.edge.fetch(new Request('https://dropped.kr/price/5'), env, ctx);
+  assert.equal(res.status, 503);
+  assert.equal(res.headers.get('Retry-After'), '3600');
+  const ok = await context.edge.fetch(new Request('https://dropped.kr/price/6'), env, ctx);
+  assert.equal(ok.status, 200);
+});
