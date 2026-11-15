@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { RealtimeTrend } from "@/lib/trends";
+import { affiliatePrograms } from "@/lib/affiliate";
+import AffiliateNotice from "./CoupangPartnersNotice";
 
 const PAGE_SIZE = 10;
 
@@ -173,6 +175,7 @@ export default function RealtimeTrendTicker({
                 ))}
               </div>
             )}
+            <AffiliateNotice className="mt-1.5" programs={affiliatePrograms(visible.map((t) => ({ url: t.affiliateUrl })))} />
             <p className="mt-1.5 border-t border-gray-100 px-2 pt-1.5 text-[12px] leading-4 text-gray-600">
               순위 변동은 전날 같은 시간대와 비교 · ▲ 상승 · ▼ 하락 · NEW 새 진입
             </p>

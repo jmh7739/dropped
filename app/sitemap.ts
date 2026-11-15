@@ -10,6 +10,7 @@ import { getPriceInsights } from "@/lib/insights";
 import { priceStats } from "@/lib/priceReport";
 import { readPriceHistory } from "@/lib/priceHistory";
 import { supabase } from "@/lib/supabase";
+import { GUIDE_UPDATED } from "@/lib/guideMeta";
 
 export const revalidate = 3600;
 
@@ -32,7 +33,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const hasLowest = deals.some((d) => (d.isLowestEver || Boolean(d.min90Price && d.currentPrice <= d.min90Price)) && (d.trackedDays ?? 0) >= 14 && (d.historyPointCount ?? 0) >= 20);
   const hasDrop = deals.some((d) => headlineDropRate(d) >= 25 && (d.trackedDays ?? 0) >= 14 && (d.historyPointCount ?? 0) >= 20);
 
-  const staticRoutes: MetadataRoute.Sitemap = [
+  const now = new Date().toISOString();
+  const staticRoutes: MetadataRoute.Sitemap = ([
     { url: SITE_URL, changeFrequency: "hourly", priority: 1 },
     { url: `${SITE_URL}/store-deals`, changeFrequency: 'daily', priority: 0.8 },
     { url: `${SITE_URL}/store-deals/calendar`, changeFrequency: 'daily', priority: 0.7 },
@@ -42,7 +44,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${SITE_URL}/terms`, changeFrequency: "yearly", priority: 0.2 },
     { url: `${SITE_URL}/guides`, changeFrequency: "weekly", priority: 0.95 },
     { url: `${SITE_URL}/unit-price`, changeFrequency: "monthly", priority: 0.85 },
-    { url: `${SITE_URL}/events/1111`, changeFrequency: "weekly", priority: 0.5 },
+    { url: `${SITE_URL}/events/1111`, changeFrequency: "monthly", priority: 0.3 },
     ...GUIDES.map((guide) => ({ url: `${SITE_URL}/guides/${guide.slug}`, changeFrequency: "monthly" as const, priority: 0.9 })),
     ...(insights.length >= 3 ? [{ url: `${SITE_URL}/insights`, changeFrequency: "daily" as const, priority: 0.9 }] : []),
     ...(hasDomestic ? [{ url: `${SITE_URL}/deals/domestic`, changeFrequency: "hourly" as const, priority: 0.8 }] : []),
@@ -54,7 +56,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "hourly" as const,
       priority: 0.85,
     })),
-  ];
+  ] as MetadataRoute.Sitemap).map((route) => ({
+    ...route,
+    // Editorial pages change with their content date; data hubs change on every rebuild.
+    lastModified: /\/(about|contact|privacy|terms|guides|unit-price|events)(\/|$)/.test(route.url.slice(SITE_URL.length)) ? GUIDE_UPDATED : now,
+  }));
 
   // The home list removes similar deal cards. A product can still have a valid
   // price report even when its card was deduplicated, so use the raw active
@@ -118,8 +124,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified,
       changeFrequency: "daily" as const,
       // Product price pages are numerous template pages: keep them indexable but
-      // below guides, categories and analysis hubs.
-      priority: 0.4,
+      // well below guides and analysis hubs; prices not re-checked in 48 hours go lowest.
+      priority: Date.now() - Date.parse(lastModified) <= 48 * 3600_000 ? 0.3 : 0.1,
     }));
 
   // Insight reports use the same product-history data as /price/[id]. Include
@@ -130,15 +136,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       url: `${SITE_URL}/price/${product.id}`,
       lastModified: product.lastCheckedAt ?? undefined,
       changeFrequency: "daily" as const,
-      // Product price pages are numerous template pages: keep them indexable but
-      // below guides, categories and analysis hubs.
-      priority: 0.4,
+      // Insight products have long, fresh histories: still below editorial pages.
+      priority: 0.35,
     }));
 
   const retailRoutes: MetadataRoute.Sitemap = await getRetailCatalog().then(({catalog}) =>
     [...new Map(catalog.offers.filter(o => isDiscoverableRetailOffer(o)).map(o => [o.id, o])).values()]
       .sort((a, b) => b.lastSeenAt.localeCompare(a.lastSeenAt)).slice(0, 120)
-      .map(o => ({url: `${SITE_URL}/store-deals/${encodeURIComponent(o.id)}`, lastModified: o.lastSeenAt, changeFrequency: 'daily' as const, priority: 0.5}))
+      .map(o => ({url: `${SITE_URL}/store-deals/${encodeURIComponent(o.id)}`, lastModified: o.lastSeenAt, changeFrequency: 'daily' as const, priority: 0.3}))
   ).catch(() => []); // Keep existing discovery routes available if a feed fails.
   const ordered = [...staticRoutes].sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0));
   return [...ordered, ...insightRoutes, ...dealRoutes, ...retailRoutes];

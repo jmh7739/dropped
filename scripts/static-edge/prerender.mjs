@@ -48,6 +48,7 @@ const add = (raw) => {
 };
 
 const results = new Map();
+const fallbacks = new Map();
 
 const render = async (key, timeoutMs) => {
   try {
@@ -61,6 +62,15 @@ const render = async (key, timeoutMs) => {
       results.set(key, { key, status: 0, bytes: body.length, error: "incomplete body" });
       return;
     }
+    // A data section that failed under load renders the error fallback (marked
+    // data-render-error). Keep that copy only as a last resort and retry later.
+    if (res.status === 200 && isHtml && text.includes('data-render-error')) {
+      fallbacks.set(key, body);
+      results.set(key, { key, status: 0, bytes: body.length, error: "render error fallback" });
+      for (const m of text.matchAll(/href="([^"#]+)"/g)) add(m[1].replace(/&amp;/g, "&"));
+      return;
+    }
+    fallbacks.delete(key);
     results.set(key, { key, status: res.status, bytes: body.length });
     if (res.status === 200) {
       fs.writeFileSync(path.join(outDir, fileFor(key)), body);
@@ -97,7 +107,14 @@ await Promise.all(Array.from({ length: WORKERS }, worker));
 // The local server drops some requests under load, so failures get slower retries.
 for (let round = 0; round < 3; round += 1) {
   const failed = [...results.values()].filter((r) => r.status === 0).map((r) => r.key);
+  if (failed.length) await new Promise((r) => setTimeout(r, 20000));
   for (const key of failed) await render(key, 180000);
+}
+// Pages that still only rendered the fallback keep it: it is a useful static page,
+// and the next scheduled rebuild tries again.
+for (const [key, body] of fallbacks) {
+  fs.writeFileSync(path.join(outDir, fileFor(key)), body);
+  console.log(`stored fallback copy for ${key}`);
 }
 
 const config = JSON.parse(fs.readFileSync("dist/server/wrangler.json", "utf8"));
