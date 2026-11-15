@@ -1,3 +1,5 @@
+import { loadSaleDeals } from "@/lib/seasonal-sale";
+import { getSnapshotIndex } from "@/lib/priceSnapshot";
 import type { MetadataRoute } from "next";
 import { getRetailCatalog } from '@/lib/retailCatalog';
 import { isDiscoverableRetailOffer } from '@/lib/retail';
@@ -26,6 +28,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     return [];
   });
   const verified = deals.filter(isVerifiedBestDeal);
+  const sale = await loadSaleDeals();
+  const saleIndexable = sale.elevenst.length + sale.ali.length >= 6;
   const categoryCounts = new Map<string, number>();
   for (const deal of verified) categoryCounts.set(deal.categorySlug, (categoryCounts.get(deal.categorySlug) ?? 0) + 1);
   const hasDomestic = verified.some((d) => d.platform !== "aliexpress");
@@ -44,7 +48,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${SITE_URL}/terms`, changeFrequency: "yearly", priority: 0.2 },
     { url: `${SITE_URL}/guides`, changeFrequency: "weekly", priority: 0.95 },
     { url: `${SITE_URL}/unit-price`, changeFrequency: "monthly", priority: 0.85 },
-    { url: `${SITE_URL}/events/1111`, changeFrequency: "monthly", priority: 0.3 },
+    ...(saleIndexable ? [{ url: `${SITE_URL}/events/1111`, changeFrequency: "monthly" as const, priority: 0.3 }] : []),
     ...GUIDES.map((guide) => ({ url: `${SITE_URL}/guides/${guide.slug}`, changeFrequency: "monthly" as const, priority: 0.9 })),
     ...(insights.length >= 3 ? [{ url: `${SITE_URL}/insights`, changeFrequency: "daily" as const, priority: 0.9 }] : []),
     ...(hasDomestic ? [{ url: `${SITE_URL}/deals/domestic`, changeFrequency: "hourly" as const, priority: 0.8 }] : []),
@@ -118,6 +122,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       console.error("sitemap price histories unavailable:", error);
     }
   } }));
+  const snapshot = await getSnapshotIndex();
+  for (const [id, entry] of Object.entries(snapshot?.products ?? {})) {
+    if (entry.points > 0 && entry.lastCheckedAt && !indexableProducts.has(Number(id))) {
+      indexableProducts.set(Number(id), entry.lastCheckedAt);
+    }
+  }
   const dealRoutes: MetadataRoute.Sitemap = [...indexableProducts]
     .map(([id, lastModified]) => ({
       url: `${SITE_URL}/price/${id}`,

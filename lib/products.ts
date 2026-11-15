@@ -67,6 +67,12 @@ export const getProductReport = cache(async function getProductReport(
 
   // 정적 사본이 있으면 상품 정보·이력은 사본에서, 그 뒤의 새 가격만 DB에서 읽는다.
   const [snap, index] = await Promise.all([getSnapshotProduct(id), getSnapshotIndex()]);
+  // A missing snapshot for a known product is already an observed data outage.
+  // Re-querying that same product on every prerender/request amplifies the outage.
+  // The scheduled incremental collector will fill the snapshot when data returns.
+  if (!snap && index?.knownIds.includes(id)) {
+    throw new Error('Known product price snapshot unavailable');
+  }
   if (snap) {
     const read = await readPriceHistory([id]);
     const history = read.get(id) ?? toPricePoints(snap.history);

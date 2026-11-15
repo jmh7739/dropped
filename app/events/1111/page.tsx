@@ -1,30 +1,13 @@
+import { loadSaleDeals } from "@/lib/seasonal-sale";
+import type { Deal } from "@/lib/types";
 import { withOg } from "@/lib/seo";
 import type { Metadata } from "next";
 import Link from "next/link";
 import Breadcrumb from "@/components/Breadcrumb";
 import DealGrid from "@/components/DealGrid";
-import { getCuratedDeals, getDeals } from "@/lib/deals";
-import type { Deal } from "@/lib/types";
 import { SITE_URL } from "@/lib/site";
 
 const PATH = "/events/1111";
-const LIMIT = 24;
-
-const is11st = (deal: Deal) => /^(11st|11번가)$/i.test((deal.mallName ?? "").trim());
-const isAli = (deal: Deal) => deal.platform === "aliexpress";
-
-async function loadSaleDeals() {
-  const [tracked, curated] = await Promise.all([
-    getDeals({ sort: "discount" }).catch(() => [] as Deal[]),
-    getCuratedDeals("discount").catch(() => [] as Deal[]),
-  ]);
-  const seen = new Set<number>();
-  const all = [...tracked, ...curated].filter((deal) => deal.status !== "ended" && !seen.has(deal.id) && seen.add(deal.id));
-  return {
-    elevenst: all.filter(is11st).slice(0, LIMIT),
-    ali: all.filter(isAli).slice(0, LIMIT),
-  };
-}
 
 export async function generateMetadata(): Promise<Metadata> {
   const { elevenst, ali } = await loadSaleDeals();
