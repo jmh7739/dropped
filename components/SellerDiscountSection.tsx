@@ -54,9 +54,9 @@ export default function SellerDiscountSection({ deals }: { deals: Deal[] }) {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h3 className="text-base font-extrabold text-gray-900">판매처 표시 할인</h3>
-          <p className="mt-1 text-xs leading-5 text-gray-500">판매처가 표시한 정가 기준 할인입니다. 자동 관측 가격 이력과 구분하며 판매처를 번갈아 보여줍니다.</p>
+          <p className="mt-1 text-sm leading-5 text-gray-500">판매처가 표시한 정가 기준 할인입니다. 자동 관측 가격 이력과 구분하며 판매처를 번갈아 보여줍니다.</p>
         </div>
-        <span className="text-xs font-bold text-gray-500">조건에 맞는 상품 {filtered.length}개</span>
+        <span className="text-sm font-bold text-gray-500">조건에 맞는 상품 {filtered.length}개</span>
       </div>
       <div className="my-3 flex flex-wrap gap-2">
         <select aria-label="판매처 할인 판매처" value={merchant} onChange={(e) => change(setMerchant, e.target.value)} className={selectClass}>
@@ -71,7 +71,7 @@ export default function SellerDiscountSection({ deals }: { deals: Deal[] }) {
         </select>
       </div>
       {visible.length ? <DealGrid deals={visible} /> : <div className="rounded-xl border border-dashed p-6 text-center text-sm text-gray-500">이 조건에 맞는 상품이 없습니다.</div>}
-      {pages > 1 && <div className="mt-3 flex justify-center gap-1.5">{Array.from({ length: pages }, (_, index) => <button key={index} type="button" onClick={() => setPage(index)} aria-current={safePage === index ? "page" : undefined} className={`h-8 w-8 rounded-lg text-xs font-bold ${safePage === index ? "bg-brand text-white" : "border bg-white text-gray-600"}`}>{index + 1}</button>)}</div>}
+      {pages > 1 && <div className="mt-3 flex justify-center gap-1.5">{Array.from({ length: pages }, (_, index) => <button key={index} type="button" onClick={() => setPage(index)} aria-current={safePage === index ? "page" : undefined} className={`h-8 w-8 rounded-lg text-sm font-bold ${safePage === index ? "bg-brand text-white" : "border bg-white text-gray-600"}`}>{index + 1}</button>)}</div>}
     </div>
   );
 }

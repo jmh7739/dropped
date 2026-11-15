@@ -43,7 +43,7 @@ export default function BuyButton({
       className={
         className ??
         (compact
-          ? "block min-h-11 rounded-lg bg-brand px-2 py-1.5 text-center text-[13px] font-bold text-white transition hover:bg-brand-dark"
+          ? "block min-h-11 rounded-lg bg-brand px-2 py-1.5 text-center text-sm font-bold text-white transition hover:bg-brand-dark"
           : "block rounded-xl bg-brand py-3.5 text-center text-base font-bold text-white transition hover:bg-brand-dark")
       }
     >

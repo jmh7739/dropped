@@ -67,7 +67,7 @@ export default function TrendingProducts({
         <select aria-label="인기 상품 정렬" value={sort} onChange={(e) => { setSort(e.target.value); setPage(0); }} className="rounded-lg border bg-white px-3 py-2 text-sm">
           <option value="trend">트렌드순</option><option value="recent">최근 갱신순</option><option value="price_asc">낮은 가격순</option><option value="price_desc">높은 가격순</option>
         </select>
-        <span className="self-center text-xs font-bold text-gray-500">{filtered.length}개</span>
+        <span className="self-center text-sm font-bold text-gray-500">{filtered.length}개</span>
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
@@ -102,7 +102,7 @@ export default function TrendingProducts({
                   판매 페이지에서 가격 확인
                 </p>
               )}
-              <p className="mt-1 text-[13px] font-medium text-gray-600">{observedAtLabel(product.updatedAt) ?? "확인 시각 없음"} · 가격 이력 축적 전, 판매처에서 최종 확인</p>
+              <p className="mt-1 text-sm font-medium text-gray-600">{observedAtLabel(product.updatedAt) ?? "확인 시각 없음"} · 가격 이력 축적 전, 판매처에서 최종 확인</p>
             </div>
           </Link>
         ))}

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Deal } from "@/lib/types";
 import DealCard from "./DealCard";
 import CoupangPartnersNotice from "./CoupangPartnersNotice";
+import { affiliatePrograms } from "@/lib/affiliate";
 
 type View = "gallery" | "list";
 
@@ -29,7 +30,7 @@ export default function DealGrid({ deals }: { deals: Deal[] }) {
 
   return (
     <div>
-      <CoupangPartnersNotice className="mb-3" showGeneral={false} />
+      <CoupangPartnersNotice className="mb-3" programs={affiliatePrograms(deals.map((d) => ({ url: d.affiliateUrl, platform: d.platform })))} />
       <div className="mb-3 flex justify-end gap-1.5">
         <button
           onClick={() => choose("gallery")}

@@ -56,11 +56,11 @@ export default function SavedPriceWatches() {
       return <Link key={watch.id} href={`/price/${watch.id}`}
         className="rounded-lg border border-gray-200 bg-white p-3 hover:border-emerald-400">
         <span className="block text-sm font-bold text-gray-900">{item ? displayTitle(item.title, 48) : `저장한 상품 #${watch.id}`}</span>
-        <span className="mt-1 block text-xs text-gray-600">{item?.mall ? item.mall + " · " : ""}
+        <span className="mt-1 block text-sm text-gray-600">{item?.mall ? item.mall + " · " : ""}
           {item?.price != null ? formatWon(item.price) : "최근 가격 확인 필요"}
           {watch.target != null && ` · 목표 ${formatWon(watch.target)}`}
         </span>
-        <span className={`mt-1 block text-xs font-bold ${reached ? "text-emerald-700" : "text-gray-500"}`}>
+        <span className={`mt-1 block text-sm font-bold ${reached ? "text-emerald-700" : "text-gray-500"}`}>
           {!freshPrice ? "최근 48시간 내 가격 확인 없음 · 조건 판정 보류" : reached ? "저장한 가격 조건 도달 · 판매처 확인" : item?.price != null ? "아직 저장한 가격 조건에 미도달" : "최근 가격 확인 불가 · 상세에서 재확인"}
           {item?.checkedAt && ` · ${item.checkedAt.slice(0, 10)} 수집`}
         </span>

@@ -28,7 +28,7 @@ export default function DealCard({
   const brand = brandFrom(deal.title);
   const observed = observedAtLabel(deal.checkedAt ?? deal.detectedAt);
   const observedLine = observed ? (
-    <span className="block text-[13px] text-gray-600" data-observed-at>{observed}</span>
+    <span className="block text-sm text-gray-600" data-observed-at>{observed}</span>
   ) : null;
   const scoreIcon =
     score.tone === "hot" || score.tone === "good"
@@ -139,17 +139,17 @@ export default function DealCard({
                 {formatWon(deal.currentPrice)}
               </span>
               {strikePrice > deal.currentPrice && (
-                <span className="text-[13px] text-gray-600 line-through">
+                <span className="text-sm text-gray-600 line-through">
                   {formatWon(strikePrice)}
                 </span>
               )}
               {saving > 0 && (
-                <span className="text-[13px] font-semibold text-blue-700">
+                <span className="text-sm font-semibold text-blue-700">
                   {deal.isCurated ? `판매처 기준 ${formatWon(saving)} 할인` : `${deal.avg30Price ? averagePeriodLabel(trackedDays) : '기준 관측가'}보다 ${formatWon(saving)} 낮음`}
                 </span>
               )}
               {deal.unitPrice && (
-                <span className="text-[13px] text-gray-600">· {deal.unitPrice}</span>
+                <span className="text-sm text-gray-600">· {deal.unitPrice}</span>
               )}
             </div>
             {observedLine}
@@ -240,23 +240,23 @@ export default function DealCard({
                 {formatWon(deal.currentPrice)}
               </span>
               {saving > 0 && (
-                <span className="text-[13px] font-semibold text-blue-700">
+                <span className="text-sm font-semibold text-blue-700">
                   {deal.isCurated ? `판매처 기준 ${formatWon(saving)} 할인` : `${deal.avg30Price ? averagePeriodLabel(trackedDays) : '기준 관측가'}보다 ${formatWon(saving)} 낮음`}
                 </span>
               )}
             </div>
             {observedLine}
             {deal.unitPrice && (
-              <div className="text-[13px] text-gray-600">{deal.unitPrice}</div>
+              <div className="text-sm text-gray-600">{deal.unitPrice}</div>
             )}
             {strikePrice > deal.currentPrice && (
-              <div className="mt-0.5 text-[13px] text-gray-600">
+              <div className="mt-0.5 text-sm text-gray-600">
                 {isCurated ? "정가" : averagePeriodLabel(trackedDays)} {formatWon(strikePrice)}
                 {displayRate > 0 && <span className="ml-1 font-bold text-blue-600">↓{displayRate}%</span>}
               </div>
             )}
             {!isCurated && deal.isLowestEver && (
-              <div className="mt-0.5 text-[13px] font-bold text-amber-800">🏆 {lowestPeriodLabel(trackedDays)}</div>
+              <div className="mt-0.5 text-sm font-bold text-amber-800">🏆 {lowestPeriodLabel(trackedDays)}</div>
             )}
             {!isCurated && scoreReady && score.score !== null && verdict && (
               <div className="mt-1.5 flex items-center gap-1 text-[12px]">

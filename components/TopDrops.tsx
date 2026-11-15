@@ -79,7 +79,7 @@ export default function TopDrops({
                 <span className="text-[12px] font-medium text-gray-500">
                   {d.isCurated ? "가격 이력 수집 중" : `${stage.icon} ${d.trackedDays ? `추적 ${d.trackedDays}일` : "추적 시작"}`}
                 </span>
-                <h3 className="line-clamp-2 text-xs font-medium text-gray-800">
+                <h3 className="line-clamp-2 text-sm font-medium text-gray-800">
                   {displayTitle(d.title, 40)}
                 </h3>
                 <span className="mt-auto pt-1 text-base font-extrabold text-brand">

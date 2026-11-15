@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { COUPANG_PARTNERS_NOTICE, GENERAL_AFFILIATE_NOTICE } from "@/lib/affiliate";
+import { GENERAL_AFFILIATE_NOTICE } from "@/lib/affiliate";
 
 const SERVICE_LINKS = [
   { href: "/", label: "핫딜" },
@@ -63,9 +63,9 @@ export default function AffiliateDisclosure() {
 
         </div>
 
-        <div className="mt-9 border-t border-gray-800 pt-6 text-[13px] leading-relaxed text-gray-300">
-          <p className="text-sm font-bold text-gray-200">{COUPANG_PARTNERS_NOTICE}</p>
-          <p className="mt-1">
+        <div className="mt-9 border-t border-gray-800 pt-6 text-sm leading-relaxed text-gray-300">
+          <p className="text-sm font-bold text-gray-200">제휴 링크 안내</p>
+          <p className="mt-1">Dropped는 쿠팡 파트너스, 알리익스프레스 어필리에이트, 링크프라이스 제휴 프로그램에 참여합니다. 각 페이지에는 실제로 실린 링크에 맞는 고지를 링크 가까이에 표시합니다. 
             {GENERAL_AFFILIATE_NOTICE} 가격·할인 정보는 수집 시점 기준이며, 구매 전 판매 페이지에서 최종 가격을 확인해 주세요.
           </p>
           <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

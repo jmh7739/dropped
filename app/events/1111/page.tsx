@@ -1,3 +1,4 @@
+import { withOg } from "@/lib/seo";
 import type { Metadata } from "next";
 import Link from "next/link";
 import Breadcrumb from "@/components/Breadcrumb";
@@ -27,12 +28,12 @@ async function loadSaleDeals() {
 
 export async function generateMetadata(): Promise<Metadata> {
   const { elevenst, ali } = await loadSaleDeals();
-  return {
+  return withOg({
     title: "11월 11일 쇼핑 행사 가격 확인 — 11번가·알리익스프레스",
     description: "11월 11일 전후 쇼핑 행사에서 11번가와 알리익스프레스 상품을 살 때 가격 이력, 쿠폰 조건, 배송·환불을 확인하는 순서와 현재 수집 중인 특가 상품입니다.",
     alternates: { canonical: `${SITE_URL}${PATH}` },
     robots: { index: elevenst.length + ali.length >= 6, follow: true },
-  };
+  });
 }
 
 const CHECKS = [

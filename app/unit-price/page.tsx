@@ -1,16 +1,18 @@
+import BreadcrumbLd from "@/components/BreadcrumbLd";
+import { withOg } from "@/lib/seo";
 import type { Metadata } from "next";
 import Link from "next/link";
 import UnitPriceCalculator from "./unit-price-calculator";
 import { SITE_URL } from "@/lib/site";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = withOg({
   title: "100g·1개당 가격 비교 계산기 | Dropped",
   description: "묶음 수량, 내용량, 배송비를 같은 단위로 맞춰 두 상품의 실제 단위가격을 비교합니다.",
   alternates: { canonical: `${SITE_URL}/unit-price` },
-};
+});
 
 export default function UnitPricePage() {
-  return <div className="mx-auto max-w-3xl space-y-7 px-4 py-8 text-gray-800">
+  return <div className="mx-auto max-w-3xl space-y-7 px-4 py-8 text-gray-800"><BreadcrumbLd items={[{ label: "단위가격 계산기", href: "/unit-price" }]} />
     <nav className="text-sm"><Link href="/" className="text-brand underline">가격 추적 상품</Link> / 단위가격 비교</nav>
     <header>
       <h1 className="text-3xl font-extrabold text-gray-950">묶음상품, 100g·1개당 가격으로 비교하세요</h1>

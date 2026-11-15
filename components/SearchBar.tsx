@@ -28,7 +28,7 @@ export default function SearchBar({ initial = "" }: { initial?: string }) {
       <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-600">
         🔍
       </span>
-      <button type="submit" disabled={pending} className="absolute right-1.5 top-1/2 min-h-8 -translate-y-1/2 rounded-md px-2 text-xs font-bold text-brand disabled:text-gray-400">
+      <button type="submit" disabled={pending} className="absolute right-1.5 top-1/2 min-h-8 -translate-y-1/2 rounded-md px-2 text-sm font-bold text-brand disabled:text-gray-400">
         {pending ? "검색 중" : "검색"}
       </button>
     </form>

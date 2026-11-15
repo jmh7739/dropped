@@ -60,7 +60,7 @@ export function purchaseSummary(input: PurchaseSummaryInput): PurchaseSummary {
     `마지막으로 확인한 가격은 ${won(current)}입니다. ${compare ? `${compare}. ` : ""}또 ${lowestText}.`,
   );
   paragraphs.push(
-    `떨어졌다가 ${stats.trackedDays}일 동안 이 상품 가격을 ${stats.points}회 자동 확인했고, 그중 서로 다른 날짜는 ${stats.observedDays}일입니다.` +
+    `Dropped가 ${stats.trackedDays}일 동안 이 상품 가격을 ${stats.points}회 자동 확인했고, 그중 서로 다른 날짜는 ${stats.observedDays}일입니다.` +
       (stats.enoughData
         ? ` 기록한 날 가운데 지금보다 가격이 낮았던 날은 ${stats.percentile}%입니다.`
         : " 아직 14일·14개 관측일 기준을 채우지 못해 아래 판단은 참고용입니다."),

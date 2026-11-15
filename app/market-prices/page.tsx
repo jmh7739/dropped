@@ -1,13 +1,15 @@
+import BreadcrumbLd from "@/components/BreadcrumbLd";
+import { withOg } from "@/lib/seo";
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { publicMarketPrices, referenceId } from '@/lib/publicMarketPrices';
 import { marketPriceBasis } from '@/lib/marketPriceBasis';
 
-export const metadata: Metadata = {
+export const metadata: Metadata = withOg({
   title: '농산물 공공 기준가격',
   description: '공식 도매·소매 조사 가격을 판매상품 가격과 구분해 확인합니다.',
   robots: { index: false, follow: true },
-};
+});
 
 function cards(rows: Record<string, unknown>[]) {
   return <div className="grid gap-3 sm:grid-cols-2">
@@ -21,7 +23,7 @@ function cards(rows: Record<string, unknown>[]) {
 
 export default async function MarketPricesPage() {
   const rows = await publicMarketPrices();
-  return <div className="mx-auto max-w-4xl space-y-5 py-6">
+  return <div className="mx-auto max-w-4xl space-y-5 py-6"><BreadcrumbLd items={[{ label: "농산물 기준가격", href: "/market-prices" }]} />
     <Link href="/" className="text-sm font-semibold text-red-600">← 특가 목록</Link>
     <div>
       <h1 className="text-3xl font-extrabold">농산물 공공 기준가격</h1>

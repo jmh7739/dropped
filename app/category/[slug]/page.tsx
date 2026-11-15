@@ -1,3 +1,4 @@
+import { withOg } from "@/lib/seo";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -30,18 +31,18 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const [routeParams, query] = await Promise.all([params, searchParams]);
   const cat = SHOPPING_CATS.find((c) => c.slug === routeParams.slug);
-  if (!cat) return { title: "카테고리 없음", robots: { index: false, follow: false } };
+  if (!cat) return withOg({ title: "카테고리 없음", robots: { index: false, follow: false } });
   // Use the same site-wide deduplicated set as sitemap.ts. A category-only
   // query can include cards omitted from the global sitemap and accidentally
   // mark a page indexable while its URL is absent there.
   const deals = await getDeals();
   const indexableCount = deals.filter((deal) => deal.categorySlug === cat.slug && isVerifiedBestDeal(deal)).length;
-  return {
+  return withOg({
     title: `${cat.name} 가격 이력·특가`,
     description: `${cat.name} 상품의 현재 가격, 실제 추적 기간, 평균 대비 변화를 확인하세요. 이력이 부족한 상품은 별도로 안내합니다.`,
     robots: { index: indexableCount >= 3 && Object.keys(query).length === 0, follow: true },
     alternates: { canonical: `${SITE_URL}/category/${cat.slug}` },
-  };
+  });
 }
 
 export default async function CategoryPage({
@@ -157,7 +158,7 @@ export default async function CategoryPage({
             <Link
               key={option.key}
               href={hrefFor({ ps: option.key || undefined, page: undefined })}
-              className={`rounded-md px-2.5 py-1.5 text-xs font-bold transition ${
+              className={`rounded-md px-2.5 py-1.5 text-sm font-bold transition ${
                 (ps ?? "") === option.key
                   ? "bg-gray-900 text-white"
                   : "border border-gray-200 bg-white text-gray-500 hover:bg-gray-50"
@@ -184,7 +185,7 @@ export default async function CategoryPage({
           </span>
         </h1>
       </div>
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-xs text-gray-600">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-sm text-gray-600">
         <p>수집한 가격 이력과 현재 가격을 함께 확인하세요</p>
         {lastUpdate && (
           <p className="flex items-center gap-1.5 whitespace-nowrap" suppressHydrationWarning>

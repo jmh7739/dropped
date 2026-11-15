@@ -1,13 +1,17 @@
+import BreadcrumbLd from "@/components/BreadcrumbLd";
+import { withOg } from "@/lib/seo";
 import type { Metadata } from "next";
 
-export const metadata: Metadata = { title: "이용안내·면책", alternates: { canonical: "/terms" } };
+export const metadata: Metadata = withOg({ title: "이용안내·면책", description: "Dropped(떨어졌다)가 제공하는 가격 이력 정보의 성격, 제휴 링크와 수수료, 가격 표시의 한계와 면책 범위를 안내합니다.", alternates: { canonical: "/terms" } });
 
 export default function TermsPage() {
   return (
-    <article className="mx-auto max-w-3xl rounded-xl border border-gray-200 bg-white p-6 text-sm leading-7 text-gray-700">
+    <>
+    <BreadcrumbLd items={[{ label: "이용안내·면책", href: "/terms" }]} />
+    <article className="mx-auto max-w-3xl rounded-xl border border-gray-200 bg-white p-6 text-base leading-8 text-gray-700">
       <h1 className="mb-5 text-2xl font-extrabold text-gray-900">이용안내·면책</h1>
       <p>
-        떨어졌다는 여러 판매처의 가격 정보를 수집해 비교를 돕는 정보 제공 서비스이며,
+        Dropped는 여러 판매처의 가격 정보를 수집해 비교를 돕는 정보 제공 서비스이며,
         상품의 판매자나 거래 당사자가 아닙니다.
       </p>
 
@@ -41,5 +45,6 @@ export default function TermsPage() {
 
       <p className="mt-6 text-xs text-gray-600">시행일: 2026년 9월 2일</p>
     </article>
+    </>
   );
 }

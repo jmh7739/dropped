@@ -1,20 +1,24 @@
+import BreadcrumbLd from "@/components/BreadcrumbLd";
+import { withOg } from "@/lib/seo";
 import type { Metadata } from "next";
 import Link from "next/link";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = withOg({
   title: "문의하기",
   description: "떨어졌다 가격 정보 오류 제보, 상품 삭제 요청, 제휴·광고 문의 방법을 안내합니다.",
   alternates: { canonical: "/contact" },
-};
+});
 
 const EMAIL = "aimarket7329@gmail.com";
 
 export default function ContactPage() {
   return (
+    <>
+    <BreadcrumbLd items={[{ label: "문의하기", href: "/contact" }]} />
     <article className="mx-auto max-w-2xl rounded-xl border border-gray-200 bg-white p-6 text-base leading-7 text-gray-700">
       <h1 className="text-2xl font-extrabold text-gray-900">문의하기</h1>
       <p className="mt-4">
-        떨어졌다는 회원가입 없이 운영되는 가격 이력 정보 사이트입니다. 문의는 이메일로만 받고 있으며,
+        Dropped는 회원가입 없이 운영되는 가격 이력 정보 사이트입니다. 문의는 이메일로만 받고 있으며,
         보통 영업일 기준 2~3일 안에 답장을 드립니다.
       </p>
       <p className="mt-4 rounded-lg bg-gray-50 p-4 text-lg font-bold text-gray-900">
@@ -31,7 +35,7 @@ export default function ContactPage() {
 
       <h2 className="mt-8 text-lg font-bold text-gray-900">답변하기 어려운 문의</h2>
       <p className="mt-3">
-        주문, 배송, 환불, 교환은 떨어졌다가 아니라 실제 판매처(쿠팡, 알리익스프레스, 각 쇼핑몰)에서 처리합니다.
+        주문, 배송, 환불, 교환은 Dropped가 아니라 실제 판매처(쿠팡, 알리익스프레스, 각 쇼핑몰)에서 처리합니다.
         구매한 판매처의 고객센터로 문의해 주세요. 결제 정보나 비밀번호는 절대 이메일로 보내지 마세요.
       </p>
 
@@ -41,5 +45,6 @@ export default function ContactPage() {
         <Link href="/terms" className="text-brand hover:underline">이용안내·면책</Link>
       </div>
     </article>
+    </>
   );
 }

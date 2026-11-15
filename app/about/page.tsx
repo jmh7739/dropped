@@ -1,15 +1,19 @@
+import BreadcrumbLd from "@/components/BreadcrumbLd";
+import { withOg } from "@/lib/seo";
 import type { Metadata } from "next";
 import Link from "next/link";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = withOg({
   title: "사이트 소개",
   description:
-    "떨어졌다는 실제 가격 이력을 기반으로 진짜 할인인지 판별해주는 가격 추적 서비스입니다.",
+    "Dropped는 실제 가격 이력을 기반으로 진짜 할인인지 판별해주는 가격 추적 서비스입니다.",
   alternates: { canonical: "/about" },
-};
+});
 
 export default function AboutPage() {
   return (
+    <>
+    <BreadcrumbLd items={[{ label: "사이트 소개", href: "/about" }]} />
     <article className="mx-auto max-w-2xl">
       <h1 className="text-2xl font-extrabold">
         떨어졌다 — 이 가격이 정말 떨어진 가격인가?
@@ -196,5 +200,6 @@ export default function AboutPage() {
         </Link>
       </div>
     </article>
+    </>
   );
 }

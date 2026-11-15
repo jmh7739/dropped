@@ -4,6 +4,7 @@ import "./globals.css";
 import Header from "@/components/Header";
 import AffiliateDisclosure from "@/components/AffiliateDisclosure";
 import { SITE_URL } from "@/lib/site";
+import { DEFAULT_OG_IMAGE } from "@/lib/seo";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -26,11 +27,13 @@ export const metadata: Metadata = {
     locale: "ko_KR",
     siteName: "떨어졌다",
     url: SITE_URL,
+    images: [DEFAULT_OG_IMAGE],
   },
   twitter: {
     card: "summary_large_image",
     title: "떨어졌다 — 진짜 싸진 것만 모으는 특가·핫딜",
     description: "쇼핑 상품의 가격 이력과 추적 기간을 확인하고, 항공권 조회 정보도 살펴보세요.",
+    images: [DEFAULT_OG_IMAGE.url],
   },
   verification: {
     google: "_M4_jKpnBbDWBSw5xH5hqFFVcH8Eh8BuvWV8EPk-X3I",

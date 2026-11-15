@@ -35,7 +35,7 @@ export default function GoldboxBanner() {
         보러가기 →
       </span>
     </a>
-    <CoupangPartnersNotice className="mt-2" showGeneral={false} />
+    <CoupangPartnersNotice className="mt-2" programs={["coupang"]} />
     </div>
   );
 }

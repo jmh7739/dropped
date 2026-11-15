@@ -34,7 +34,7 @@ export default function ProductSearchResults({
         <h2 className="text-lg font-extrabold text-gray-900">
           현재 특가와 별개로 추적 중인 “{query}” 상품 {uniqueRows.length}개
         </h2>
-        <p className="mt-0.5 text-xs leading-5 text-gray-500">위 검색 결과는 지금 판매 중인 특가만 집계합니다. 이 목록은 특가 여부와 관계없이 가격 이력을 가진 상품이며, 같은 제목·판매처·가격의 중복은 합쳤습니다.</p>
+        <p className="mt-0.5 text-sm leading-5 text-gray-500">위 검색 결과는 지금 판매 중인 특가만 집계합니다. 이 목록은 특가 여부와 관계없이 가격 이력을 가진 상품이며, 같은 제목·판매처·가격의 중복은 합쳤습니다.</p>
       </div>}
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
@@ -65,7 +65,7 @@ export default function ProductSearchResults({
               <h3 className="line-clamp-2 text-sm font-medium text-gray-800">
                 {r.title}
               </h3>
-              <div className="mt-auto space-y-1 border-t border-gray-100 pt-2 text-xs">
+              <div className="mt-auto space-y-1 border-t border-gray-100 pt-2 text-sm">
                 <div className="flex items-baseline justify-between gap-2">
                   <span className="text-gray-500">마지막 확인가</span>
                   <span className="text-base font-extrabold text-brand">{formatWon(r.currentPrice)}</span>

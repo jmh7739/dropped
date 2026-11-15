@@ -55,7 +55,7 @@ export default function PriceReport({
           </div>
           {dropScore && (
             <div className="rounded-lg bg-white/70 px-3 py-2 text-right">
-              <div className="text-xs font-bold opacity-70">가격 점수</div>
+              <div className="text-sm font-bold opacity-70">가격 점수</div>
               <div className="text-2xl font-extrabold leading-none">
                 {dropScore.score !== null ? dropScore.score : "-"}
               </div>
@@ -68,21 +68,21 @@ export default function PriceReport({
         <div className="flex items-center justify-between gap-3">
           <div>
             <div className="text-sm font-extrabold text-gray-900">가격판정 신뢰도</div>
-            <div className="mt-0.5 text-xs text-gray-500">관측 {stats.observedDays}일 · 총 {stats.points}회 수집</div>
+            <div className="mt-0.5 text-sm text-gray-500">관측 {stats.observedDays}일 · 총 {stats.points}회 수집</div>
           </div>
           <span className="text-sm font-extrabold text-gray-700">{confidenceLabel}</span>
         </div>
         <div className="mt-3 h-2 overflow-hidden rounded-full bg-gray-100">
           <div className="h-full rounded-full bg-emerald-500" style={{ width: `${confidence}%` }} />
         </div>
-        <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
+        <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-500">
           <span>추적 {d}일</span>
           <span>가격 관측 {stats.observedDays}일</span>
           <span>원본 수집 {stats.points}회</span>
           {lastCheckedAt && <span suppressHydrationWarning>최근 확인 {timeAgo(lastCheckedAt)}</span>}
         </div>
-        {!stats.enoughData && <p className="mt-2 text-xs font-medium text-amber-700">가격 이력 부족 · 판정 참고용</p>}
-        {ageHours > 24 && <p className="mt-2 text-xs font-medium text-amber-700">마지막 확인 이후 가격이 바뀌었을 수 있습니다.</p>}
+        {!stats.enoughData && <p className="mt-2 text-sm font-medium text-amber-700">가격 이력 부족 · 판정 참고용</p>}
+        {ageHours > 24 && <p className="mt-2 text-sm font-medium text-amber-700">마지막 확인 이후 가격이 바뀌었을 수 있습니다.</p>}
       </div>
 
       {/* 가격 분석표 */}

@@ -272,7 +272,7 @@ export function diversifyTop(sorted: Deal[], limit: number, maxPerCat = 2): Deal
   return result;
 }
 
-// 가격 '상태' 필터 — 상품종류가 아니라 "얼마나 싼가"로 거른다(떨어졌다의 핵심).
+// 가격 '상태' 필터 — 상품종류가 아니라 "얼마나 싼가"로 거른다(Dropped의 핵심).
 export type PriceStatusKey = "plunge" | "lowest" | "bigdrop" | "fresh";
 export const PRICE_STATUS: { key: PriceStatusKey; label: string }[] = [
   { key: "plunge", label: "지금 급락" },

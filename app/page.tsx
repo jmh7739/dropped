@@ -1,3 +1,4 @@
+import { withOg } from "@/lib/seo";
 import { Suspense } from 'react';
 import RetailHighlights from '@/components/RetailHighlights';
 import { compareObservedAverage } from '@/lib/price-comparison';
@@ -25,6 +26,7 @@ import { formatWon } from "@/lib/format";
 import { getTrendingProducts } from "@/lib/trends";
 import TrendingProducts from "@/components/TrendingProducts";
 import CoupangPartnersNotice from "@/components/CoupangPartnersNotice";
+import { affiliatePrograms } from "@/lib/affiliate";
 
 export const revalidate = 300;
 
@@ -65,25 +67,25 @@ export async function generateMetadata({
       : searchParams.ps === "lowest" ? "/lowest-price" : searchParams.ps === "plunge" ? "/price-drop" : "/";
   const hasQuery = Object.keys(searchParams).length > 0;
   if (q)
-    return {
+    return withOg({
       title: `"${q}" 최저가·특가 검색`,
       robots: { index: false, follow: true },
-    };
+    });
   if (hasQuery && cat?.dealType !== "flight")
-    return { robots: { index: false, follow: true }, alternates: { canonical } };
+    return withOg({ robots: { index: false, follow: true }, alternates: { canonical } });
   if (cat?.dealType === "flight")
-    return {
+    return withOg({
       title: "여행 — 항공권 조회·숙소·여행딜",
       description:
         "한국 출발 항공권의 최근 조회 요금과 숙소·여행 예약처를 확인하세요. 표시 요금은 예약 시 달라질 수 있습니다.",
       robots: { index: false, follow: true },
-    };
+    });
   if (cat?.dealType === "auction")
-    return {
+    return withOg({
       title: "페이지를 찾을 수 없음",
       robots: { index: false, follow: false },
-    };
-  return { alternates: { canonical: "/" } };
+    });
+  return withOg({ alternates: { canonical: "/" } });
 }
 
 export default async function Home({
@@ -158,7 +160,7 @@ export default async function Home({
       : undefined;
 
   const demoBanner = !isSupabaseConfigured && (
-    <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+    <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-700">
       ⚙️ 데이터 미연결: <code>.env.local</code>에 Supabase 키를 넣고 크롤러가
       수집하면 실데이터가 표시됩니다. (연결 전에는 비어 있습니다)
     </div>
@@ -207,13 +209,17 @@ export default async function Home({
   if (hotLowestOnly) allParams.hl = "1";
   if (hotScope) allParams.hx = hotScope;
 
-  const trackedDealsPromise = getDeals({ category, sort, hotOnly: hot, q, priceStatus: ps, scope });
+  // 목록 조회가 실패해도 페이지의 설명·안내는 그대로 보여 주고, 실패 사실은 표시와
+  // data-render-error 표식으로 남긴다(정적 빌드가 이 표식을 보고 다시 렌더링한다).
+  let listFailed = false;
+  const failed = <T,>(fallback: T) => (error: unknown) => { listFailed = true; console.error("home listing unavailable", error); return fallback; };
+  const trackedDealsPromise = getDeals({ category, sort, hotOnly: hot, q, priceStatus: ps, scope }).catch(failed([] as Awaited<ReturnType<typeof getDeals>>));
   const [trackedDeals, curatedDealsRaw, lastUpdate, productMatchesRaw, insights, trendingProducts] = await Promise.all([
     trackedDealsPromise,
-    scope !== "overseas" && !ps && !hot ? getCuratedDeals(sort, category) : Promise.resolve([]),
-    getLastPriceUpdate(),
+    scope !== "overseas" && !ps && !hot ? getCuratedDeals(sort, category).catch(failed([] as Awaited<ReturnType<typeof getCuratedDeals>>)) : Promise.resolve([]),
+    getLastPriceUpdate().catch(() => null),
     // 검색 시: 활성 딜뿐 아니라 '가격 추적 중인 상품'도 찾아 지금 살지 판정.
-    q.trim().length >= 2 ? searchProducts(q, 24) : Promise.resolve([]),
+    q.trim().length >= 2 ? searchProducts(q, 24).catch(failed([] as Awaited<ReturnType<typeof searchProducts>>)) : Promise.resolve([]),
     !q.trim() && !category && page === 1 ? trackedDealsPromise.then(getPriceInsights).catch(() => []) : Promise.resolve([]),
     !q.trim() && !category && !ps && !hot && !scope && page === 1 ? getTrendingProducts(24).catch(() => []) : Promise.resolve([]),
   ]);
@@ -291,7 +297,9 @@ export default async function Home({
       if (hotSort === "price") return a.currentPrice - b.currentPrice;
       if (hotSort === "recommended") {
         const verifiedFirst = Number(isVerifiedBestDeal(b)) - Number(isVerifiedBestDeal(a));
-        return verifiedFirst || hotDealScore(b) - hotDealScore(a);
+        // 이력 기준이 같으면 국내 쇼핑몰 상품을 먼저 보여 준다.
+        const domesticFirst = Number(b.platform !== "aliexpress") - Number(a.platform !== "aliexpress");
+        return verifiedFirst || domesticFirst || hotDealScore(b) - hotDealScore(a);
       }
       return (dropScore(b).score ?? 0) - (dropScore(a).score ?? 0);
     });
@@ -299,6 +307,10 @@ export default async function Home({
   const hotTotalPages = Math.max(1, Math.ceil(verifiedHotList.length / 8));
   const safeHotPage = Math.min(hotPage, hotTotalPages);
   const hotItems = verifiedHotList.slice((safeHotPage - 1) * 8, safeHotPage * 8);
+  // 국내 쇼핑몰 상품은 이력 기준 충족 전이라도 별도 구역에서 먼저 보여 준다(기준 충족 여부는 카드에 표시).
+  const domesticSpotlight = !hotScope && !hotCategory && !hotLowestOnly && safeHotPage === 1
+    ? sortedHotList.filter((d) => d.platform !== "aliexpress" && !hotItems.some((h) => h.id === d.id)).slice(0, 8)
+    : [];
 
   const hrefFor = (next: Record<string, string | undefined>) => {
     const sp = new URLSearchParams();
@@ -313,6 +325,7 @@ export default async function Home({
   return (
     <div>
       {demoBanner}
+      {listFailed && <p data-render-error="1" role="status" className="mb-4 rounded-lg bg-gray-50 px-3 py-2 text-sm text-gray-700">상품 목록 일부를 이번에 불러오지 못해 설명과 안내만 먼저 보여 드립니다. 마트·편의점 행사와 가이드는 그대로 이용할 수 있습니다.</p>}
 
       {isDefaultHome && (
         <header className="mb-5">
@@ -332,17 +345,27 @@ export default async function Home({
 
       {isDefaultHome && Date.now() < Date.parse("2026-11-13T00:00:00+09:00") && (
         <Link href="/events/1111" className="mb-5 flex items-center justify-between gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 hover:border-red-300">
-          <span><strong className="text-sm text-gray-950">11월 11일 쇼핑 행사 특가 모음</strong><span className="mt-0.5 block text-xs text-gray-600">11번가·알리익스프레스 상품을 가격 이력과 함께 확인</span></span>
+          <span><strong className="text-sm text-gray-950">11월 11일 쇼핑 행사 특가 모음</strong><span className="mt-0.5 block text-sm text-gray-600">11번가·알리익스프레스 상품을 가격 이력과 함께 확인</span></span>
           <span className="text-sm font-bold text-brand">보기 →</span>
         </Link>
       )}
       {isDefaultHome && <SavedPriceWatches />}
-      {isDefaultHome && <nav aria-label="어떤 가격을 찾으세요?" className="mb-6 grid gap-2 sm:grid-cols-3">{[['/store-deals','마트·편의점 행사','기간·회원·1+1 조건 확인'],['#observed-deals','가격 내려간 상품','관측 이력이 있는 상품 비교'],['/unit-price','묶음 가격 비교','100g·1개당 가격 계산']].map(([href,title,copy])=><Link key={href} href={href} className="flex min-h-20 flex-col justify-center rounded-xl border border-gray-200 bg-white px-4 py-3 hover:border-red-300"><strong className="text-sm text-gray-950">{title} →</strong><span className="mt-1 text-sm leading-6 text-gray-600">{copy}</span></Link>)}</nav>}{isDefaultHome && <Suspense fallback={<p className="mb-4 text-sm text-gray-600">마트 행사 확인 중… <Link href="/store-deals">행사 목록 열기</Link></p>}><RetailHighlights /></Suspense>}
+      {isDefaultHome && <nav aria-label="어떤 가격을 찾으세요?" className="mb-6 grid gap-2 sm:grid-cols-3">{[['/store-deals','마트·편의점 행사','기간·회원·1+1 조건 확인'],['#observed-deals','가격 내려간 상품','관측 이력이 있는 상품 비교'],['/unit-price','묶음 가격 비교','100g·1개당 가격 계산']].map(([href,title,copy])=><Link key={href} href={href} className="flex min-h-20 flex-col justify-center rounded-xl border border-gray-200 bg-white px-4 py-3 hover:border-red-300"><strong className="text-sm text-gray-950">{title} →</strong><span className="mt-1 text-sm leading-6 text-gray-600">{copy}</span></Link>)}</nav>}{isDefaultHome && <Suspense fallback={<p className="mb-4 text-sm text-gray-600"><Link href="/store-deals" className="font-bold text-brand underline">마트·편의점 행사 목록 열기</Link></p>}><RetailHighlights /></Suspense>}
+      {isDefaultHome && domesticSpotlight.length > 0 && (
+        <section aria-labelledby="domestic-deals" className="mb-8">
+          <h2 id="domestic-deals" className="text-lg font-extrabold text-gray-900">국내 쇼핑몰 가격 기록</h2>
+          <p className="mb-3 mt-1 text-sm leading-6 text-gray-700">G마켓·11번가 등 국내 쇼핑몰에서 가격 기록이 있는 상품입니다. 배송이 빠르고 반품이 쉬운 대신, 기록이 짧은 상품은 카드에 &lsquo;이력 축적 중&rsquo;으로 표시됩니다.</p>
+          <CoupangPartnersNotice className="mb-3" programs={affiliatePrograms(domesticSpotlight.map((d) => ({ url: d.affiliateUrl, platform: d.platform })))} />
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+            {domesticSpotlight.map((d) => <DealCard key={d.id} deal={d} />)}
+          </div>
+        </section>
+      )}
 
 
       {isDefaultHome && (
         <details className="mb-6 rounded-2xl border border-gray-200 bg-white p-4 sm:p-5"><summary className="cursor-pointer text-sm font-bold text-gray-900">가격이 싸다고 판단한 근거·실제 사례 보기</summary><section aria-labelledby="evidence-heading" className="mt-4">
-          <p className="text-xs font-extrabold text-brand">직접 수집한 가격 기록</p>
+          <p className="text-sm font-extrabold text-brand">직접 수집한 가격 기록</p>
           <h2 id="evidence-heading" className="mt-1 text-xl font-extrabold text-gray-950">오늘의 가격 판단 근거</h2>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-gray-700">
             판매처가 적은 할인율 대신 실제 관측 가격을 비교합니다. 아래 수치는 마지막 수집 시점의 기록이며,
@@ -360,14 +383,14 @@ export default async function Home({
                         className="h-24 w-24 shrink-0 rounded-lg border border-gray-100 bg-white object-contain sm:h-28 sm:w-28"
                       />
                       <div className="min-w-0 flex-1">
-                        <p className="text-[13px] font-semibold text-gray-600">{product.mallName || product.platform} · {stats.trackedDays}일 추적</p>
+                        <p className="text-sm font-semibold text-gray-600">{product.mallName || product.platform} · {stats.trackedDays}일 추적</p>
                         <h3 className="mt-1.5 line-clamp-2 text-sm font-bold leading-5 text-gray-950">{product.title}</h3>
-                        <p className="mt-2 text-[13px] text-gray-600">마지막 확인가</p>
+                        <p className="mt-2 text-sm text-gray-600">마지막 확인가</p>
                         <p className="text-xl font-extrabold leading-tight text-brand">{formatWon(stats.current)}</p>
-                        {observedAtLabel(product.lastCheckedAt) && <p className="text-[13px] text-gray-600">{observedAtLabel(product.lastCheckedAt)}</p>}
+                        {observedAtLabel(product.lastCheckedAt) && <p className="text-sm text-gray-600">{observedAtLabel(product.lastCheckedAt)}</p>}
                       </div>
                     </div>
-                    <div className="mt-3 grid grid-cols-2 gap-2 border-t border-gray-100 pt-3 text-[13px] leading-5">
+                    <div className="mt-3 grid grid-cols-2 gap-2 border-t border-gray-100 pt-3 text-sm leading-5">
                       <div><span className="block text-gray-600">{stats.trackedDays >= 30 ? "최근 30일 평균" : `추적 ${stats.trackedDays}일 평균`}</span><strong className="text-sm text-gray-900">{formatWon(stats.avg30!)}</strong></div>
                       <div><span className="block text-gray-600">평균 대비</span><strong className={`text-sm ${stats.current < stats.avg30! ? "text-emerald-700" : "text-gray-900"}`}>{compareObservedAverage(stats.current, stats.avg30!).text}</strong></div>
                       <div><span className="block text-gray-600">추적 최저가</span><strong className="text-sm text-gray-900">{formatWon(stats.minAll)}</strong></div>
@@ -389,7 +412,7 @@ export default async function Home({
       {isDefaultHome && (
         <section id="observed-deals" className="mb-8 scroll-mt-32">
           <div className="mb-3 space-y-2">
-            <h2 className="text-lg font-extrabold text-gray-900">🔥 자동 관측 이력에서 내려간 상품</h2>
+            <h2 className="text-lg font-extrabold text-gray-900">🔥 가격 이력 기준을 충족한 상품</h2>
             <p className="text-sm leading-6 text-gray-600">평균가·최저가와 비교할 수 있는 상품만 표시합니다. 원본 판매처의 옵션·재고·결제가는 구매 전에 다시 확인해야 합니다.</p>
             <div className="flex flex-wrap items-center gap-2">
               <SortDropdown options={catOptions} value={hotCategory} param="hc" params={allParams} ariaLabel="핫딜 카테고리" />
@@ -420,7 +443,7 @@ export default async function Home({
               <p className="mt-2 text-sm leading-6 text-gray-600">14일 이상 추적하고 유효한 가격 기록을 20회 이상 확보한 상품부터 이력 기준을 확인합니다. 최신 자동 관측값과 하락폭도 함께 봅니다.</p>
               <Link href="/tracking" className="mt-4 inline-flex min-h-11 items-center rounded-lg bg-gray-900 px-4 text-sm font-bold text-white">전체 상품 둘러보기</Link>
             </div>
-          ) : <><CoupangPartnersNotice className="mb-3" showGeneral={false} /><div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+          ) : <><CoupangPartnersNotice className="mb-3" programs={affiliatePrograms(hotItems.map((d) => ({ url: d.affiliateUrl, platform: d.platform })))} /><div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
             {hotItems.map((d, index) => <DealCard key={d.id} deal={d} priorityImage={index === 0} />)}
           </div></>}
           {hotTotalPages > 1 && (
@@ -428,7 +451,7 @@ export default async function Home({
               {Array.from({ length: hotTotalPages }, (_, i) => (
                 <Link key={i} href={hrefFor({ hp: i === 0 ? undefined : String(i + 1) })}
                   aria-label={`핫딜 ${i + 1}페이지`} aria-current={safeHotPage === i + 1 ? "page" : undefined}
-                  className={`flex h-11 w-11 items-center justify-center rounded-lg text-xs font-bold ${safeHotPage === i + 1 ? "bg-brand text-white" : "border border-gray-200 bg-white text-gray-500 hover:bg-gray-50"}`}>
+                  className={`flex h-11 w-11 items-center justify-center rounded-lg text-sm font-bold ${safeHotPage === i + 1 ? "bg-brand text-white" : "border border-gray-200 bg-white text-gray-500 hover:bg-gray-50"}`}>
                   {i + 1}
                 </Link>
               ))}
@@ -444,7 +467,7 @@ export default async function Home({
 
       {isDefaultHome && (
         <section className="mb-8 rounded-2xl border border-blue-100 bg-blue-50/60 p-5">
-          <p className="text-xs font-extrabold uppercase tracking-wide text-blue-700">가격 이력 선별 기준</p>
+          <p className="text-sm font-extrabold uppercase tracking-wide text-blue-700">가격 이력 선별 기준</p>
           <h2 className="mt-1 text-lg font-extrabold text-gray-950">가격 이력이 충분한 상품만 이력 기준 충족으로 표시합니다</h2>
           <p className="mt-2 text-sm leading-6 text-gray-700">
             판매처의 정가 할인과 자동 관측 이력은 구분합니다. 이력 기준 충족은 원본 판매처의 옵션·재고·최종 결제가까지 확인했다는 뜻이 아닙니다.
@@ -503,7 +526,7 @@ export default async function Home({
             ))}
           </div>
           {lastUpdate && (
-            <p className="flex items-center gap-1.5 whitespace-nowrap text-xs text-gray-600" suppressHydrationWarning>
+            <p className="flex items-center gap-1.5 whitespace-nowrap text-sm text-gray-600" suppressHydrationWarning>
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" aria-hidden="true" />
               가격 확인 {timeAgo(lastUpdate)}
             </p>

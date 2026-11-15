@@ -1,14 +1,15 @@
+import { withOg } from "@/lib/seo";
 import type { Metadata } from "next";
 import Link from "next/link";
 import Breadcrumb from "@/components/Breadcrumb";
 import { GUIDES } from "@/lib/guides";
 import { SITE_URL } from "@/lib/site";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = withOg({
   title: "가격·여행 비교 가이드",
   description: "상품 가격 이력과 여행 예약 조건을 비교하는 방법을 알아보세요.",
   alternates: { canonical: `${SITE_URL}/guides` },
-};
+});
 
 export default function GuidesPage() {
   return (

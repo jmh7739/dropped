@@ -1,3 +1,4 @@
+import { withOg } from "@/lib/seo";
 import type { Metadata } from "next";
 import Link from "next/link";
 import Breadcrumb from "@/components/Breadcrumb";
@@ -10,12 +11,12 @@ export const revalidate = 1800;
 
 export async function generateMetadata(): Promise<Metadata> {
   const insights = await getPriceInsights();
-  return {
+  return withOg({
     title: "실제 상품 가격 추적 사례",
     description: "실제 수집한 상품 가격으로 관측 기간, 수집 횟수, 첫 가격, 최근 평균과 현재 가격을 비교합니다. 조건이 부족한 상품은 표시하지 않습니다.",
     alternates: { canonical: `${SITE_URL}/insights` },
     robots: { index: insights.length >= 3, follow: true },
-  };
+  });
 }
 
 export default async function InsightsPage() {

@@ -80,7 +80,7 @@ export default async function CuratedSection({
           />
         </div>
       </div>
-      <p className="mb-3 text-xs text-gray-600">
+      <p className="mb-3 text-sm text-gray-600">
         국내몰에서 지금 잘 팔리는 할인 상품 (원가 대비)
       </p>
 
