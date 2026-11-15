@@ -67,6 +67,9 @@ export const getProductReport = cache(async function getProductReport(
     .select("*, categories(slug, name)")
     .eq("id", id)
     .single();
+  // "No row" means the product really does not exist (404). Any other database
+  // failure must not be shown as a missing page; let the error fallback render.
+  if (error && error.code !== "PGRST116") throw new Error(`Product report unavailable: ${error.code ?? error.message}`);
   if (error || !p) return null;
 
   const history = (await readPriceHistory([id])).get(id) ?? [];

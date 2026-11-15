@@ -1,6 +1,5 @@
 import { withOg } from "@/lib/seo";
 import type { Metadata } from 'next';
-import { Suspense } from 'react';
 import RetailOffers from '@/components/RetailOffers';
 import { getRetailCatalog } from '@/lib/retailCatalog';
 import { buildRetailPage } from '@/lib/retailPage';
@@ -17,5 +16,5 @@ export default async function StoreDealsPage({ searchParams }: { searchParams: P
   const { catalog, usingSaved } = await getRetailCatalog();
   // Only one page of offers goes to the browser; filters and pages are separate URLs.
   const data = buildRetailPage(catalog, params);
-  return <Suspense fallback={<p className="rounded-xl border p-6">마트·편의점 행사 목록입니다. 필터는 잠시 후 사용할 수 있습니다.</p>}><RetailOffers data={data} usingSaved={usingSaved} /></Suspense>;
+  return <RetailOffers data={data} usingSaved={usingSaved} />;
 }

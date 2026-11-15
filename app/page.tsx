@@ -1,5 +1,4 @@
 import { withOg } from "@/lib/seo";
-import { Suspense } from 'react';
 import RetailHighlights from '@/components/RetailHighlights';
 import { compareObservedAverage } from '@/lib/price-comparison';
 import type { Metadata } from "next";
@@ -325,7 +324,6 @@ export default async function Home({
   return (
     <div>
       {demoBanner}
-      {listFailed && <p data-render-error="1" role="status" className="mb-4 rounded-lg bg-gray-50 px-3 py-2 text-sm text-gray-700">상품 목록 일부를 이번에 불러오지 못해 설명과 안내만 먼저 보여 드립니다. 마트·편의점 행사와 가이드는 그대로 이용할 수 있습니다.</p>}
 
       {isDefaultHome && (
         <header className="mb-5">
@@ -350,7 +348,7 @@ export default async function Home({
         </Link>
       )}
       {isDefaultHome && <SavedPriceWatches />}
-      {isDefaultHome && <nav aria-label="어떤 가격을 찾으세요?" className="mb-6 grid gap-2 sm:grid-cols-3">{[['/store-deals','마트·편의점 행사','기간·회원·1+1 조건 확인'],['#observed-deals','가격 내려간 상품','관측 이력이 있는 상품 비교'],['/unit-price','묶음 가격 비교','100g·1개당 가격 계산']].map(([href,title,copy])=><Link key={href} href={href} className="flex min-h-20 flex-col justify-center rounded-xl border border-gray-200 bg-white px-4 py-3 hover:border-red-300"><strong className="text-sm text-gray-950">{title} →</strong><span className="mt-1 text-sm leading-6 text-gray-600">{copy}</span></Link>)}</nav>}{isDefaultHome && <Suspense fallback={<p className="mb-4 text-sm text-gray-600"><Link href="/store-deals" className="font-bold text-brand underline">마트·편의점 행사 목록 열기</Link></p>}><RetailHighlights /></Suspense>}
+      {isDefaultHome && <nav aria-label="어떤 가격을 찾으세요?" className="mb-6 grid gap-2 sm:grid-cols-3">{[['/store-deals','마트·편의점 행사','기간·회원·1+1 조건 확인'],['#observed-deals','가격 내려간 상품','관측 이력이 있는 상품 비교'],['/unit-price','묶음 가격 비교','100g·1개당 가격 계산']].map(([href,title,copy])=><Link key={href} href={href} className="flex min-h-20 flex-col justify-center rounded-xl border border-gray-200 bg-white px-4 py-3 hover:border-red-300"><strong className="text-sm text-gray-950">{title} →</strong><span className="mt-1 text-sm leading-6 text-gray-600">{copy}</span></Link>)}</nav>}{isDefaultHome && <RetailHighlights />}
       {isDefaultHome && domesticSpotlight.length > 0 && (
         <section aria-labelledby="domestic-deals" className="mb-8">
           <h2 id="domestic-deals" className="text-lg font-extrabold text-gray-900">국내 쇼핑몰 가격 기록</h2>
@@ -409,7 +407,8 @@ export default async function Home({
         </section></details>
       )}
 
-      {isDefaultHome && (
+      {listFailed && <p data-render-error="1" role="status" className="mb-4 text-sm text-gray-600">가격 기록 목록은 이번 갱신에서 표시하지 못했습니다. 위의 마트·편의점 행사와 아래 가이드는 그대로 이용할 수 있습니다.</p>}
+      {isDefaultHome && !listFailed && (
         <section id="observed-deals" className="mb-8 scroll-mt-32">
           <div className="mb-3 space-y-2">
             <h2 className="text-lg font-extrabold text-gray-900">🔥 가격 이력 기준을 충족한 상품</h2>

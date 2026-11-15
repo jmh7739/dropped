@@ -36,7 +36,9 @@ export async function generateMetadata({
 }: {
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
-  const r = await getProductReport(Number((await params).id));
+  const id = Number((await params).id);
+  const r = await getProductReport(id).catch(() => undefined);
+  if (r === undefined) return withOg({ title: "상품 가격 기록", robots: { index: false, follow: true }, alternates: { canonical: `${SITE}/price/${id}` } });
   if (!r) return withOg({ title: "상품을 찾을 수 없음", robots: { index: false, follow: false } });
   const canonical = `${SITE}/price/${r.id}`;
   const stats = r.currentPrice == null ? null : priceStats(r.history, r.currentPrice);

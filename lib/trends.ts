@@ -1,4 +1,5 @@
 import { supabase } from "./supabase";
+import { withTtlCache } from "./ttlCache";
 
 export interface RealtimeTrend {
   keyword: string;
@@ -122,7 +123,12 @@ function correctedProductCategory(raw: unknown, titleValue: unknown, keywordValu
   return String(raw || "기타");
 }
 
-export async function getRealtimeTrends(): Promise<RealtimeTrend[]> {
+/** The header shows trends on every page; reuse one result per isolate for 5 minutes to save database egress. */
+export function getRealtimeTrends(): Promise<RealtimeTrend[]> {
+  return withTtlCache("realtime-trends", 5 * 60_000, loadRealtimeTrends);
+}
+
+async function loadRealtimeTrends(): Promise<RealtimeTrend[]> {
   if (!supabase) return [];
   const { data: latest, error: latestError } = await supabase.from("realtime_trends").select("collected_at").eq("is_published", true).order("collected_at", { ascending: false }).limit(1);
   if (latestError || !latest?.length) return [];
