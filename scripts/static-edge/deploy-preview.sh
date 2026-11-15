@@ -39,7 +39,7 @@ HTML_COUNT=$(find dist/client/__static -maxdepth 1 -name '*.html' | wc -l)
 # Price pages without a readable record are answered live with 503 and are not stored,
 # so the minimum covers the editorial and store pages that never depend on the database.
 test "$HTML_COUNT" -ge 150 || { echo "Only $HTML_COUNT HTML pages rendered; refusing to deploy" >&2; exit 1; }
-grep -q '"/"' dist/prerender-report.json || { echo "Home page was not rendered; refusing to deploy" >&2; exit 1; }
+node -e 'const h=require("crypto").createHash("sha1").update("/").digest("hex");require("fs").accessSync("dist/client/__static/"+h+".html")' || { echo "Home page was not stored; refusing to deploy" >&2; exit 1; }
 cleanup
 DEV_PID=
 npx --no-install wrangler deploy --config dist/server/edge-wrangler.json
