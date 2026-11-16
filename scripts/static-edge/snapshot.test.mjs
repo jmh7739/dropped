@@ -47,3 +47,46 @@ test("refresh only asks for rows newer than the previous snapshot for known prod
   assert.equal(index.products[7].current, 1800);
   assert.ok(fs.existsSync(path.join(dir, "p", "5.json")));
 });
+
+test("history keeps the lowest and the last observation of each Korean day", async () => {
+  const { downsampleDaily } = await import("./price-snapshot.mjs");
+  const day = Date.UTC(2026, 10, 1, 0, 0, 0) / 1000; // 09:00 KST
+  const h = [[day, 1000], [day + 3600, 900], [day + 7200, 950], [day + 10800, 980], [day + 86400, 1000]];
+  assert.deepEqual(downsampleDaily(h), [[day + 3600, 900], [day + 10800, 980], [day + 86400, 1000]]);
+});
+
+test("the newest non-empty previous copy wins and older copies only fill gaps", async () => {
+  const { choosePrevious } = await import("./price-snapshot.mjs");
+  const p = (id) => ({ id, history: [[1, 1]] });
+  const empty = { version: 1, generatedAt: null, products: {}, knownIds: [1, 2, 3] };
+  const seed = { version: 1, generatedAt: "2026-11-14T00:00:00Z", products: { 1: p(1), 2: p(2) }, knownIds: [3] };
+  const live = { version: 1, generatedAt: "2026-11-15T00:00:00Z", products: { 1: { ...p(1), title: "live" } }, knownIds: [] };
+  assert.equal(choosePrevious([empty, null]), null);
+  const best = choosePrevious([live, empty, seed]);
+  assert.equal(best.generatedAt, live.generatedAt);
+  assert.equal(best.products[1].title, "live");
+  assert.ok(best.products[2]);
+  assert.deepEqual(best.knownIds, [3]);
+});
+
+test("a blocked database keeps the previous snapshot unchanged", async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "snap-"));
+  const seedDir = fs.mkdtempSync(path.join(os.tmpdir(), "seed-"));
+  const { main } = await import("./price-snapshot.mjs");
+  const seedPath = path.join(seedDir, "seed.json.gz");
+  const zlib = await import("node:zlib");
+  const seed = { version: 1, generatedAt: iso(2), metaRefreshedAt: null, knownIds: [], products: { 9: { id: 9, platform: "cps", title: "시드", imageUrl: "", productUrl: "#", affiliateUrl: "#", listPrice: 0, mallName: null, shippingFee: null, unitPrice: null, categorySlug: "", categoryName: "기타", hasActiveDeal: false, likeCount: 0, history: [[Math.floor(Date.parse(iso(3)) / 1000), 500]] } } };
+  fs.writeFileSync(seedPath, zlib.gzipSync(JSON.stringify(seed)));
+  configure({ outDir: dir, dbUrl: "https://db.example", dbKey: "test", sources: ["https://live.example"], seedPath });
+  let dbCalls = 0;
+  globalThis.fetch = async (url) => {
+    if (String(url).startsWith("https://live.example")) return new Response(JSON.stringify({ version: 1, generatedAt: null, products: {}, knownIds: [9] }), { status: 200 });
+    dbCalls += 1;
+    return new Response('{"message":"exceed_egress_quota"}', { status: 402 });
+  };
+  await main();
+  assert.equal(dbCalls, 1, "stops at the first refused request");
+  const index = JSON.parse(fs.readFileSync(path.join(dir, "index.json"), "utf8"));
+  assert.equal(index.generatedAt, seed.generatedAt);
+  assert.equal(index.products[9].current, 500);
+});
