@@ -56,6 +56,28 @@ async function priceStatus(path, response) {
   return new Response(text, { status: 503, headers });
 }
 
+// Pages without a stored copy (search results, extra filters, new products) render
+// live and read the database. Each address is rendered at most once per
+// UNSTORED_CACHE_SECONDS per data center, so crawlers cannot multiply database reads.
+const UNSTORED_CACHE_SECONDS = 1800;
+
+async function renderUnstored(request, env, ctx, path, url) {
+  const cacheable = request.method === "GET" && !request.headers.has("RSC") && !url.searchParams.has("_rsc");
+  if (cacheable) {
+    const cached = await caches.default.match(request);
+    if (cached) return cached;
+  }
+  const response = await priceStatus(path, await app.fetch(request, env, ctx));
+  if (!cacheable || response.status !== 200 || response.headers.has("set-cookie") ||
+      !response.headers.get("content-type")?.includes("text/html")) return response;
+  const headers = new Headers(response.headers);
+  headers.set("Cache-Control", `public, max-age=${UNSTORED_CACHE_SECONDS}`);
+  headers.set("X-Dropped-Live", "1");
+  const body = await response.arrayBuffer();
+  ctx.waitUntil(caches.default.put(request, new Response(body, { status: 200, headers })).catch(() => {}));
+  return new Response(body, { status: 200, headers });
+}
+
 async function serve(request, env, ctx, url) {
   if (url.pathname.startsWith("/__static/")) return new Response("Not found", { status: 404 });
   // The price snapshot is a plain static file; pages and the next build read it.
@@ -82,7 +104,7 @@ async function serve(request, env, ctx, url) {
     ctx.waitUntil(refreshLive(request, env, ctx).catch((error) => console.error("live page refresh failed", path, error)));
     return staticResponse(stored, true);
   }
-  if (!stored.ok) return priceStatus(path, await app.fetch(request, env, ctx));
+  if (!stored.ok) return renderUnstored(request, env, ctx, path, url);
 
   // A client navigation that receives HTML falls back to a full page load.
   return staticResponse(stored);

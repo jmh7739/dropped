@@ -79,3 +79,16 @@ test('known price page without a readable record answers 503 with Retry-After', 
   const ok = await context.edge.fetch(new Request('https://dropped.kr/price/6'), env, ctx);
   assert.equal(ok.status, 200);
 });
+
+test('a page without a stored copy renders live once and is then served from the edge cache', async () => {
+  const f = fixture();
+  f.env.ASSETS.fetch = async () => new Response('missing', { status: 404 });
+  const request = new Request('https://dropped.kr/?q=%EC%83%9D%EC%88%98');
+  const first = await f.edge.fetch(request, f.env, f.ctx);
+  assert.equal(first.status, 200);
+  assert.match(first.headers.get('Cache-Control'), /max-age=1800/);
+  await Promise.all(f.jobs);
+  const second = await f.edge.fetch(request, f.env, f.ctx);
+  assert.match(await second.text(), /fresh price/);
+  assert.equal(f.renders, 1, 'the second view must not render (and read the database) again');
+});
