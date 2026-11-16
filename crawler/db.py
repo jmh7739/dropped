@@ -103,7 +103,22 @@ def upsert_product(raw) -> Optional[int]:
     """products upsert 후 product_id 반환 (DRY_RUN이면 external_id 해시)."""
     if config.DRY_RUN:
         return abs(hash((raw.platform, raw.external_product_id))) % 1_000_000
-    payload = {
+    # Only the id comes back (not the whole row with its long URLs).
+    res = (
+        client()
+        .table("products")
+        .upsert(_product_payload(raw), on_conflict="platform,external_product_id")
+        .select("id")
+        .execute()
+    )
+    product_id = res.data[0]["id"] if res.data else None
+    if product_id is not None and _state is not None:
+        _state.touch(product_id, _now())
+    return product_id
+
+
+def _product_payload(raw) -> dict:
+    return {
         "platform": raw.platform,
         "external_product_id": raw.external_product_id,
         "title": normalize_title(raw.title),
@@ -116,18 +131,111 @@ def upsert_product(raw) -> Optional[int]:
         "shipping_fee": raw.shipping_fee,
         "unit_price": raw.unit_price,
     }
-    # Only the id comes back (not the whole row with its long URLs).
-    res = (
-        client()
-        .table("products")
-        .upsert(payload, on_conflict="platform,external_product_id")
-        .select("id")
-        .execute()
-    )
-    product_id = res.data[0]["id"] if res.data else None
-    if product_id is not None and _state is not None:
-        _state.touch(product_id, _now())
-    return product_id
+
+
+def _chunks(items: list, size: int):
+    for i in range(0, len(items), size):
+        yield items[i:i + size]
+
+
+def upsert_products(raws: list) -> dict[tuple[str, str], int]:
+    """한 소스의 상품을 500개씩 한 번에 upsert하고 (platform, external_product_id) → id를 돌려준다.
+
+    상품마다 요청 1번(응답 헤더 포함)을 보내던 것을 묶는다. 묶음이 실패하면 그 묶음만
+    상품별 upsert로 다시 시도한다(차단 402는 즉시 중단).
+    """
+    if config.DRY_RUN:
+        return {(r.platform, r.external_product_id): upsert_product(r) for r in raws}
+    out: dict[tuple[str, str], int] = {}
+    for chunk in _chunks(list(raws), 500):
+        try:
+            res = (client().table("products")
+                   .upsert([_product_payload(r) for r in chunk], on_conflict="platform,external_product_id")
+                   .select("id,platform,external_product_id").execute())
+            for row in res.data or []:
+                out[(row["platform"], row["external_product_id"])] = row["id"]
+        except Exception as e:
+            note_error(e)
+            if _blocked:
+                raise DatabaseBlocked(_blocked) from e
+            print(f"[products] 묶음 저장 실패 → 상품별 재시도: {type(e).__name__}: {str(e)[:120]}")
+            for r in chunk:
+                try:
+                    pid = upsert_product(r)
+                except Exception as item_error:
+                    note_error(item_error)
+                    if _blocked:
+                        raise DatabaseBlocked(_blocked) from item_error
+                    continue
+                if pid is not None:
+                    out[(r.platform, r.external_product_id)] = pid
+    if _state is not None:
+        now = _now()
+        for pid in out.values():
+            _state.touch(pid, now)
+    return out
+
+
+def preload_price_state(product_ids: list[int]) -> None:
+    """기억에 없는 상품들의 90일 이력을 100개씩 한 번에 읽는다(상품별 요청 대신)."""
+    if config.DRY_RUN or _state is None:
+        return
+    from datetime import datetime, timedelta, timezone
+    from price_state import epoch
+    missing = sorted({pid for pid in product_ids if not _state.has(pid)})
+    since = (datetime.now(timezone.utc) - timedelta(days=config.BASELINE_WINDOW_DAYS)).isoformat()
+    now = _now()
+    for chunk in _chunks(missing, 100):
+        rows = _paged(lambda lo, hi: (
+            client().table("price_history").select("product_id,price,collected_at")
+            .in_("product_id", chunk).gte("collected_at", since)
+            .order("collected_at").order("id").range(lo, hi).execute().data
+        ))
+        by_product: dict[int, list[dict]] = {pid: [] for pid in chunk}
+        for r in rows:
+            by_product.setdefault(r["product_id"], []).append(r)
+        for pid, product_rows in by_product.items():
+            # 첫 관측은 기간 안의 가장 이른 행(판정에는 '1일 이상 관찰' 여부만 쓰인다).
+            first = min((t for r in product_rows if (t := epoch(r.get("collected_at"))) is not None), default=None)
+            _state.put(pid, first, product_rows, now)
+
+
+# 이번 소스에서 모은 가격 행(한 번에 저장). None이면 즉시 저장.
+_pending_prices: Optional[list[dict]] = None
+
+
+def begin_price_batch() -> None:
+    global _pending_prices
+    _pending_prices = [] if (_state is not None and not config.DRY_RUN) else None
+
+
+def flush_price_batch() -> int:
+    """모은 가격 행을 500개씩 저장하고, DB가 정한 collected_at을 기억에 남긴다."""
+    global _pending_prices
+    rows, _pending_prices = _pending_prices or [], None
+    saved = 0
+    for chunk in _chunks(rows, 500):
+        try:
+            res = (client().table("price_history").insert(chunk)
+                   .select("product_id,price,collected_at").execute())
+            for r in res.data or []:
+                _state.record(r["product_id"], r.get("collected_at"), r["price"], _now())
+                saved += 1
+        except Exception as e:
+            note_error(e)
+            if _blocked:
+                raise DatabaseBlocked(_blocked) from e
+            print(f"[price_history] 묶음 저장 실패 → 행별 재시도: {type(e).__name__}: {str(e)[:120]}")
+            for row in chunk:
+                try:
+                    res = client().table("price_history").insert(row).select("collected_at").execute()
+                    _state.record(row["product_id"], res.data[0]["collected_at"] if res.data else None, row["price"], _now())
+                    saved += 1
+                except Exception as item_error:
+                    note_error(item_error)
+                    if _blocked:
+                        raise DatabaseBlocked(_blocked) from item_error
+    return saved
 
 
 # ── 실행 사이 가격 기억(price_state) ──────────────────────────
@@ -289,6 +397,11 @@ def insert_price(product_id: int, price: int) -> None:
         last = _state.last(product_id)
         now = datetime.now(timezone.utc)
         if last and last[1] == price and same_kst_observation_day(datetime.fromtimestamp(last[0], timezone.utc), now):
+            return
+        if _pending_prices is not None:
+            # 같은 묶음에 이미 같은 가격이 있으면 다시 넣지 않는다.
+            if not any(r["product_id"] == product_id and r["price"] == price for r in _pending_prices):
+                _pending_prices.append({"product_id": product_id, "price": price})
             return
         # The database time of the new row is remembered exactly (a few bytes back).
         res = client().table("price_history").insert(
