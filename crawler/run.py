@@ -42,17 +42,18 @@ def collect_and_flag() -> tuple[int, int, set[int], set[int], list[str], int]:
     errors: list[str] = []
     healthy_sources = 0
 
-    def process(raw) -> bool:
-        """한 항목 처리 → is_deal이면 True. seen/flagged_ids 갱신은 여기서."""
+    def prepare(raw):
+        """이력 없이 걸러낼 항목은 저장 전에 뺀다."""
         quality, reasons = price_quality.validate_price(raw)
         if quality == "quarantined":
             print(f"[rejected:{price_quality.QUALITY_VERSION}] {raw.platform} | {raw.external_product_id} | {','.join(reasons)}")
-            return False
+            return None
         if "invalid_reference_price" in reasons:
             raw = replace(raw, list_price=None)
-        product_id = db.upsert_product(raw)
-        if product_id is None:
-            return False
+        return raw
+
+    def process(raw, product_id: int) -> bool:
+        """한 항목 처리 → is_deal이면 True. seen/flagged_ids 갱신은 여기서."""
         seen_product_ids.add(product_id)
 
         history = db.recent_prices(product_id)
@@ -121,6 +122,7 @@ def collect_and_flag() -> tuple[int, int, set[int], set[int], list[str], int]:
             continue
         healthy_sources += 1
         source_seen = set()
+        prepared = []
         for raw in raws:
             identity = (raw.platform, raw.external_product_id)
             if identity in source_seen:
@@ -128,17 +130,56 @@ def collect_and_flag() -> tuple[int, int, set[int], set[int], list[str], int]:
             source_seen.add(identity)
             scanned += 1
             try:
-                if process(raw):
-                    flagged += 1
+                ready = prepare(raw)
             except Exception as e:
-                db.note_error(e)
-                if db.blocked():
-                    # 402: 남은 항목을 하나씩 다시 보내지 않는다.
-                    print(f"[{name}] DB 차단({db.blocked()}) → 남은 수집 저장 중단")
-                    errors.append("database_blocked")
-                    return flagged, scanned, flagged_ids, curated_ids, sorted(set(errors)), healthy_sources
                 print(f"[{name}] 항목 처리 실패 → 건너뜀: {type(e).__name__}: {e}")
                 errors.append(f"{name}:item")
+                continue
+            if ready is not None:
+                prepared.append(ready)
+
+        def stop_if_blocked(e: Exception) -> bool:
+            db.note_error(e)
+            if db.blocked():
+                # 402: 남은 항목을 하나씩 다시 보내지 않는다.
+                print(f"[{name}] DB 차단({db.blocked()}) → 남은 수집 저장 중단")
+                errors.append("database_blocked")
+                return True
+            return False
+
+        # 상품 저장과 이력 읽기는 소스 단위로 묶어서 보낸다(상품마다 요청하지 않음).
+        try:
+            ids = db.upsert_products(prepared)
+            db.preload_price_state(list(ids.values()))
+        except Exception as e:
+            if stop_if_blocked(e):
+                return flagged, scanned, flagged_ids, curated_ids, sorted(set(errors)), healthy_sources
+            print(f"[{name}] 상품 저장 실패 → 이 소스 건너뜀: {type(e).__name__}: {e}")
+            errors.append(f"{name}:item")
+            continue
+        db.begin_price_batch()
+        try:
+            for raw in prepared:
+                product_id = ids.get((raw.platform, raw.external_product_id))
+                if product_id is None:
+                    continue
+                try:
+                    if process(raw, product_id):
+                        flagged += 1
+                except Exception as e:
+                    if stop_if_blocked(e):
+                        return flagged, scanned, flagged_ids, curated_ids, sorted(set(errors)), healthy_sources
+                    print(f"[{name}] 항목 처리 실패 → 건너뜀: {type(e).__name__}: {e}")
+                    errors.append(f"{name}:item")
+        finally:
+            try:
+                db.flush_price_batch()
+            except Exception as e:
+                if not stop_if_blocked(e):
+                    print(f"[{name}] 가격 저장 실패: {type(e).__name__}: {e}")
+                    errors.append(f"{name}:prices")
+        if db.blocked():
+            return flagged, scanned, flagged_ids, curated_ids, sorted(set(errors)), healthy_sources
 
     return flagged, scanned, flagged_ids, curated_ids, sorted(set(errors)), healthy_sources
 

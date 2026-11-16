@@ -111,6 +111,47 @@ class PriceStateTests(unittest.TestCase):
         self.assertFalse(PriceState(self.path).load(int(time.time())))
 
 
+class BatchedCollectionTests(unittest.TestCase):
+    def setUp(self):
+        self.path = os.path.join(tempfile.mkdtemp(), "state.json.gz")
+        db._state = None
+        db._blocked = None
+
+    def tearDown(self):
+        db._state = None
+        db._blocked = None
+        db._pending_prices = None
+
+    def test_a_source_is_saved_with_a_handful_of_requests(self):
+        def handler(table, ops):
+            names = op_names(ops)
+            if table == "products" and "upsert" in names:
+                payload = next(args[0] for name, args, _ in ops if name == "upsert")
+                return [{"id": 100 + int(p["external_product_id"]), "platform": p["platform"],
+                         "external_product_id": p["external_product_id"]} for p in payload]
+            if table == "price_history" and "insert" in names:
+                rows = next(args[0] for name, args, _ in ops if name == "insert")
+                return [{**r, "collected_at": iso(0)} for r in rows]
+            if table == "categories":
+                return [{"id": 1, "slug": "food"}]
+            return []
+
+        raws = [SimpleNamespace(platform="cps", external_product_id=str(i), title=f"상품 {i}", current_price=1000 + i,
+                                list_price=None, image_url="", product_url="", affiliate_url="", category_slug="food",
+                                mall_name=None, shipping_fee=None, unit_price=None, curated=False) for i in range(250)]
+        fake = FakeClient(handler)
+        with patch.object(db.config, "DRY_RUN", False), patch.object(db, "client", lambda: fake),              patch.object(run, "SOURCES", [SimpleNamespace(__name__="sources.cps", fetch=lambda: raws)]),              patch.object(run.price_quality, "validate_price", return_value=("ok", [])):
+            db._category_cache.clear()
+            db.start_price_state(self.path)
+            _, scanned, _, _, errors, _ = run.collect_and_flag()
+        self.assertEqual(scanned, 250)
+        self.assertEqual(errors, [])
+        tables = [t for t, _ in fake.calls]
+        # categories 1 + products upsert 1 + history preload 3 (100 ids each) + price insert 1
+        self.assertLessEqual(len(fake.calls), 6, tables)
+        self.assertEqual(len(db._state.products), 250)
+
+
 class QuotaBlockTests(unittest.TestCase):
     def tearDown(self):
         db._blocked = None
@@ -126,8 +167,8 @@ class QuotaBlockTests(unittest.TestCase):
     def test_collection_stops_at_the_first_quota_refusal(self):
         calls = []
 
-        def upsert(raw):
-            calls.append(raw.external_product_id)
+        def upsert(raws):
+            calls.append(len(raws))
             raise Exception("{'code': 402, 'message': 'exceed_egress_quota'}")
 
         raws = [SimpleNamespace(platform="cps", external_product_id=str(i), title="상품", current_price=1000,
@@ -135,9 +176,9 @@ class QuotaBlockTests(unittest.TestCase):
                                 mall_name=None, shipping_fee=None, unit_price=None, curated=False) for i in range(5)]
         with patch.object(run, "SOURCES", [SimpleNamespace(__name__="sources.cps", fetch=lambda: raws)]), \
              patch.object(run.price_quality, "validate_price", return_value=("ok", [])), \
-             patch.object(run.db, "upsert_product", upsert):
+             patch.object(run.db, "upsert_products", upsert):
             _, _, _, _, errors, _ = run.collect_and_flag()
-        self.assertEqual(calls, ["0"])
+        self.assertEqual(calls, [5], "one batched request, nothing after the refusal")
         self.assertIn("database_blocked", errors)
 
 
