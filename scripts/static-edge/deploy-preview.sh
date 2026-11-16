@@ -5,9 +5,12 @@ set -euo pipefail
 cd "$(dirname "$0")/../.."
 
 PORT=8799
+DB_PORT=8798
 DEV_PID=
+DB_PID=
 cleanup() {
   test -z "$DEV_PID" || kill "$DEV_PID" 2>/dev/null || true
+  test -z "$DB_PID" || kill "$DB_PID" 2>/dev/null || true
   rm -f dist/server/.dev.vars
 }
 trap cleanup EXIT
@@ -17,12 +20,22 @@ for name in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID NEXT_PUBLIC_SUPABASE_URL 
 done
 
 npm run -s build
-# Price snapshot: previous copy from the live site plus only the new database rows.
-node scripts/static-edge/price-snapshot.mjs dist/client/snapshot
-node -e '
+# Every database read of this build goes through a local proxy: identical reads are
+# fetched once, and the first 402/5xx answer stops all further requests to the project.
+node scripts/static-edge/db-proxy.mjs "$DB_PORT" dist/db-proxy-stats.json > /tmp/dropped-db-proxy.log 2>&1 &
+DB_PID=$!
+for i in $(seq 1 20); do
+  curl -s -m 2 -o /dev/null "http://127.0.0.1:$DB_PORT/" && break
+  sleep 0.5
+done
+DB_PROXY="http://127.0.0.1:$DB_PORT"
+# Price snapshot: previous copy from the live site (or the committed seed) plus only the new rows.
+SUPABASE_URL="$DB_PROXY" node scripts/static-edge/price-snapshot.mjs dist/client/snapshot
+DB_PROXY="$DB_PROXY" node -e '
 const fs = require("fs");
 const names = ["NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_ANON_KEY", "SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY", "NEXT_PUBLIC_SITE_URL"];
-fs.writeFileSync("dist/server/.dev.vars", names.map(n => `${n}=${process.env[n] ?? ""}`).join("\n") + "\n", { mode: 0o600 });
+const value = (n) => (n.endsWith("SUPABASE_URL") ? process.env.DB_PROXY : process.env[n] ?? "");
+fs.writeFileSync("dist/server/.dev.vars", names.map(n => `${n}=${value(n)}`).join("\n") + "\n", { mode: 0o600 });
 '
 
 npx --no-install wrangler dev --config dist/server/wrangler.json --port "$PORT" --ip 127.0.0.1 --log-level error > /tmp/dropped-preview-dev.log 2>&1 &
@@ -40,6 +53,10 @@ HTML_COUNT=$(find dist/client/__static -maxdepth 1 -name '*.html' | wc -l)
 # so the minimum covers the editorial and store pages that never depend on the database.
 test "$HTML_COUNT" -ge 150 || { echo "Only $HTML_COUNT HTML pages rendered; refusing to deploy" >&2; exit 1; }
 node -e 'const h=require("crypto").createHash("sha1").update("/").digest("hex");require("fs").accessSync("dist/client/__static/"+h+".html")' || { echo "Home page was not stored; refusing to deploy" >&2; exit 1; }
+# Database use of this build (no secrets): requests, cache hits, bytes, circuit state.
+cat dist/db-proxy-stats.json 2>/dev/null || echo '{"requests":0}'
+echo
 cleanup
 DEV_PID=
+DB_PID=
 npx --no-install wrangler deploy --config dist/server/edge-wrangler.json
