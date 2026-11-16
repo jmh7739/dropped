@@ -140,7 +140,10 @@ class BatchedCollectionTests(unittest.TestCase):
                                 list_price=None, image_url="", product_url="", affiliate_url="", category_slug="food",
                                 mall_name=None, shipping_fee=None, unit_price=None, curated=False) for i in range(250)]
         fake = FakeClient(handler)
-        with patch.object(db.config, "DRY_RUN", False), patch.object(db, "client", lambda: fake),              patch.object(run, "SOURCES", [SimpleNamespace(__name__="sources.cps", fetch=lambda: raws)]),              patch.object(run.price_quality, "validate_price", return_value=("ok", [])):
+        sources = [SimpleNamespace(__name__="sources.cps", fetch=lambda: raws)]
+        with patch.object(db.config, "DRY_RUN", False), patch.object(db, "client", lambda: fake), \
+             patch.object(run, "SOURCES", sources), \
+             patch.object(run.price_quality, "validate_price", return_value=("ok", [])):
             db._category_cache.clear()
             db.start_price_state(self.path)
             _, scanned, _, _, errors, _ = run.collect_and_flag()
