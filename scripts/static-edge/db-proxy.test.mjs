@@ -27,7 +27,11 @@ test("a quota refusal opens the circuit so the project is not asked again", asyn
   let calls = 0;
   const p = await start(async () => { calls += 1; return new Response('{"message":"exceed_egress_quota"}', { status: 402 }); });
   assert.equal((await fetch(`${p.base}/rest/v1/a`)).status, 402);
-  for (const q of ["b", "c", "d"]) assert.equal((await fetch(`${p.base}/rest/v1/${q}`)).status, 503);
+  for (const q of ["b", "c", "d"]) {
+    const res = await fetch(`${p.base}/rest/v1/${q}`);
+    assert.equal(res.status, 402, "a status supabase-js does not retry");
+    assert.equal(res.headers.get("retry-after"), null);
+  }
   assert.equal(calls, 1);
   assert.equal(p.stats.refused, 3);
   await p.close();

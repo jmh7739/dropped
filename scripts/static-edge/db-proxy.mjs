@@ -2,7 +2,7 @@
 //  - Identical GET reads are answered once per build from memory (pages repeat the
 //    same listing queries hundreds of times).
 //  - The first 402 (quota) answer, or three server failures in a row, opens a circuit:
-//    every later request is refused locally, so a blocked project is asked once,
+//    every later request is refused locally (402/502, statuses the client does not retry), so a blocked project is asked once,
 //    and pages fall back to the static price snapshot.
 //  - Counts the bytes received from the database and writes them to a stats file.
 // Usage: node scripts/static-edge/db-proxy.mjs <port> <stats-file>   (env: SUPABASE_URL)
@@ -30,6 +30,7 @@ export function createProxy({ upstream, fetchImpl = fetch, onStats = () => {} })
     const cacheable = req.method === "GET" || req.method === "HEAD";
     if (cacheable && cache.has(key)) {
       stats.cacheHits += 1;
+      report();
       const hit = cache.get(key);
       res.writeHead(hit.status, hit.headers);
       res.end(req.method === "HEAD" ? undefined : hit.body);
@@ -37,7 +38,9 @@ export function createProxy({ upstream, fetchImpl = fetch, onStats = () => {} })
     }
     if (stats.circuit) {
       stats.refused += 1;
-      res.writeHead(503, { "content-type": "application/json", "retry-after": "3600" });
+      report();
+      // Not 503/520: supabase-js retries those (honouring Retry-After), which would stall the build.
+      res.writeHead(stats.circuit.startsWith("402") ? 402 : 502, { "content-type": "application/json" });
       res.end(JSON.stringify({ message: `database unavailable during this build (${stats.circuit})`, code: "BUILD_CIRCUIT_OPEN" }));
       return;
     }
