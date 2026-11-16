@@ -47,7 +47,7 @@ async function main() {
   assert.equal(isFreshPriceObservation('2026-10-11T12:00:00Z', fixedNow), false);
   assert.equal(stalePriceVerdict().title, '가격 재확인 필요');
   const { rowToDeal } = load('lib/deals.ts', {
-    './supabase': { supabase: null }, './types': {}, './dropMetrics': {}, './priceHistory': {}, './ttlCache': { withTtlCache: (_key, _ttl, load) => load() },
+    './supabase': { supabase: null }, './types': {}, './dropMetrics': {}, './priceHistory': {}, './priceSnapshot': noSnapshot, './ttlCache': { withTtlCache: (_key, _ttl, load) => load() },
     './format': { listDiscountRate }, './unitPrice': { deriveUnitPrice },
     './priceReport': { priceStats }, react: { cache: fn => fn },
   });
@@ -70,13 +70,36 @@ async function main() {
   ]);
   assert.equal(leanListing.historyPointCount, 2, 'listing history should supply observed-day evidence without a view aggregate');
   assert.equal(leanListing.trackedDays, 1, 'listing history should supply tracking duration without a view aggregate');
-  const failedQuery = { select() { return this; }, not() { return this; }, is() { return this; }, eq() { return this; }, then(resolve) { return Promise.resolve({ data: null, error: { code: '57014' } }).then(resolve); } };
+  const failedQuery = { select() { return this; }, not() { return this; }, is() { return this; }, eq() { return this; }, order() { return this; }, range() { return this; }, then(resolve) { return Promise.resolve({ data: null, error: { code: '57014' } }).then(resolve); } };
   const { getDeals: getFailedDeals, getCuratedDeals: getFailedCurated } = load('lib/deals.ts', {
-    './ttlCache': { withTtlCache: (_key, _ttl, load) => load() }, './supabase': { supabase: { from: () => failedQuery } }, './types': {}, './dropMetrics': {}, './priceHistory': {},
+    './ttlCache': { withTtlCache: (_key, _ttl, load) => load() }, './supabase': { supabase: { from: () => failedQuery } }, './types': {}, './dropMetrics': {}, './priceHistory': {}, './priceSnapshot': noSnapshot,
     './format': { listDiscountRate }, './unitPrice': { deriveUnitPrice }, './priceReport': { priceStats },
   });
   await assert.rejects(getFailedDeals(), /Deal listing unavailable: 57014/, 'a timed-out listing must not become zero deals');
-  await assert.rejects(getFailedCurated(), /Curated deal listing unavailable: 57014/, 'a timed-out curated listing must not become zero deals');
+  await assert.rejects(getFailedCurated(), /Deal listing unavailable: 57014/, 'a timed-out curated listing must not become zero deals');
+  // Listings, curated picks and related deals share one read of the active list.
+  let listingReads = 0;
+  const activeRows = [
+    { deal_id: 1, product_id: 1, platform: 'cps', title: '생수 2L 12병', category_slug: 'food', baseline_price: 100, current_price: 90, status: 'active', like_count: 40, checked_at: newer, detected_at: newer },
+    { deal_id: 2, product_id: 2, platform: 'aliexpress', title: '생수 500ml 40병', category_slug: 'food', baseline_price: null, list_price: 80, current_price: 50, status: 'active', like_count: 0, checked_at: newer, detected_at: newer },
+    { deal_id: 3, product_id: 3, platform: 'cps', title: 'USB 충전기', category_slug: 'digital', baseline_price: 200, current_price: 150, status: 'active', like_count: 0, checked_at: newer, detected_at: newer },
+  ];
+  const countingQuery = { select() { return this; }, eq() { return this; }, order() { return this; }, range() { return this; }, then(resolve) { listingReads += 1; return Promise.resolve({ data: activeRows, error: null }).then(resolve); } };
+  const { withTtlCache, clearTtlCache } = load('lib/ttlCache.ts');
+  clearTtlCache();
+  const shared = load('lib/deals.ts', {
+    './ttlCache': { withTtlCache }, './supabase': { supabase: { from: () => countingQuery } }, './types': { HOT_LIKE_THRESHOLD: 30 },
+    './dropMetrics': { headlineDropRate: () => 0, hotDealScore: () => 0, dropScore: () => ({}) }, './priceHistory': { readPriceHistory: async () => new Map() },
+    './priceSnapshot': noSnapshot, './format': { listDiscountRate }, './unitPrice': { deriveUnitPrice }, './priceReport': { priceStats },
+  });
+  const food = await shared.getDeals({ category: 'food' });
+  await shared.getDeals({ category: 'digital', hotOnly: true });
+  await shared.getDeals({ q: '충전기' });
+  const curated = await shared.getCuratedDeals('recent', 'food');
+  await shared.getRelatedDeals('food', 1, 6, '생수 2L 12병');
+  assert.equal(listingReads, 1, 'listing variants must not repeat the database read');
+  assert.equal(JSON.stringify(food.map(d => d.productId)), '[1]');
+  assert.equal(JSON.stringify(curated.map(d => d.productId)), '[2]');
   const newerView = rowToDeal({ deal_id: 2, product_id: 11166, platform: 'aliexpress', title: 'POLVCDG X9',
     current_price: 31000, avg30_price: 33000, discount_vs_avg: 6, is_lowest_ever: false,
     status: 'active', checked_at: newer, detected_at: earlier }, [

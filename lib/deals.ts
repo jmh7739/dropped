@@ -3,6 +3,7 @@ import { withTtlCache } from "./ttlCache";
 import { Deal, PricePoint, HOT_LIKE_THRESHOLD } from "./types";
 import { headlineDropRate, hotDealScore, dropScore } from "./dropMetrics";
 import { readPriceHistory } from "./priceHistory";
+import { getSnapshotProduct, toPricePoints } from "./priceSnapshot";
 import { listDiscountRate } from "./format";
 import { deriveUnitPrice } from "./unitPrice";
 import { priceStats } from "./priceReport";
@@ -314,6 +315,28 @@ export async function getDeals(opts: GetDealsOpts = {}): Promise<Deal[]> {
 }
 
 const DEAL_LIST_TTL_MS = 60_000;
+const ACTIVE_ROWS_TTL_MS = 300_000;
+
+/**
+ * All active deal rows (list columns only), read once per five minutes per isolate.
+ * "drop" = price-drop deals (baseline set), "curated" = MD picks (no baseline).
+ */
+async function activeDealRows(kind: "drop" | "curated" | "all"): Promise<any[]> {
+  const rows = await withTtlCache("active-deal-rows", ACTIVE_ROWS_TTL_MS, async () => {
+    if (!supabase) return [];
+    const out: any[] = [];
+    for (let offset = 0; offset < 5000; offset += 1000) {
+      const { data, error } = await supabase.from("v_active_deals").select(DEAL_LIST_COLUMNS)
+        .eq("status", "active").order("deal_id", { ascending: true }).range(offset, offset + 999);
+      if (error || !data) throw new Error(`Deal listing unavailable: ${error?.code ?? "empty response"}`);
+      out.push(...data);
+      if (data.length < 1000) break;
+    }
+    return out;
+  });
+  if (kind === "all") return rows;
+  return rows.filter((row) => (kind === "curated" ? row.baseline_price == null : row.baseline_price != null));
+}
 
 async function loadDeals(opts: GetDealsOpts): Promise<Deal[]> {
   const { category, sort = "discount", hotOnly = false, q, priceStatus, scope } = opts;
@@ -322,18 +345,14 @@ async function loadDeals(opts: GetDealsOpts): Promise<Deal[]> {
   // Supabase 미연결 시 빈 목록 (가짜 데이터 없음)
   if (!supabase) return [];
 
-  let query = supabase
-    .from("v_active_deals")
-    .select(DEAL_LIST_COLUMNS)
-    .not("baseline_price", "is", null) // 급락딜만(추천딜=baseline null은 제외)
-    .eq("status", "active");
-  if (category) query = query.eq("category_slug", category);
-  if (hotOnly) query = query.gte("like_count", HOT_LIKE_THRESHOLD);
-  if (term) query = query.ilike("title", `%${term}%`);
-  if (scope === "domestic") query = query.neq("platform", "aliexpress");
-  if (scope === "overseas") query = query.eq("platform", "aliexpress");
-  const { data, error } = await query;
-  if (error || !data) throw new Error(`Deal listing unavailable: ${error?.code ?? "empty response"}`);
+  // One read of the active list serves every category, filter and search term
+  // (filtered here), so a page view or a rebuild does not repeat the same query.
+  const data = (await activeDealRows("drop")).filter((row) =>
+    (!category || row.category_slug === category) &&
+    (!hotOnly || Number(row.like_count ?? 0) >= HOT_LIKE_THRESHOLD) &&
+    (!term || String(row.title ?? "").toLowerCase().includes(term)) &&
+    (scope !== "domestic" || row.platform !== "aliexpress") &&
+    (scope !== "overseas" || row.platform === "aliexpress"));
   // DB 상태가 active여도 수집기가 멈추면 품절·종료 상품이 계속 남을 수 있다.
   // 최근 72시간 안에 판매 페이지가 다시 확인된 상품만 목록에 노출한다.
   const history = await readPriceHistory(data.map(row => Number(row.product_id)), new Date(Date.now() - 90 * 86400000).toISOString());
@@ -353,14 +372,7 @@ export async function getCuratedDeals(
   category?: string
 ): Promise<Deal[]> {
   if (!supabase) return [];
-  let query = supabase
-    .from("v_active_deals")
-    .select(DEAL_LIST_COLUMNS)
-    .is("baseline_price", null)
-    .eq("status", "active");
-  if (category) query = query.eq("category_slug", category);
-  const { data, error } = await query;
-  if (error || !data) throw new Error(`Curated deal listing unavailable: ${error?.code ?? "empty response"}`);
+  const data = (await activeDealRows("curated")).filter((row) => !category || row.category_slug === category);
   const deals = dedupSimilar(
     data.filter(isTrustworthyCuratedPrice).map((row) => rowToDeal(row, [])).filter((deal) => recentlyChecked(deal)),
     sort,
@@ -431,14 +443,9 @@ export async function getRelatedDeals(
   referenceTitle = "",
 ): Promise<Deal[]> {
   if (!supabase || !categorySlug) return [];
-  const { data } = await supabase
-    .from("v_active_deals")
-    .select("*")
-    .eq("category_slug", categorySlug)
-    .eq("status", "active")
-    .neq("product_id", excludeProductId)
-    .limit(limit * 3);
-  if (!data) return [];
+  // Shares the cached active list with the listings instead of one query per product page.
+  const data = (await activeDealRows("all"))
+    .filter((row) => row.category_slug === categorySlug && Number(row.product_id) !== excludeProductId);
   // A second tracking row for the same visible product can carry a different
   // observation age and price. Do not present it as an alternative deal.
   const titleKey = (title: string) => title.normalize('NFKC').toLocaleLowerCase('ko').replace(/[^0-9a-z가-힣]+/gi, '');
@@ -478,8 +485,15 @@ export async function getRelatedDeals(
   const comparable = referenceFamily
     ? deals.filter((deal) => referenceFamily.test(deal.title))
     : deals.filter((deal) => sharesKeyword(deal.title));
+  // Price statistics for the score come from the static snapshot (no database read).
+  const rowsById = new Map(data.map((row) => [Number(row.product_id), row]));
+  const scored = await Promise.all(comparable.map(async (deal) => {
+    const snap = await getSnapshotProduct(deal.productId).catch(() => null);
+    const row = rowsById.get(deal.productId);
+    return snap?.history.length && row ? rowToDeal(row, toPricePoints(snap.history)) : deal;
+  }));
   return diversifyTop(
-    comparable.sort((a, b) => hotDealScore(b) - hotDealScore(a)),
+    scored.sort((a, b) => hotDealScore(b) - hotDealScore(a)),
     limit,
     limit,
   );
