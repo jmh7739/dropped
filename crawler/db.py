@@ -45,8 +45,41 @@ def normalize_title(raw: str) -> str:
     return text[:180]
 
 
+class DatabaseBlocked(RuntimeError):
+    """The project refused service (HTTP 402 quota). Further requests are not sent."""
+
+
+_blocked: Optional[str] = None
+
+
+def is_quota_error(error: BaseException) -> bool:
+    code = getattr(error, "code", None)
+    text = str(error)
+    return str(code) == "402" or "exceed_egress_quota" in text or "'code': 402" in text
+
+
+def note_error(error: BaseException) -> None:
+    """A 402 answer stops every later request of this run (no hammering a blocked project)."""
+    global _blocked
+    if isinstance(error, DatabaseBlocked):
+        return
+    if is_quota_error(error):
+        _blocked = "database quota exceeded (HTTP 402)"
+
+
+def blocked() -> Optional[str]:
+    return _blocked
+
+
+def _minimal():
+    from postgrest.types import ReturnMethod
+    return ReturnMethod.minimal
+
+
 def client():
     global _client
+    if _blocked:
+        raise DatabaseBlocked(_blocked)
     if _client is None:
         from supabase import create_client
         _client = create_client(
@@ -86,19 +119,102 @@ def upsert_product(raw) -> Optional[int]:
         "shipping_fee": raw.shipping_fee,
         "unit_price": raw.unit_price,
     }
+    # Only the id comes back (not the whole row with its long URLs).
     res = (
         client()
         .table("products")
         .upsert(payload, on_conflict="platform,external_product_id")
+        .select("id")
         .execute()
     )
-    return res.data[0]["id"] if res.data else None
+    product_id = res.data[0]["id"] if res.data else None
+    if product_id is not None and _state is not None:
+        _state.touch(product_id, _now())
+    return product_id
+
+
+# ── 실행 사이 가격 기억(price_state) ──────────────────────────
+_state = None
+
+
+def _now() -> int:
+    return int(time.time())
+
+
+def _paged(read_page: Callable[[int, int], list[dict]], limit: int = 200_000) -> list[dict]:
+    out: list[dict] = []
+    for offset in range(0, limit, 1000):
+        rows = _read_with_retry(lambda: read_page(offset, offset + 999))
+        out.extend(rows)
+        if len(rows) < 1000:
+            break
+    return out
+
+
+def start_price_state(path: str) -> str:
+    """지난 실행의 가격 기억을 읽고, 그 뒤에 쌓인 price_history 행만 합친다."""
+    global _state
+    if config.DRY_RUN:
+        return "dry-run"
+    from price_state import PriceState
+    now = _now()
+    state = PriceState(path)
+    status = "cold"
+    if state.load(now):
+        since = state.delta_since()
+        try:
+            rows = _paged(lambda lo, hi: (
+                client().table("price_history").select("product_id,price,collected_at")
+                .gte("collected_at", since).order("collected_at").order("id")
+                .range(lo, hi).execute().data
+            ))
+            state.merge_rows(rows)
+            status = f"warm ({len(state.products)} products, {len(rows)} new rows)"
+        except Exception as e:
+            note_error(e)
+            if _blocked:
+                raise DatabaseBlocked(_blocked) from e
+            state = PriceState(path)
+            status = f"cold (delta read failed: {type(e).__name__})"
+    # Rows inserted after this moment by others are read next time (with overlap).
+    state.synced_at = now
+    _state = state
+    return status
+
+
+def save_price_state() -> None:
+    if _state is not None:
+        _state.save(_now())
+
+
+def _ensure_state(product_id: int) -> bool:
+    """기억에 없는 상품이면 그 상품의 90일 이력과 첫 관측일을 한 번 읽는다."""
+    if _state is None:
+        return False
+    if _state.has(product_id):
+        return True
+    from datetime import datetime, timedelta, timezone
+    from price_state import epoch
+    since = (datetime.now(timezone.utc) - timedelta(days=config.BASELINE_WINDOW_DAYS)).isoformat()
+    rows = _read_with_retry(lambda: (
+        client().table("price_history").select("price,collected_at")
+        .eq("product_id", product_id).gte("collected_at", since)
+        .order("collected_at").limit(1000).execute().data
+    ))
+    first_row = _read_with_retry(lambda: (
+        client().table("price_history").select("collected_at")
+        .eq("product_id", product_id).order("collected_at").limit(1).execute().data
+    ))
+    _state.put(product_id, epoch(first_row[0]["collected_at"]) if first_row else None, rows, _now())
+    return True
 
 
 def recent_prices(product_id: int) -> list[int]:
     """최근 BASELINE_WINDOW_DAYS 내 가격 이력."""
     if config.DRY_RUN:
         return []
+    if _ensure_state(product_id):
+        return _state.recent_prices(product_id, _now() - config.BASELINE_WINDOW_DAYS * 86400)
     from datetime import datetime, timedelta, timezone
     since = (
         datetime.now(timezone.utc)
@@ -120,6 +236,10 @@ def latest_prices(product_id: int, k: int) -> list[int]:
     """가장 최근 k개 가격(최신순). 종료 판정용 — 단일 blip에 안 흔들리게."""
     if config.DRY_RUN:
         return []
+    if _ensure_state(product_id):
+        remembered = _state.latest_prices(product_id, k)
+        if remembered:
+            return remembered
     rows = _read_with_retry(lambda: (
         client().table("price_history").select("price")
         .eq("product_id", product_id).order("collected_at", desc=True)
@@ -132,6 +252,9 @@ def history_days(product_id: int) -> float:
     """가격 이력이 걸쳐있는 기간(일). 이력 없으면 0."""
     if config.DRY_RUN:
         return 0.0
+    if _ensure_state(product_id):
+        first = _state.first(product_id)
+        return max(0.0, (_now() - first) / 86400) if first else 0.0
     rows = _read_with_retry(lambda: (
         client()
         .table("price_history")
@@ -164,6 +287,18 @@ def insert_price(product_id: int, price: int) -> None:
     # 동일 가격을 수집 주기마다 계속 저장하면 자주 실행된 날이 평균을 과도하게
     # 좌우한다. 같은 한국 날짜에는 한 번만 저장하고, 다음 날짜에 다시 실제로
     # 관측됐다면 24시간이 채 지나지 않았어도 새 관측으로 남긴다.
+    if _ensure_state(product_id):
+        from datetime import datetime, timezone
+        last = _state.last(product_id)
+        now = datetime.now(timezone.utc)
+        if last and last[1] == price and same_kst_observation_day(datetime.fromtimestamp(last[0], timezone.utc), now):
+            return
+        # The database time of the new row is remembered exactly (a few bytes back).
+        res = client().table("price_history").insert(
+            {"product_id": product_id, "price": price}
+        ).select("collected_at").execute()
+        _state.record(product_id, res.data[0]["collected_at"] if res.data else None, price, _now())
+        return
     latest = _read_with_retry(lambda: (
         client()
         .table("price_history")
@@ -180,7 +315,7 @@ def insert_price(product_id: int, price: int) -> None:
         if same_kst_observation_day(observed, datetime.now(timezone.utc)):
             return
     client().table("price_history").insert(
-        {"product_id": product_id, "price": price}
+        {"product_id": product_id, "price": price}, returning=_minimal()
     ).execute()
 
 
@@ -220,9 +355,9 @@ def upsert_active_deal(product_id: int, fields: dict) -> None:
             and new_price <= old_price * (1 - config.REDROP_REFRESH)
         ):
             body["detected_at"] = now
-        client().table("hot_deals").update(body).eq("id", prev["id"]).execute()
+        client().table("hot_deals").update(body, returning=_minimal()).eq("id", prev["id"]).execute()
     else:
-        client().table("hot_deals").insert(body).execute()
+        client().table("hot_deals").insert(body, returning=_minimal()).execute()
 
 
 def active_deals() -> list[dict]:
@@ -241,7 +376,8 @@ def end_deal(deal_id: int) -> None:
         return
     from datetime import datetime, timezone
     client().table("hot_deals").update(
-        {"status": "ended", "ended_at": datetime.now(timezone.utc).isoformat()}
+        {"status": "ended", "ended_at": datetime.now(timezone.utc).isoformat()},
+        returning=_minimal(),
     ).eq("id", deal_id).execute()
 
 
@@ -270,7 +406,7 @@ def upsert_flight_deal(item) -> None:
     if item.price:
         try:
             client().table("flight_price_history").insert(
-                {"external_id": item.external_id, "price": item.price}
+                {"external_id": item.external_id, "price": item.price}, returning=_minimal()
             ).execute()
             hist = (
                 client()
@@ -306,13 +442,13 @@ def upsert_flight_deal(item) -> None:
         body["baseline_price"] = baseline
     try:
         client().table("flight_deals").upsert(
-            body, on_conflict="source,external_id"
+            body, on_conflict="source,external_id", returning=_minimal()
         ).execute()
     except Exception:
         # baseline_price 컬럼이 아직 없으면 빼고 재시도(마이그레이션 전 호환).
         body.pop("baseline_price", None)
         client().table("flight_deals").upsert(
-            body, on_conflict="source,external_id"
+            body, on_conflict="source,external_id", returning=_minimal()
         ).execute()
 
 
@@ -365,12 +501,12 @@ def upsert_auction_deal(item) -> None:
     }
     tbl = client().table("auction_deals")
     try:
-        tbl.upsert(payload, on_conflict="source,external_id").execute()
+        tbl.upsert(payload, on_conflict="source,external_id", returning=_minimal()).execute()
     except Exception:
         # 마이그레이션(bid_start_date/bid_end_date 컬럼) 전이면 해당 컬럼 없이 재시도
         for k in ("bid_start_date", "bid_end_date"):
             payload.pop(k, None)
-        tbl.upsert(payload, on_conflict="source,external_id").execute()
+        tbl.upsert(payload, on_conflict="source,external_id", returning=_minimal()).execute()
 
 
 def prune_old_auction() -> None:

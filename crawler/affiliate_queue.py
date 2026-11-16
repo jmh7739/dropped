@@ -12,6 +12,8 @@ import config
 import db
 from sources import coupang
 
+_MINIMAL = db._minimal()
+
 
 def eligible_product_url(raw: object) -> bool:
     if not isinstance(raw, str):
@@ -40,17 +42,17 @@ def process_pending(limit: int = 100) -> int:
         product_id = row.get("product_id")
         external_id = row.get("external_product_id")
         if product_id:
-            client.table("products").update({"affiliate_url": affiliate_url}).eq("id", product_id).execute()
-            client.table("trending_products").update({"is_active": True}).eq("product_id", product_id).execute()
+            client.table("products").update({"affiliate_url": affiliate_url}, returning=_MINIMAL).eq("id", product_id).execute()
+            client.table("trending_products").update({"is_active": True}, returning=_MINIMAL).eq("product_id", product_id).execute()
         elif external_id:
-            client.table("products").update({"affiliate_url": affiliate_url}).eq("platform", "coupang").eq("external_product_id", external_id).execute()
+            client.table("products").update({"affiliate_url": affiliate_url}, returning=_MINIMAL).eq("platform", "coupang").eq("external_product_id", external_id).execute()
         else:
             continue
         client.table("affiliate_queue").update({
             "status": "success", "affiliate_url": affiliate_url, "error": None,
             "attempts": int(row.get("attempts") or 0) + 1,
             "updated_at": datetime.now(timezone.utc).isoformat(),
-        }).eq("id", row["id"]).eq("status", "pending").execute()
+        }, returning=_MINIMAL).eq("id", row["id"]).eq("status", "pending").execute()
         completed += 1
     if completed:
         active = (client.table("trending_products").select("product_id")
@@ -58,7 +60,7 @@ def process_pending(limit: int = 100) -> int:
             .order("product_score", desc=True).execute().data or [])
         overflow = [row["product_id"] for row in active[30:]]
         if overflow:
-            client.table("trending_products").update({"is_active": False}).in_("product_id", overflow).execute()
+            client.table("trending_products").update({"is_active": False}, returning=_MINIMAL).in_("product_id", overflow).execute()
     print(f"[affiliate_queue] product queue {len(eligible)} checked, {completed} converted")
     if eligible and not links:
         raise RuntimeError("쿠팡 공식 딥링크 API가 상품 제휴주소를 반환하지 않았습니다")

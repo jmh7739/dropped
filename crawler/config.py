@@ -189,3 +189,6 @@ REQUEST_DELAY_RANGE = (2, 5)    # 요청 간 랜덤 딜레이(초)
 
 # DRY_RUN: Supabase 미연결이면 True → 수집은 하되 DB 기록은 건너뜀
 DRY_RUN = not (SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY)
+
+# 실행 사이 가격 기억 파일(GitHub Actions cache로 보존). 없으면 DB에서 상품별로 읽는다.
+PRICE_STATE_PATH = os.getenv("CRAWLER_PRICE_STATE", str(Path(__file__).resolve().parent / ".state" / "price-state.json.gz"))

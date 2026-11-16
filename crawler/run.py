@@ -131,6 +131,12 @@ def collect_and_flag() -> tuple[int, int, set[int], set[int], list[str], int]:
                 if process(raw):
                     flagged += 1
             except Exception as e:
+                db.note_error(e)
+                if db.blocked():
+                    # 402: 남은 항목을 하나씩 다시 보내지 않는다.
+                    print(f"[{name}] DB 차단({db.blocked()}) → 남은 수집 저장 중단")
+                    errors.append("database_blocked")
+                    return flagged, scanned, flagged_ids, curated_ids, sorted(set(errors)), healthy_sources
                 print(f"[{name}] 항목 처리 실패 → 건너뜀: {type(e).__name__}: {e}")
                 errors.append(f"{name}:item")
 
@@ -194,6 +200,10 @@ def _safe(label: str, fn) -> bool:
         fn()
         return True
     except Exception as e:
+        db.note_error(e)
+        if isinstance(e, db.DatabaseBlocked):
+            print(f"[{label}] DB 차단 중 → 건너뜀 (요청 보내지 않음)")
+            return False
         print(f"[{label}] 실패 → 건너뜀: {type(e).__name__}: {e}")
         traceback.print_exc()
         return False
@@ -202,6 +212,23 @@ def _safe(label: str, fn) -> bool:
 def main() -> None:
     mode = "DRY_RUN(DB 미기록)" if config.DRY_RUN else "LIVE"
     print(f"=== 핫딜 수집 시작 [{mode}] ===")
+    try:
+        _run()
+    finally:
+        # 이번 실행이 넣은 가격까지 다음 실행이 DB에서 다시 받지 않게 기억을 남긴다.
+        _safe("price_state_save", db.save_price_state)
+
+
+def _run() -> None:
+    try:
+        print(f"[price_state] {db.start_price_state(config.PRICE_STATE_PATH)}")
+    except db.DatabaseBlocked as e:
+        raise RuntimeError(f"수집 중단: {e} — 할당량이 풀릴 때까지 DB 요청을 보내지 않음") from e
+    except Exception as e:
+        db.note_error(e)
+        if db.blocked():
+            raise RuntimeError(f"수집 중단: {db.blocked()}") from e
+        print(f"[price_state] 사용 안 함 → 상품별 조회: {type(e).__name__}: {e}")
 
     # 상품 제휴주소는 공식 딥링크 결과가 확인된 항목만 활성화한다.
     affiliate_ok = _safe("affiliate_queue", affiliate_queue.process_pending)
@@ -257,6 +284,8 @@ def ping_indexnow() -> None:
 
 
 def collect_flights() -> int:
+    if db.blocked():
+        return 0
     # 항공은 캐시 요금이라 매 실행마다 안 돎 — 최근 수집이 N시간 내면 건너뜀
     if not config.DRY_RUN and db.flight_fresh_within(config.FLIGHT_SCAN_INTERVAL_HOURS):
         print(f"[flights] 최근 {config.FLIGHT_SCAN_INTERVAL_HOURS}h 내 수집됨 → 건너뜀")
@@ -272,6 +301,8 @@ def collect_flights() -> int:
 
 
 def collect_auction() -> int:
+    if db.blocked():
+        return 0
     items = auction.fetch()
     for it in items:
         db.upsert_auction_deal(it)

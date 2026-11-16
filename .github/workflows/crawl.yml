@@ -9,6 +9,8 @@ on:
     - cron: "23 * * * *"
   workflow_dispatch: {} # 수동 실행 버튼
   push:
+    # 작업 브랜치에 올린 수집기 수정이 DB를 두드리지 않도록 main 푸시에만 실행한다.
+    branches: [main]
     paths:
       - '.github/workflows/crawl.yml'
       - 'crawler/config.py'
@@ -35,6 +37,15 @@ jobs:
         working-directory: crawler
         run: pip install -r requirements.txt
 
+      # 실행 사이 가격 기억(상품별 90일 이력·마지막 관측). 이 파일이 있으면
+      # 수집기는 지난 실행 뒤 새로 쌓인 price_history 행만 DB에서 읽는다.
+      - name: Restore price memory
+        uses: actions/cache/restore@v4
+        with:
+          path: crawler/.state
+          key: crawler-price-state-${{ github.run_id }}
+          restore-keys: crawler-price-state-
+
       - name: Run crawler
         working-directory: crawler
         env:
@@ -50,3 +61,10 @@ jobs:
           TRAVELPAYOUTS_MARKER: ${{ secrets.TRAVELPAYOUTS_MARKER }}
           DATA_GO_KR_KEY: ${{ secrets.DATA_GO_KR_KEY }}
         run: python run.py
+
+      - name: Save price memory
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: crawler/.state
+          key: crawler-price-state-${{ github.run_id }}-${{ github.run_attempt }}
