@@ -49,3 +49,6 @@ dropped-trend-bot/**/.env.local
 supabase/.temp/
 
 /.sites-runtime/
+
+# crawler price memory (kept in the GitHub Actions cache, not in git)
+crawler/.state/
