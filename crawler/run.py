@@ -255,6 +255,14 @@ def main() -> None:
     print(f"=== 핫딜 수집 시작 [{mode}] ===")
     try:
         _run()
+    except RuntimeError:
+        # The database refuses every request while the free plan's data quota is used up.
+        # That is a known pause, not a crawler bug: warn and end cleanly so the hourly run
+        # does not send a failure e-mail each hour. Any other failure still fails the run.
+        if db.blocked():
+            print(f"::warning::DB 사용량 한도로 저장을 건너뜀 ({db.blocked()}), 한도 초기화 후 자동 재개")
+            return
+        raise
     finally:
         # 이번 실행이 넣은 가격까지 다음 실행이 DB에서 다시 받지 않게 기억을 남긴다.
         _safe("price_state_save", db.save_price_state)

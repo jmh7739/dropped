@@ -290,6 +290,21 @@ async function main() {
   else throw new Error("사용법: node src/worker.js realtime|products|all");
 }
 
-if (require.main === module) main().catch(error => { console.error(error); process.exitCode = 1; });
+// The database refuses all requests while the free plan's data quota is used up (HTTP 402).
+// That is a known pause, not a bug: warn once and end cleanly so the hourly run does not
+// send a failure e-mail every hour. Every other error still fails the run.
+function isQuotaRefusal(error) {
+  const text = `${error && (error.message || error.hint || error.details || "")} ${error && (error.code || error.status || "")}`;
+  return /exceed_egress_quota|quota exceeded|restricted due to the following violations|\b402\b/i.test(text);
+}
 
-module.exports = { getDb, runRealtimeTrendUpdate, runTrendingProductsUpdate, saveRealtimeTrends, saveTrendingProducts };
+if (require.main === module) main().catch(error => {
+  if (isQuotaRefusal(error)) {
+    console.log("::warning::Supabase 사용량 한도로 저장을 건너뜀 (수집은 정상, 한도 초기화 후 자동 재개)");
+    return;
+  }
+  console.error(error);
+  process.exitCode = 1;
+});
+
+module.exports = { isQuotaRefusal, getDb, runRealtimeTrendUpdate, runTrendingProductsUpdate, saveRealtimeTrends, saveTrendingProducts };
