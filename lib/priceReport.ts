@@ -89,6 +89,11 @@ export function priceStats(
   };
 }
 
+export function isPricePageIndexable(enoughData: boolean, observedAt: string | null, now = Date.now()): boolean {
+  const checked = observedAt ? Date.parse(observedAt) : NaN;
+  return enoughData && Number.isFinite(checked) && checked <= now && now - checked <= 14 * 86400000;
+}
+
 export type VerdictTier = "buy" | "ok" | "wait";
 export type Verdict = {
   tier: VerdictTier;

@@ -5,7 +5,7 @@ import type { Metadata } from "next";
 import { getProductReport } from "@/lib/products";
 import { getRelatedDeals } from "@/lib/deals";
 import { formatWon, timeAgo, observedAtLabel } from "@/lib/format";
-import { priceStats, buyVerdict, isFreshPriceObservation, stalePriceVerdict, dailyPricePoints } from "@/lib/priceReport";
+import { priceStats, buyVerdict, isFreshPriceObservation, stalePriceVerdict, dailyPricePoints, isPricePageIndexable } from "@/lib/priceReport";
 import { PLATFORM_LABEL, Platform } from "@/lib/types";
 import { dropScore } from "@/lib/dropMetrics";
 import PriceChart from "@/components/PriceChart";
@@ -50,8 +50,7 @@ export async function generateMetadata({
   if (!r) return withOg({ title: "상품을 찾을 수 없음", robots: { index: false, follow: false } });
   const canonical = `${SITE}/price/${r.id}`;
   const stats = r.currentPrice == null ? null : priceStats(r.history, r.currentPrice);
-  const lastCheck = r.lastCheckedAt ? new Date(r.lastCheckedAt).getTime() : 0;
-  const indexable = Boolean(stats?.enoughData && lastCheck > 0 && Date.now() - lastCheck <= 14 * 86400000);
+  const indexable = isPricePageIndexable(stats?.enoughData ?? false, r.lastCheckedAt);
   const period = stats ? `추적 ${stats.trackedDays}일 · ${stats.points}회 가격 확인 · 서로 다른 날짜 ${stats.observedDays}일` : "가격 이력 수집 중";
   const displayTitle = productDisplayTitle(leadWithProductName(r.title));
   return withOg({

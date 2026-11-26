@@ -9,7 +9,7 @@ import { CATEGORIES } from "@/lib/types";
 import { headlineDropRate, isVerifiedBestDeal } from "@/lib/dropMetrics";
 import { GUIDES } from "@/lib/guides";
 import { getPriceInsights } from "@/lib/insights";
-import { priceStats } from "@/lib/priceReport";
+import { priceStats, isPricePageIndexable } from "@/lib/priceReport";
 import { readPriceHistory } from "@/lib/priceHistory";
 import { supabase } from "@/lib/supabase";
 import { GUIDE_UPDATED } from "@/lib/guideMeta";
@@ -112,9 +112,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       for (const [id, history] of histories) {
         const latest = history.at(-1);
         if (!latest) continue;
-        const checked = new Date(latest.collectedAt).getTime();
         const stats = priceStats(history, latest.price);
-        if (stats?.enoughData && Number.isFinite(checked) && Date.now() - checked <= 14 * 86400000) {
+        if (isPricePageIndexable(stats?.enoughData ?? false, latest.collectedAt)) {
           indexableProducts.set(id, latest.collectedAt);
         }
       }
@@ -124,7 +123,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   } }));
   const snapshot = await getSnapshotIndex();
   for (const [id, entry] of Object.entries(snapshot?.products ?? {})) {
-    if (entry.points > 0 && entry.lastCheckedAt && !indexableProducts.has(Number(id))) {
+    // The snapshot writer stores at most one observation per Korean date.
+    const span = Date.parse(entry.lastCheckedAt ?? "") - Date.parse(entry.firstCheckedAt ?? "");
+    if (entry.lastCheckedAt && isPricePageIndexable(entry.points >= 14 && span >= 14 * 86400000, entry.lastCheckedAt) && !indexableProducts.has(Number(id))) {
       indexableProducts.set(Number(id), entry.lastCheckedAt);
     }
   }
@@ -141,7 +142,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Insight reports use the same product-history data as /price/[id]. Include
   // them when the deal view's history was too sparse to qualify above.
   const insightRoutes: MetadataRoute.Sitemap = insights
-    .filter(({ product }) => !indexableProducts.has(product.id))
+    .filter(({ product }) => !indexableProducts.has(product.id) &&
+      isPricePageIndexable(product.currentPrice != null && Boolean(priceStats(product.history, product.currentPrice)?.enoughData), product.lastCheckedAt))
     .map(({ product }) => ({
       url: `${SITE_URL}/price/${product.id}`,
       lastModified: product.lastCheckedAt ?? undefined,
