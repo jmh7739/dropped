@@ -123,9 +123,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   } }));
   const snapshot = await getSnapshotIndex();
   for (const [id, entry] of Object.entries(snapshot?.products ?? {})) {
-    // The snapshot writer stores at most one observation per Korean date.
+    // Older snapshots retain at most two observations per Korean date.
+    const observedDays = entry.observedDays ?? Math.ceil(entry.points / 2);
     const span = Date.parse(entry.lastCheckedAt ?? "") - Date.parse(entry.firstCheckedAt ?? "");
-    if (entry.lastCheckedAt && isPricePageIndexable(entry.points >= 14 && span >= 14 * 86400000, entry.lastCheckedAt) && !indexableProducts.has(Number(id))) {
+    if (entry.lastCheckedAt && isPricePageIndexable(observedDays >= 14 && span >= 14 * 86400000, entry.lastCheckedAt) && !indexableProducts.has(Number(id))) {
       indexableProducts.set(Number(id), entry.lastCheckedAt);
     }
   }

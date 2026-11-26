@@ -200,6 +200,7 @@ export function write(snap) {
       lastCheckedAt: last ? new Date(last[0] * 1000).toISOString() : null,
       firstCheckedAt: first ? new Date(first[0] * 1000).toISOString() : null,
       points: p.history.length,
+      observedDays: new Set(p.history.map(([t]) => kstDay(t))).size,
     };
   }
   fs.writeFileSync(path.join(outDir, "index.json"), JSON.stringify(index));

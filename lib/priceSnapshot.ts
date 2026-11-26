@@ -39,6 +39,7 @@ export type SnapshotIndexEntry = {
   lastCheckedAt: string | null;
   firstCheckedAt: string | null;
   points: number;
+  observedDays?: number;
 };
 
 export type SnapshotIndex = {
