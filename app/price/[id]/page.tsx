@@ -155,6 +155,8 @@ export default async function ProductPricePage({
     },
   } : null;
   const analysis = stats && currentPrice != null ? analyzePriceHistory(r.history, stats) : null;
+  const dailyHistory = dailyPricePoints(r.history);
+  const recentObservedDays = dailyHistory.slice(-7).reverse();
   const buyPrograms = affiliatePrograms([{ url: r.affiliateUrl, platform: r.platform }]);
   const relatedPrograms = affiliatePrograms(relatedDeals.map((d) => ({ url: d.affiliateUrl, platform: d.platform })))
     .filter((p) => !buyPrograms.includes(p));
@@ -351,7 +353,19 @@ export default async function ProductPricePage({
         <h2 className="mb-2 text-base font-bold">📉 가격 변동 그래프</h2>
         <div className="rounded-xl border border-gray-200 bg-white p-4">
           {/* 하루 대표가격만 넘겨 페이지에 실리는 데이터를 줄인다(차트도 같은 기준으로 계산). */}
-          <PriceChart history={dailyPricePoints(r.history)} referenceTime={Date.now()} />
+          <PriceChart history={dailyHistory} referenceTime={Date.now()} />
+          {recentObservedDays.length > 1 && <details className="mt-4 rounded-lg border border-gray-200 p-4">
+            <summary className="cursor-pointer font-bold">최근 관측일별 가격을 표로 보기</summary>
+            <p className="mt-2 text-sm text-gray-700">한국시간 기준 최근 관측일을 최대 7일 표시합니다. 같은 날 여러 번 관측했다면 저장된 기록의 중앙값을 사용합니다. 관측이 없는 날은 표에도 없습니다.</p>
+            <table className="mt-3 w-full text-left text-sm">
+              <caption className="sr-only">최근 관측일과 날짜별 대표 가격</caption>
+              <thead><tr className="border-b"><th scope="col" className="py-2">관측일</th><th scope="col" className="py-2">대표 가격</th></tr></thead>
+              <tbody>{recentObservedDays.map(point => <tr key={point.collectedAt} className="border-b border-gray-100">
+                <th scope="row" className="py-2 font-normal">{new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', dateStyle: 'medium' }).format(new Date(point.collectedAt))}</th>
+                <td className="py-2">{formatWon(point.price)}</td>
+              </tr>)}</tbody>
+            </table>
+          </details>}
         </div>
       </section>}
 
